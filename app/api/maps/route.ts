@@ -30,6 +30,10 @@ export async function POST(req: NextRequest) {
     if (!session_id || !name) {
       return NextResponse.json({ error: 'session_id and name required' }, { status: 400 });
     }
+    const VALID_GRID_TYPES = new Set(['square', 'hex']);
+    if (!VALID_GRID_TYPES.has(grid_type)) {
+      return NextResponse.json({ error: 'Invalid grid_type' }, { status: 400 });
+    }
 
     const id = crypto.randomUUID();
     const now = Date.now();

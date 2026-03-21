@@ -24,21 +24,27 @@ export async function GET(_req: NextRequest, { params }: Params) {
 }
 
 // PATCH /api/maps/[id] — update metadata / grid settings
-const ALLOWED = new Set([
-  'name', 'grid_type', 'cols', 'rows', 'offset_x',
-  'offset_y', 'tile_px', 'hex_orientation',
-]);
+const PATCH_FIELDS: Record<string, string> = {
+  name: 'name',
+  grid_type: 'grid_type',
+  cols: 'cols',
+  rows: 'rows',
+  offset_x: 'offset_x',
+  offset_y: 'offset_y',
+  tile_px: 'tile_px',
+  hex_orientation: 'hex_orientation',
+};
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     await ensureSchema();
     const { id } = await params;
     const body = await req.json();
-    const keys = Object.keys(body).filter(k => ALLOWED.has(k));
+    const keys = Object.keys(body).filter(k => k in PATCH_FIELDS);
     if (keys.length === 0) {
       return NextResponse.json({ error: 'No valid fields' }, { status: 400 });
     }
-    const setClauses = keys.map((k, i) => `${k} = $${i + 2}`).join(', ');
+    const setClauses = keys.map((k, i) => `${PATCH_FIELDS[k]} = $${i + 2}`).join(', ');
     const values = keys.map(k => body[k]);
     await query(`UPDATE maps SET ${setClauses} WHERE id = $1`, [id, ...values]);
     return NextResponse.json({ ok: true });
@@ -53,8 +59,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   try {
     await ensureSchema();
     const { id } = await params;
-    const [map] = await query<MapRow>('SELECT image_path FROM maps WHERE id = $1', [id]);
-    await query('DELETE FROM maps WHERE id = $1', [id]);
+    const [map] = await query<{ image_path: string }>('DELETE FROM maps WHERE id = $1 RETURNING image_path', [id]);
     if (map?.image_path) {
       try {
         await unlink(join(MAPS_DIR, map.image_path));
