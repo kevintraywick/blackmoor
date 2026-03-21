@@ -66,9 +66,10 @@ async function _initSchema() {
       grid_type       TEXT NOT NULL DEFAULT 'square',
       cols            INTEGER NOT NULL DEFAULT 20,
       rows            INTEGER NOT NULL DEFAULT 15,
-      offset_x        REAL NOT NULL DEFAULT 0,
-      offset_y        REAL NOT NULL DEFAULT 0,
-      tile_px         REAL NOT NULL DEFAULT 40,
+      offset_x        DOUBLE PRECISION NOT NULL DEFAULT 0,
+      offset_y        DOUBLE PRECISION NOT NULL DEFAULT 0,
+      tile_px         DOUBLE PRECISION NOT NULL DEFAULT 40,
+      -- ignored when grid_type = 'square'
       hex_orientation TEXT NOT NULL DEFAULT 'flat',
       revealed_tiles  JSONB NOT NULL DEFAULT '[]',
       dm_notes        JSONB NOT NULL DEFAULT '[]',
@@ -76,6 +77,10 @@ async function _initSchema() {
       created_at      BIGINT NOT NULL DEFAULT 0
     )
   `);
+
+  await pool.query(`ALTER TABLE maps ALTER COLUMN offset_x TYPE DOUBLE PRECISION`).catch(() => {});
+  await pool.query(`ALTER TABLE maps ALTER COLUMN offset_y TYPE DOUBLE PRECISION`).catch(() => {});
+  await pool.query(`ALTER TABLE maps ALTER COLUMN tile_px TYPE DOUBLE PRECISION`).catch(() => {});
 
   await pool.query(`
     CREATE INDEX IF NOT EXISTS maps_session_id_idx
