@@ -14,7 +14,7 @@ import PlayerCircles from '@/components/PlayerCircle';
 // Fetch sessions at request time (not cached) so the list is always fresh
 async function getSessions() {
   await ensureSchema();
-  return query('SELECT * FROM sessions ORDER BY sort_order ASC, number ASC');
+  return query<Session>('SELECT * FROM sessions ORDER BY sort_order ASC, number ASC');
 }
 
 export default async function HomePage() {
@@ -40,7 +40,7 @@ export default async function HomePage() {
       <nav className="absolute top-4 left-4 flex flex-col gap-2 max-h-[calc(100vh-2rem)] overflow-y-auto z-10">
 
         {/* Session list with drag-reorder (client component handles interactivity) */}
-        <SessionList initial={sessions as unknown as Session[]} />
+        <SessionList initial={sessions} />
 
         {/* Page nav links */}
         <div className="mt-5 flex flex-col gap-1">

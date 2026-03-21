@@ -2,33 +2,14 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { PLAYERS } from '@/components/PlayerSheet';
 
-interface Player {
-  id: string;
-  character: string; // character name shown under the circle
-  initial: string;   // fallback letter if no portrait
-}
-
-// The six campaign players — update here when roster changes
-export const PLAYERS: Player[] = [
-  { id: 'levi',     character: 'Garrick',  initial: 'L' },
-  { id: 'jeanette', character: 'Eleil',    initial: 'J' },
-  { id: 'nicole',   character: 'HollyGo',  initial: 'N' },
-  { id: 'katie',    character: 'Lysandra', initial: 'K' },
-  { id: 'brandon',  character: 'Vaoker',   initial: 'B' },
-  { id: 'ashton',   character: 'Ash',      initial: 'A' },
-];
+type Player = (typeof PLAYERS)[number];
 
 function PlayerCircle({ player }: { player: Player }) {
-  // Store selected player in sessionStorage so Marketplace can auto-select them
-  const handleClick = () => {
-    try { sessionStorage.setItem('dd-active-player', player.id); } catch {}
-  };
-
   return (
     <Link
-      href={`/players?id=${player.id}`}
-      onClick={handleClick}
+      href="/players"
       className="flex flex-col items-center gap-1 no-underline"
     >
       {/* Portrait circle with fallback initial */}

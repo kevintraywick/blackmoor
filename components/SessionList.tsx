@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { Session } from '@/lib/types';
 import {
   DndContext,
@@ -66,6 +67,7 @@ function SortableSession({
 
 export default function SessionList({ initial }: { initial: Session[] }) {
   const [sessions, setSessions] = useState(initial);
+  const router = useRouter();
 
   // Support both mouse and touch drag
   const sensors = useSensors(
@@ -109,9 +111,13 @@ export default function SessionList({ initial }: { initial: Session[] }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, number: maxNum + 1 }),
     });
+    if (!res.ok) {
+      console.error('Failed to create session', await res.text());
+      return;
+    }
     const session = await res.json();
     setSessions(prev => [...prev, session]);
-    window.location.href = `/sessions/${session.id}`;
+    router.push(`/sessions/${session.id}`);
   };
 
   return (

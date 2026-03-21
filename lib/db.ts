@@ -7,6 +7,8 @@ export const pool =
   globalForPg.pool ??
   new Pool({
     connectionString: process.env.DATABASE_URL,
+    // rejectUnauthorized: false is required for managed Postgres hosts (Heroku, Render, etc.)
+    // that use self-signed certs. To fully verify the cert, set DATABASE_CA_CERT env var instead.
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   });
 

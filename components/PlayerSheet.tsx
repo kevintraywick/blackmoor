@@ -234,9 +234,9 @@ function Sheet({
     const text = ta.value;
     const start = Math.max(0, pos - 2);
     const end = Math.min(text.length, pos + 3);
-    const window = text.substring(start, end);
-    const unchecked = window.indexOf('☐');
-    const checked   = window.indexOf('☑');
+    const surrounding = text.substring(start, end);
+    const unchecked = surrounding.indexOf('☐');
+    const checked   = surrounding.indexOf('☑');
 
     let idx = -1, replacement = '';
     if (unchecked !== -1 && (checked === -1 || unchecked <= checked)) {

@@ -2,7 +2,16 @@
 // Called automatically on first API request if tables don't exist.
 import { pool } from './db';
 
-export async function ensureSchema() {
+// Memoize across the process lifetime — avoids DDL round-trip on every request
+let schemaReady: Promise<void> | null = null;
+
+export function ensureSchema(): Promise<void> {
+  if (schemaReady) return schemaReady;
+  schemaReady = _initSchema();
+  return schemaReady;
+}
+
+async function _initSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sessions (
       id          TEXT PRIMARY KEY,
