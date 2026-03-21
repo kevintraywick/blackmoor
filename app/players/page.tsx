@@ -35,7 +35,7 @@ export default async function PlayersPage() {
 
       {/* Sticky nav */}
       <div className="sticky top-0 bg-[#231f1c] border-b border-[#3d3530] px-8 py-3 flex items-center gap-3 z-10 text-sm">
-        <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← Sessions</Link>
+        <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← Home</Link>
         <span className="text-[#3d3530]">|</span>
         <span className="text-[#e8ddd0]">Players</span>
         <span className="text-[#3d3530]">|</span>

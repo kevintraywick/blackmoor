@@ -29,7 +29,7 @@ export default async function SessionPage({ params }: Props) {
 
       {/* Sticky top bar with breadcrumb nav and save status (save status is in SessionForm) */}
       <div className="sticky top-0 bg-[#231f1c] border-b border-[#3d3530] px-8 py-3 flex items-center gap-3 z-10 text-sm">
-        <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← Sessions</Link>
+        <Link href="/dm" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← Sessions</Link>
         <span className="text-[#3d3530]">|</span>
         <span className="text-[#8a7d6e]">{label}</span>
         <span className="text-[#3d3530]">|</span>

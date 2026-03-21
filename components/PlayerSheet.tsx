@@ -176,14 +176,14 @@ function Stat({
 }
 
 // ── Full player sheet form ───────────────────────────────────────────────────
-function Sheet({
+export function Sheet({
   playerId,
   playerName,
   character,
   initial,
   data,
 }: {
-  playerId: PlayerId;
+  playerId: string;
   playerName: string;
   character: string;
   initial: string;
