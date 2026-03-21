@@ -59,7 +59,7 @@ function BoonList({ value, onChange }: { value: string; onChange: (v: string) =>
           onChange={e => setNewBoon(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addBoon()}
           placeholder="Add boon…"
-          className="flex-1 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#4a403a] pb-0.5"
+          className="flex-1 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
         />
         <button
           onClick={addBoon}
@@ -77,10 +77,12 @@ function WeaponList({
   weapons,
   onAdd,
   onDelete,
+  onUpdate,
 }: {
   weapons: WeaponItem[];
   onAdd: (w: Omit<WeaponItem, 'id'>) => void;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, field: keyof WeaponItem, value: string) => void;
 }) {
   const [name, setName] = useState('');
   const [atk, setAtk]   = useState('');
@@ -91,6 +93,8 @@ function WeaponList({
     onAdd({ name: name.trim(), attack_bonus: atk.trim(), damage: dmg.trim() });
     setName(''); setAtk(''); setDmg('');
   }
+
+  const rowIn = 'bg-transparent border-none outline-none font-serif text-[0.88rem] w-full';
 
   return (
     <div>
@@ -104,9 +108,9 @@ function WeaponList({
 
       {weapons.map(w => (
         <div key={w.id} className="grid grid-cols-[1fr_50px_70px_16px] gap-1 items-center py-[3px]">
-          <span className="font-serif text-[0.88rem] text-[#c8bfb5] truncate">{w.name}</span>
-          <span className="font-serif text-[0.88rem] text-[#c9a84c] text-center">{w.attack_bonus}</span>
-          <span className="font-serif text-[0.88rem] text-[#c8bfb5] text-center">{w.damage}</span>
+          <input value={w.name}         onChange={e => onUpdate(w.id, 'name', e.target.value)}         className={`${rowIn} text-[#c8bfb5] truncate`} />
+          <input value={w.attack_bonus} onChange={e => onUpdate(w.id, 'attack_bonus', e.target.value)} className={`${rowIn} text-[#c9a84c] text-center`} />
+          <input value={w.damage}       onChange={e => onUpdate(w.id, 'damage', e.target.value)}       className={`${rowIn} text-[#c8bfb5] text-center`} />
           <button
             onClick={() => onDelete(w.id)}
             className="text-[#4a3a35] hover:text-[#8a3a3a] text-[0.65rem] text-center transition-colors"
@@ -123,21 +127,21 @@ function WeaponList({
           onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
           placeholder="Weapon name…"
-          className="flex-1 min-w-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#4a403a] pb-0.5"
+          className="flex-1 min-w-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
         />
         <input
           value={atk}
           onChange={e => setAtk(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
           placeholder="+0"
-          className="w-10 text-center flex-shrink-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#4a403a] pb-0.5"
+          className="w-10 text-center flex-shrink-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
         />
         <input
           value={dmg}
           onChange={e => setDmg(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
           placeholder="1d8+0"
-          className="w-14 text-center flex-shrink-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#4a403a] pb-0.5"
+          className="w-14 text-center flex-shrink-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
         />
         <button
           onClick={submit}
@@ -155,10 +159,12 @@ function SpellList({
   spells,
   onAdd,
   onDelete,
+  onUpdate,
 }: {
   spells: SpellItem[];
   onAdd: (s: Omit<SpellItem, 'id'>) => void;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, field: keyof SpellItem, value: string) => void;
 }) {
   const [showForm, setShowForm]       = useState(false);
   const [name, setName]               = useState('');
@@ -175,22 +181,18 @@ function SpellList({
     setShowForm(false);
   }
 
-  const inputCls = 'flex-1 min-w-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#4a403a] pb-0.5';
+  const inputCls = 'flex-1 min-w-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5';
 
   return (
     <div>
       {spells.map((spell, i) => {
-        const meta = [spell.action_type, spell.range, spell.components, spell.duration].filter(Boolean).join(' · ');
+        const ri = 'bg-transparent border-none outline-none font-serif';
         return (
           <div key={spell.id}>
             {i > 0 && <div className="h-px bg-[#2a2420] my-1.5" />}
             <div className="flex items-baseline gap-1.5 min-w-0">
-              <span className="font-serif text-[0.88rem] text-[#c8bfb5] flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-                {spell.name}
-              </span>
-              {spell.effect && (
-                <span className="font-serif text-[0.88rem] text-[#c9a84c] flex-shrink-0">{spell.effect}</span>
-              )}
+              <input value={spell.name}   onChange={e => onUpdate(spell.id, 'name', e.target.value)}   className={`${ri} text-[0.88rem] text-[#c8bfb5] flex-1 min-w-0`} placeholder="Spell name…" />
+              <input value={spell.effect} onChange={e => onUpdate(spell.id, 'effect', e.target.value)} className={`${ri} text-[0.88rem] text-[#c9a84c] w-24 flex-shrink-0 text-right`} placeholder="effect…" />
               <button
                 onClick={() => onDelete(spell.id)}
                 className="text-[#4a3a35] hover:text-[#8a3a3a] text-[0.65rem] flex-shrink-0 transition-colors"
@@ -198,11 +200,15 @@ function SpellList({
                 ✕
               </button>
             </div>
-            {meta && (
-              <div className="font-serif text-[0.78rem] text-[#ddd8d2] pl-2.5 mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
-                {meta}
-              </div>
-            )}
+            <div className="flex gap-1 pl-2.5 mt-0.5 min-w-0">
+              <input value={spell.action_type} onChange={e => onUpdate(spell.id, 'action_type', e.target.value)} className={`${ri} text-[0.78rem] text-[#ddd8d2] w-16 flex-shrink-0`} placeholder="action…" />
+              <span className="text-[#3d3530] text-[0.78rem]">·</span>
+              <input value={spell.range}       onChange={e => onUpdate(spell.id, 'range', e.target.value)}       className={`${ri} text-[0.78rem] text-[#ddd8d2] w-14 flex-shrink-0`} placeholder="range…" />
+              <span className="text-[#3d3530] text-[0.78rem]">·</span>
+              <input value={spell.components}  onChange={e => onUpdate(spell.id, 'components', e.target.value)}  className={`${ri} text-[0.78rem] text-[#ddd8d2] w-14 flex-shrink-0`} placeholder="V,S,M…" />
+              <span className="text-[#3d3530] text-[0.78rem]">·</span>
+              <input value={spell.duration}    onChange={e => onUpdate(spell.id, 'duration', e.target.value)}    className={`${ri} text-[0.78rem] text-[#ddd8d2] flex-1 min-w-0`} placeholder="duration…" />
+            </div>
           </div>
         );
       })}
@@ -211,7 +217,7 @@ function SpellList({
         <div className="mt-2 pt-2 border-t border-[#2a2420] flex flex-col gap-1.5">
           <div className="flex gap-2">
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Name…" className={inputCls} />
-            <input value={effect} onChange={e => setEffect(e.target.value)} placeholder="Damage / Effect" className="w-24 flex-shrink-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#4a403a] pb-0.5" />
+            <input value={effect} onChange={e => setEffect(e.target.value)} placeholder="Damage / Effect" className="w-24 flex-shrink-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5" />
           </div>
           <div className="flex gap-2">
             <input value={actionType}  onChange={e => setActionType(e.target.value)}  placeholder="action / bonus…" className={inputCls} />
@@ -250,7 +256,7 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
         value={value}
         placeholder="—"
         onChange={e => onChange(e.target.value)}
-        className="bg-transparent border-none border-b border-[#3d3530] text-[#e8ddd0] text-[0.95rem] text-center outline-none w-full focus:border-b-[#c9a84c] placeholder:text-[#3d3530] font-serif pb-0.5"
+        className="bg-transparent border-none border-b border-[#3d3530] text-[#e8ddd0] text-[0.95rem] text-center outline-none w-full focus:border-b-[#c9a84c] placeholder:text-[#8a7452] font-serif pb-0.5"
       />
       <div className="flex gap-0.5 mt-0.5">
         {[-1, 1].map(d => (
@@ -318,6 +324,9 @@ export function Sheet({
   function deleteWeapon(id: string) {
     setField('gear', values.gear.filter(w => w.id !== id));
   }
+  function updateWeapon(id: string, field: keyof WeaponItem, value: string) {
+    setField('gear', values.gear.map(w => w.id === id ? { ...w, [field]: value } : w));
+  }
 
   // Spell helpers
   function addSpell(item: Omit<SpellItem, 'id'>) {
@@ -326,13 +335,16 @@ export function Sheet({
   function deleteSpell(id: string) {
     setField('spells', (values.spells ?? []).filter(s => s.id !== id));
   }
+  function updateSpell(id: string, field: keyof SpellItem, value: string) {
+    setField('spells', (values.spells ?? []).map(s => s.id === id ? { ...s, [field]: value } : s));
+  }
 
   const statusText  = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed — check connection' }[saveStatus];
   const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[#8a7d6e]';
 
   const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[#c9a84c] mb-2 pb-1.5 border-b border-[#3d3530] font-sans';
-  const ta = 'w-full bg-transparent border-none text-[#c8bfb5] font-serif text-[0.88rem] leading-[1.55] resize-none outline-none min-h-[90px] placeholder:text-[#4a403a]';
-  const fi = 'bg-transparent border-none border-b border-[#3d3530] text-[#e8ddd0] font-serif text-lg font-bold outline-none focus:border-b-[#c9a84c] placeholder:text-[#3d3530] pb-0.5';
+  const ta = 'w-full bg-transparent border-none text-[#c8bfb5] font-serif text-[0.88rem] leading-[1.55] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452]';
+  const fi = 'bg-transparent border-none border-b border-[#3d3530] text-[#e8ddd0] font-serif text-lg font-bold outline-none focus:border-b-[#c9a84c] placeholder:text-[#8a7452] pb-0.5';
 
   return (
     <>
@@ -410,7 +422,7 @@ export function Sheet({
         {/* Weapons */}
         <div className="bg-[#231f1c] border-b border-[#3d3530] p-3" style={{ minWidth: 0, overflow: 'hidden' }}>
           <div className={sh}>Weapons</div>
-          <WeaponList weapons={values.gear} onAdd={addWeapon} onDelete={deleteWeapon} />
+          <WeaponList weapons={values.gear} onAdd={addWeapon} onDelete={deleteWeapon} onUpdate={updateWeapon} />
         </div>
 
         {/* Class Features */}
@@ -422,7 +434,7 @@ export function Sheet({
         {/* Magic Spells or Items */}
         <div className="bg-[#231f1c] border-b border-[#3d3530] p-3" style={{ minWidth: 0, overflow: 'hidden' }}>
           <div className={sh}>Magic Spells or Items</div>
-          <SpellList spells={values.spells ?? []} onAdd={addSpell} onDelete={deleteSpell} />
+          <SpellList spells={values.spells ?? []} onAdd={addSpell} onDelete={deleteSpell} onUpdate={updateSpell} />
         </div>
 
         {/* Species Notes (was: Player Notes) */}
