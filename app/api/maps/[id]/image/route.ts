@@ -26,24 +26,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!ALLOWED_TYPES.has(file.type)) {
       return NextResponse.json({ error: 'Only PNG, JPEG, WEBP allowed' }, { status: 415 });
     }
-    if (file.size > MAX_SIZE) {
+
+    // Read buffer first so we can check the authoritative size (file.size can be spoofed)
+    const buffer = Buffer.from(await file.arrayBuffer());
+    if (buffer.byteLength > MAX_SIZE) {
       return NextResponse.json({ error: 'File too large (max 20MB)' }, { status: 413 });
     }
 
     // Ensure directory exists
     await mkdir(MAPS_DIR, { recursive: true });
 
-    // Delete old image if present
     const [map] = await query<MapRow>('SELECT image_path FROM maps WHERE id = $1', [id]);
     if (!map) return NextResponse.json({ error: 'Map not found' }, { status: 404 });
+
+    // Write new file first — if this fails, nothing has changed
+    const filename = `${crypto.randomUUID()}${EXT_MAP[file.type]}`;
+    await writeFile(join(MAPS_DIR, filename), buffer);
+
+    // Delete old image after new file is safely written (orphan on failure is harmless)
     if (map.image_path) {
       try { await unlink(join(MAPS_DIR, map.image_path)); } catch { /* already gone */ }
     }
-
-    // Save new image
-    const filename = `${crypto.randomUUID()}${EXT_MAP[file.type]}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(join(MAPS_DIR, filename), buffer);
 
     await query('UPDATE maps SET image_path = $1 WHERE id = $2', [filename, id]);
 
