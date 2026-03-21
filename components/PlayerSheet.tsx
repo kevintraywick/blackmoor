@@ -254,6 +254,8 @@ function Sheet({
 
   // Shared textarea style
   const ta = 'w-full bg-transparent border-none text-[#e8ddd0] font-serif text-[0.88rem] leading-[1.55] resize-none outline-none min-h-[90px] placeholder:text-[#4a403a]';
+  // Shared section header style
+  const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[#c9a84c] mb-2 pb-1.5 border-b border-[#3d3530] font-sans';
 
   return (
     <>
@@ -310,7 +312,7 @@ function Sheet({
       <div className="grid grid-cols-2 border border-[#3d3530] border-t-0 rounded-bl-md rounded-br-md overflow-hidden">
         {/* Boons */}
         <div className="bg-[#231f1c] border-r border-b border-[#3d3530] p-3">
-          <div className="text-[0.72rem] uppercase tracking-[0.13em] text-[#8a7d6e] mb-1.5">Boons</div>
+          <div className={sh}>Boons</div>
           <textarea
             rows={5}
             value={values.boons}
@@ -323,13 +325,13 @@ function Sheet({
 
         {/* Gear */}
         <div className="bg-[#231f1c] border-b border-[#3d3530] p-3">
-          <div className="text-[0.72rem] uppercase tracking-[0.13em] text-[#8a7d6e] mb-1.5">Gear &amp; Equipment</div>
+          <div className={sh}>Gear &amp; Equipment</div>
           <GearCircles gear={values.gear} onAdd={addGear} onDelete={deleteGear} />
         </div>
 
         {/* Class Features */}
         <div className="bg-[#231f1c] border-r border-b border-[#3d3530] p-3">
-          <div className="text-[0.72rem] uppercase tracking-[0.13em] text-[#8a7d6e] mb-1.5">Class Features</div>
+          <div className={sh}>Class Features</div>
           <textarea
             rows={5}
             value={values.class_features}
@@ -341,7 +343,7 @@ function Sheet({
 
         {/* Species Traits */}
         <div className="bg-[#231f1c] border-b border-[#3d3530] p-3">
-          <div className="text-[0.72rem] uppercase tracking-[0.13em] text-[#8a7d6e] mb-1.5">Species Traits</div>
+          <div className={sh}>Species Traits</div>
           <textarea
             rows={5}
             value={values.species_traits}
@@ -353,7 +355,7 @@ function Sheet({
 
         {/* Player Notes */}
         <div className="bg-[#231f1c] border-r border-[#3d3530] p-3">
-          <div className="text-[0.72rem] uppercase tracking-[0.13em] text-[#8a7d6e] mb-1.5">Player Notes</div>
+          <div className={sh}>Player Notes</div>
           <textarea
             rows={5}
             value={values.player_notes}
@@ -365,7 +367,7 @@ function Sheet({
 
         {/* General Notes */}
         <div className="bg-[#231f1c] border-[#3d3530] p-3">
-          <div className="text-[0.72rem] uppercase tracking-[0.13em] text-[#8a7d6e] mb-1.5">General Notes</div>
+          <div className={sh}>General Notes</div>
           <textarea
             rows={5}
             value={values.general_notes}
@@ -398,10 +400,10 @@ export default function PlayerSheets({ sheets }: { sheets: Record<string, Player
             className="flex flex-col items-center gap-1.5 cursor-pointer bg-transparent border-none"
           >
             {/* Portrait circle */}
-            <div className={`relative w-20 h-20 rounded-full overflow-hidden border-[3px] transition-all ${
+            <div className={`relative w-20 h-20 rounded-full overflow-hidden transition-all ${
               activeId === p.id
-                ? 'border-[#c9a84c] shadow-[0_0_0_2px_#c9a84c]'
-                : 'border-[#3d3530] hover:border-[#8a7d6e] hover:scale-105'
+                ? 'border-[3px] border-[#c9a84c]'
+                : 'border-[3px] border-[#3d3530] hover:border-[#8a7d6e] hover:scale-105'
             } bg-[#2e2825] flex items-center justify-center`}>
               <span className="text-[1.6rem] text-[#8a7d6e] select-none">{p.initial}</span>
               <Image

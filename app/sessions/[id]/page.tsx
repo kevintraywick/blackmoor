@@ -33,10 +33,10 @@ export default async function SessionPage({ params }: Props) {
         <span className="text-[#3d3530]">|</span>
         <span className="text-[#8a7d6e]">{label}</span>
         <span className="text-[#3d3530]">|</span>
-        <Link href="/npcs"    className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">NPCs</Link>
+        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">NPCs</span>
         <Link href="/players" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">Players</Link>
-        <Link href="/maps"    className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">Maps</Link>
-        <Link href="/magic"   className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">Magic</Link>
+        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">Maps</span>
+        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">Magic</span>
       </div>
 
       {/* The editable form — handles all state and autosave client-side */}

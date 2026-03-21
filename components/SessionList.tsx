@@ -1,6 +1,6 @@
 'use client'; // drag-and-drop and fetch require browser APIs
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Session } from '@/lib/types';
@@ -29,6 +29,9 @@ function SortableSession({
   session: Session;
   onDelete: (id: string) => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // dnd-kit hook — gives us drag handle props and transform styles
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: session.id });
@@ -39,27 +42,49 @@ function SortableSession({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  function handleDeleteClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (confirming) {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+      onDelete(session.id);
+    } else {
+      setConfirming(true);
+      // Auto-cancel confirmation after 3 seconds
+      confirmTimer.current = setTimeout(() => setConfirming(false), 3000);
+    }
+  }
+
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-1">
-      {/* Drag handle — the session button itself is the handle */}
-      <Link
-        href={`/sessions/${session.id}`}
-        className="flex-1 block px-3 py-1.5 rounded text-sm text-white text-left bg-[rgba(139,26,26,0.55)] hover:bg-[rgba(139,26,26,0.85)] whitespace-nowrap cursor-grab"
+    <div ref={setNodeRef} style={style} className="flex items-center gap-1 group">
+      {/* Dedicated drag handle — separated from the nav link */}
+      <div
         {...attributes}
         {...listeners}
+        className="flex-shrink-0 px-1 py-1.5 text-[#3d3530] hover:text-[#8a7d6e] cursor-grab active:cursor-grabbing select-none"
+        title="Drag to reorder"
+      >
+        ⠿
+      </div>
+
+      {/* Session link — clicking navigates, dragging the handle reorders */}
+      <Link
+        href={`/sessions/${session.id}`}
+        className="flex-1 block px-2 py-1.5 rounded text-sm text-white text-left bg-[rgba(139,26,26,0.55)] hover:bg-[rgba(139,26,26,0.85)] whitespace-nowrap"
       >
         {session.title || 'Untitled'}
       </Link>
 
-      {/* Delete button — stopPropagation prevents triggering drag */}
+      {/* Delete button — first click asks to confirm, second click deletes */}
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          if (confirm(`Delete "${session.title || 'Untitled'}"?`)) onDelete(session.id);
-        }}
-        className="text-white/35 hover:text-white text-xs px-1 flex-shrink-0"
+        onClick={handleDeleteClick}
+        className={`text-xs px-1 flex-shrink-0 transition-colors ${
+          confirming
+            ? 'text-[#c9a84c] font-bold'
+            : 'text-white/35 hover:text-white opacity-0 group-hover:opacity-100'
+        }`}
+        title={confirming ? 'Click again to confirm delete' : 'Delete session'}
       >
-        ×
+        {confirming ? '?' : '×'}
       </button>
     </div>
   );
@@ -125,7 +150,7 @@ export default function SessionList({ initial }: { initial: Session[] }) {
       {/* New session button */}
       <button
         onClick={handleNew}
-        className="mb-5 px-4 py-1.5 rounded text-sm text-white bg-[#6b7d8e] hover:opacity-85 text-left"
+        className="mb-5 px-4 py-1.5 rounded text-sm text-[#c9a84c] border border-dashed border-[#c9a84c] bg-transparent hover:bg-[rgba(201,168,76,0.1)] text-left transition-colors"
       >
         + New Session
       </button>

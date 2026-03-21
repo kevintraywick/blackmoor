@@ -46,10 +46,10 @@ export default async function HomePage() {
         <div className="mt-5 flex flex-col gap-1">
           <NavLink href="/" active>Sessions</NavLink>
           <NavLink href="/players">Players</NavLink>
-          <NavLink href="/npcs">NPCs</NavLink>
-          <NavLink href="/maps">Maps</NavLink>
-          <NavLink href="/magic">Magic</NavLink>
-          <NavLink href="/marketplace">Marketplace</NavLink>
+          <NavLink href="/npcs" disabled>NPCs</NavLink>
+          <NavLink href="/maps" disabled>Maps</NavLink>
+          <NavLink href="/magic" disabled>Magic</NavLink>
+          <NavLink href="/marketplace" disabled>Marketplace</NavLink>
         </div>
 
         {/* Player portrait circles — client component for onClick */}
@@ -62,8 +62,18 @@ export default async function HomePage() {
   );
 }
 
-// Reusable nav link with active state styling
-function NavLink({ href, children, active }: { href: string; children: React.ReactNode; active?: boolean }) {
+// Reusable nav link with active and disabled state styling
+function NavLink({ href, children, active, disabled }: { href: string; children: React.ReactNode; active?: boolean; disabled?: boolean }) {
+  if (disabled) {
+    return (
+      <span
+        title="Coming soon"
+        className="px-4 py-1.5 rounded text-sm border text-center border-[#2a2420] text-[#3d3530] cursor-not-allowed select-none"
+      >
+        {children}
+      </span>
+    );
+  }
   return (
     <Link
       href={href}
