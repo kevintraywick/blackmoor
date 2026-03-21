@@ -359,18 +359,18 @@ export function Sheet({
           )}
         </div>
 
-        {/* Name / class fields — all same font */}
-        <div className="flex items-baseline gap-2 flex-wrap flex-1">
-          <span className="text-[#c9a84c] text-xl font-bold tracking-[0.06em] font-serif">{playerName}</span>
+        {/* Name / class fields — all same font, single line */}
+        <div className="flex items-baseline gap-2 flex-1 min-w-0 overflow-hidden">
+          <span className="text-[#c9a84c] text-xl font-bold tracking-[0.06em] font-serif whitespace-nowrap">{playerName}</span>
           <span className="text-[#3d3530]">/</span>
-          <span className="text-[#e8ddd0] text-xl font-bold font-serif">{character}</span>
+          <span className="text-[#e8ddd0] text-xl font-bold font-serif whitespace-nowrap">{character}</span>
           <span className="text-[#3d3530]">/</span>
           <input
             value={values.species}
             placeholder="Species…"
             onChange={e => setField('species', e.target.value)}
             className={fi}
-            style={{ minWidth: 70, width: 'auto' }}
+            style={{ minWidth: 60, width: 80 }}
           />
           <span className="text-[#3d3530]">·</span>
           <input
@@ -378,15 +378,15 @@ export function Sheet({
             placeholder="Class…"
             onChange={e => setField('class', e.target.value)}
             className={fi}
-            style={{ minWidth: 70, width: 'auto' }}
+            style={{ minWidth: 60, width: 80 }}
           />
           <span className="text-[#3d3530]">/</span>
           <input
             value={values.discord}
-            placeholder="Discord name…"
+            placeholder="Discord…"
             onChange={e => setField('discord', e.target.value)}
             className={fi}
-            style={{ flex: 1, minWidth: 160 }}
+            style={{ flex: 1, minWidth: 80 }}
           />
         </div>
       </div>
