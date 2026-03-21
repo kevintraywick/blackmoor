@@ -56,4 +56,29 @@ async function _initSchema() {
     ALTER TABLE player_sheets
     ADD COLUMN IF NOT EXISTS spells JSONB NOT NULL DEFAULT '[]'
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS maps (
+      id              TEXT PRIMARY KEY,
+      session_id      TEXT NOT NULL,
+      name            TEXT NOT NULL DEFAULT '',
+      image_path      TEXT NOT NULL DEFAULT '',
+      grid_type       TEXT NOT NULL DEFAULT 'square',
+      cols            INTEGER NOT NULL DEFAULT 20,
+      rows            INTEGER NOT NULL DEFAULT 15,
+      offset_x        REAL NOT NULL DEFAULT 0,
+      offset_y        REAL NOT NULL DEFAULT 0,
+      tile_px         REAL NOT NULL DEFAULT 40,
+      hex_orientation TEXT NOT NULL DEFAULT 'flat',
+      revealed_tiles  JSONB NOT NULL DEFAULT '[]',
+      dm_notes        JSONB NOT NULL DEFAULT '[]',
+      sort_order      INTEGER NOT NULL DEFAULT 0,
+      created_at      BIGINT NOT NULL DEFAULT 0
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS maps_session_id_idx
+    ON maps (session_id, sort_order)
+  `);
 }

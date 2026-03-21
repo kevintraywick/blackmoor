@@ -52,3 +52,33 @@ export interface Session {
   sort_order: number;
   last_modified: number;
 }
+
+export type GridType = 'square' | 'hex';
+export type HexOrientation = 'flat' | 'pointy';
+
+export interface DmNote {
+  col: number;
+  row: number;
+  text: string;
+}
+
+export interface MapRow {
+  id: string;
+  session_id: string;
+  name: string;
+  image_path: string;
+  grid_type: GridType;
+  cols: number;
+  rows: number;
+  offset_x: number;
+  offset_y: number;
+  tile_px: number;
+  hex_orientation: HexOrientation;
+  revealed_tiles: [number, number][];
+  dm_notes: DmNote[];
+  sort_order: number;
+  created_at: number;
+}
+
+// Player version — dm_notes omitted (never sent to client)
+export type PlayerMapRow = Omit<MapRow, 'dm_notes'>;
