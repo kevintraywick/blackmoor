@@ -1,65 +1,79 @@
-import Image from "next/image";
+// Always render at request time — never pre-render at build (needs live DB)
+export const dynamic = 'force-dynamic';
 
-export default function Home() {
+// Server component — runs on the server, can query the DB directly.
+// No 'use client' here means Next.js renders this as HTML before sending to browser.
+import Image from 'next/image';
+import Link from 'next/link';
+import { query } from '@/lib/db';
+import { ensureSchema } from '@/lib/schema';
+import type { Session } from '@/lib/types';
+import SessionList from '@/components/SessionList';
+import PlayerCircles from '@/components/PlayerCircle';
+
+// Fetch sessions at request time (not cached) so the list is always fresh
+async function getSessions() {
+  await ensureSchema();
+  return query('SELECT * FROM sessions ORDER BY sort_order ASC, number ASC');
+}
+
+export default async function HomePage() {
+  const sessions = await getSessions();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+    // Full-viewport splash image container
+    <div className="relative w-full bg-[#2a3140] overflow-hidden" style={{ minHeight: '138vh' }}>
+
+      {/* Campaign splash art — tall crop so it feels cinematic */}
+      <div className="absolute inset-0 w-full" style={{ height: '138vh' }}>
         <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
+          src="/SOTW_splash.png"
+          alt="Shadow of the Wolf"
+          fill
+          className="object-contain object-top"
           priority
+          style={{ transform: 'translateY(-50px)' }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+      </div>
+
+      {/* Overlay nav — absolutely positioned top-left over the splash image */}
+      <nav className="absolute top-4 left-4 flex flex-col gap-2 max-h-[calc(100vh-2rem)] overflow-y-auto z-10">
+
+        {/* Session list with drag-reorder (client component handles interactivity) */}
+        <SessionList initial={sessions as unknown as Session[]} />
+
+        {/* Page nav links */}
+        <div className="mt-5 flex flex-col gap-1">
+          <NavLink href="/" active>Sessions</NavLink>
+          <NavLink href="/players">Players</NavLink>
+          <NavLink href="/npcs">NPCs</NavLink>
+          <NavLink href="/maps">Maps</NavLink>
+          <NavLink href="/magic">Magic</NavLink>
+          <NavLink href="/marketplace">Marketplace</NavLink>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        {/* Player portrait circles — client component for onClick */}
+        <PlayerCircles />
+
+        {/* Wolf howl audio plays when Players link clicked */}
+        <audio id="howl" src="/audio/wolf-howl.mp3" preload="auto" />
+      </nav>
     </div>
+  );
+}
+
+// Reusable nav link with active state styling
+function NavLink({ href, children, active }: { href: string; children: React.ReactNode; active?: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`px-4 py-1.5 rounded text-sm border text-center no-underline transition-colors
+        ${active
+          ? 'text-[#c9a84c] border-[#c9a84c]'
+          : 'text-[#8a7d6e] border-[#3d3530] hover:text-[#c9a84c] hover:border-[#c9a84c]'
+        }`}
+    >
+      {children}
+    </Link>
   );
 }
