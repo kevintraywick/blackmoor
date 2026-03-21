@@ -23,10 +23,10 @@ export default async function PlayerPage({ params }: Props) {
   const empty: PlayerSheetType = {
     id, discord: '', species: '', class: '', level: '', hp: '', xp: '',
     speed: '', size: '', ac: '', boons: '', class_features: '',
-    species_traits: '', player_notes: '', general_notes: '', gear: [],
+    species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [],
   };
 
-  const data = rows[0] ? { ...rows[0], gear: rows[0].gear ?? [] } : empty;
+  const data = rows[0] ? { ...rows[0], gear: rows[0].gear ?? [], spells: rows[0].spells ?? [] } : empty;
 
   return (
     <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0] font-serif">

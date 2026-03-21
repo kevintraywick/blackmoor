@@ -50,4 +50,10 @@ async function _initSchema() {
       gear           JSONB NOT NULL DEFAULT '[]'
     )
   `);
+
+  // Add spells column if it doesn't exist yet (safe migration)
+  await pool.query(`
+    ALTER TABLE player_sheets
+    ADD COLUMN IF NOT EXISTS spells JSONB NOT NULL DEFAULT '[]'
+  `);
 }

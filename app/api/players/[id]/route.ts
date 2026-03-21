@@ -7,8 +7,12 @@ const PLAYER_COLUMNS: Record<string, string> = {
   discord: 'discord', species: 'species', class: 'class', level: 'level',
   hp: 'hp', xp: 'xp', speed: 'speed', size: 'size', ac: 'ac',
   boons: 'boons', class_features: 'class_features', species_traits: 'species_traits',
-  player_notes: 'player_notes', general_notes: 'general_notes', gear: 'gear',
+  player_notes: 'player_notes', general_notes: 'general_notes',
+  gear: 'gear', spells: 'spells',
 };
+
+// Fields that contain JSON arrays and must be serialized before INSERT/UPDATE
+const JSON_COLUMNS = new Set(['gear', 'spells']);
 
 // GET /api/players/:id — fetch one player's sheet
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -46,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     );
 
     const setClauses = keys.map((k, i) => `${PLAYER_COLUMNS[k]} = $${i + 2}`).join(', ');
-    const values = keys.map(k => k === 'gear' ? JSON.stringify(patch[k]) : patch[k]);
+    const values = keys.map(k => JSON_COLUMNS.has(k) ? JSON.stringify(patch[k]) : patch[k]);
     await query(`UPDATE player_sheets SET ${setClauses} WHERE id = $1`, [id, ...values]);
 
     return NextResponse.json({ ok: true });

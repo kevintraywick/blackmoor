@@ -16,13 +16,13 @@ async function getSheets(): Promise<Record<string, PlayerSheet>> {
   const empty: Omit<PlayerSheet, 'id'> = {
     discord: '', species: '', class: '', level: '', hp: '', xp: '',
     speed: '', size: '', ac: '', boons: '', class_features: '',
-    species_traits: '', player_notes: '', general_notes: '', gear: [],
+    species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [],
   };
 
   return Object.fromEntries(
     PLAYERS.map(p => {
       const row = rows.find(r => r.id === p.id);
-      return [p.id, row ? { ...row, gear: row.gear ?? [] } : { id: p.id, ...empty }];
+      return [p.id, row ? { ...row, gear: row.gear ?? [], spells: row.spells ?? [] } : { id: p.id, ...empty }];
     })
   );
 }
