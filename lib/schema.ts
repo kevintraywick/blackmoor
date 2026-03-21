@@ -19,4 +19,26 @@ export async function ensureSchema() {
       last_modified BIGINT NOT NULL DEFAULT 0
     )
   `);
+
+  // Player sheets — one row per player, gear stored as JSONB array
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS player_sheets (
+      id             TEXT PRIMARY KEY,
+      discord        TEXT NOT NULL DEFAULT '',
+      species        TEXT NOT NULL DEFAULT '',
+      class          TEXT NOT NULL DEFAULT '',
+      level          TEXT NOT NULL DEFAULT '',
+      hp             TEXT NOT NULL DEFAULT '',
+      xp             TEXT NOT NULL DEFAULT '',
+      speed          TEXT NOT NULL DEFAULT '',
+      size           TEXT NOT NULL DEFAULT '',
+      ac             TEXT NOT NULL DEFAULT '',
+      boons          TEXT NOT NULL DEFAULT '',
+      class_features TEXT NOT NULL DEFAULT '',
+      species_traits TEXT NOT NULL DEFAULT '',
+      player_notes   TEXT NOT NULL DEFAULT '',
+      general_notes  TEXT NOT NULL DEFAULT '',
+      gear           JSONB NOT NULL DEFAULT '[]'
+    )
+  `);
 }
