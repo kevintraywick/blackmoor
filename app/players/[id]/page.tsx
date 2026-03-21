@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import type { PlayerSheet as PlayerSheetType } from '@/lib/types';
-import { PLAYERS, Sheet } from '@/components/PlayerSheet';
+import { PLAYERS } from '@/lib/players';
+import { Sheet } from '@/components/PlayerSheet';
 
 interface Props {
   params: Promise<{ id: string }>;

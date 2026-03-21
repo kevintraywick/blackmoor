@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { PLAYERS } from '@/components/PlayerSheet';
+import { PLAYERS } from '@/lib/players';
 
 export default function SplashNav() {
   return (

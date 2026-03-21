@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import type { PlayerSheet } from '@/lib/types';
-import PlayerSheets, { PLAYERS } from '@/components/PlayerSheet';
+import { PLAYERS } from '@/lib/players';
+import PlayerSheets from '@/components/PlayerSheet';
 
 // Fetch all player sheet rows, return a keyed object { levi: {...}, jeanette: {...}, ... }
 async function getSheets(): Promise<Record<string, PlayerSheet>> {
