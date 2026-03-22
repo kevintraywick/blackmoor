@@ -8,6 +8,7 @@ import type { PlayerSheet as PlayerSheetType } from '@/lib/types';
 import { PLAYERS } from '@/lib/players';
 import { Sheet } from '@/components/PlayerSheet';
 import PlayerMapPanel from '@/components/PlayerMapPanel';
+import PlayerBanner from '@/components/PlayerBanner';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -42,6 +43,8 @@ export default async function PlayerPage({ params }: Props) {
         <span className="text-[#3d3530]">|</span>
         <Link href="/players" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">All Players</Link>
       </div>
+
+      <PlayerBanner playerId={player.id} />
 
       <div className="max-w-[780px] mx-auto px-4 py-6 pb-16">
         <Sheet
