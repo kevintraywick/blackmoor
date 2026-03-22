@@ -11,15 +11,6 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-serif: var(--font-garamond);
-  --font-cinzel: var(--font-cinzel);
-
-  /* Campaign palette */
-  --color-gold: oklch(0.72 0.14 72);        /* vivid amber-gold  */
-  --color-gold-dim: oklch(0.55 0.10 68);    /* muted gold        */
-  --color-ember: oklch(0.50 0.18 35);       /* deep crimson      */
-  --color-forest: oklch(0.40 0.11 145);     /* forest green      */
-  --color-surface: oklch(0.17 0.02 55);     /* dark warm surface */
-  --color-border: oklch(0.28 0.03 55);      /* border            */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -32,9 +23,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-garamond), Georgia, serif;
-}
-
-.font-cinzel {
-  font-family: var(--font-cinzel), 'Trajan Pro', serif;
+  font-family: var(--font-geist-sans);
 }

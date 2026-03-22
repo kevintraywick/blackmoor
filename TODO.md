@@ -1,4 +1,4 @@
-# BLACKMOOR — Project Roadmap
+# Realm Walker — Project Roadmap
 
 > A location-based D&D companion that extends the game into the real world.
 > Three pillars: **Sessions** (at the table), **Online** (the app), **Exploring** (the physical world).
