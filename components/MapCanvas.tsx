@@ -25,6 +25,7 @@ export default function MapCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const isDragging = useRef(false);
+  const renderRef = useRef<() => void>(() => {});
 
   // Build image URL from image_path
   const imageUrl = mapData.image_path
@@ -79,7 +80,6 @@ export default function MapCanvas({
         cx: col * W2 * 0.75 + ox + R,
         cy: row * H2 + oy + H2 / 2 + (col % 2 === 1 ? H2 / 2 : 0),
         R,
-        H: H2,
       };
     }
 
@@ -94,8 +94,6 @@ export default function MapCanvas({
       }
       ctx.closePath();
     }
-
-    const _revealedSet = new Set(revealed_tiles.map(([c, r]) => `${c},${r}`)); // used for future optimisation
 
     // ── Player mode: fog then reveal ───────────────────────────────────────
     if (mode === 'player') {
@@ -200,16 +198,19 @@ export default function MapCanvas({
         }
       }
     }
-  }, [mapData, mode, width, height, activeNoteCoord]);
+  }, [mapData, mode, activeNoteCoord]);
+
+  // Keep renderRef in sync with the latest render function
+  useEffect(() => { renderRef.current = render; }, [render]);
 
   // ── Load image and re-render ───────────────────────────────────────────────
   useEffect(() => {
-    if (!imageUrl) { render(); return; }
+    if (!imageUrl) { renderRef.current(); return; }
     const img = new Image();
-    img.onload = () => { imgRef.current = img; render(); };
-    img.onerror = () => { imgRef.current = null; render(); };
+    img.onload = () => { imgRef.current = img; renderRef.current(); };
+    img.onerror = () => { imgRef.current = null; renderRef.current(); };
     img.src = imageUrl;
-  }, [imageUrl, render]);
+  }, [imageUrl]); // render removed — use renderRef.current() to avoid refetch on every mapData change
 
   // Re-render when data changes
   useEffect(() => { render(); }, [render]);
