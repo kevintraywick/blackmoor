@@ -35,8 +35,6 @@ export default function PlayerBanner({ playerId }: { playerId: string }) {
         className={`object-cover object-center transition-opacity duration-500 ${visible ? 'opacity-100' : 'opacity-0'}`}
         priority
       />
-      {/* Fade to page background at bottom */}
-      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#1a1614] to-transparent" />
     </div>
   );
 }
