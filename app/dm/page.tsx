@@ -19,15 +19,15 @@ export default async function DMPage() {
 
       {/* Sticky nav */}
       <div className="sticky top-0 bg-[#231f1c] border-b border-[#3d3530] px-8 py-3 flex items-center gap-3 z-10 text-sm">
-        <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← Home</Link>
+        <Link href="/" className="text-white hover:text-[#c9a84c] no-underline">← Home</Link>
         <span className="text-[#3d3530]">|</span>
-        <span className="text-[#e8ddd0]">Sessions</span>
+        <span className="text-white font-bold">Sessions</span>
         <span className="text-[#3d3530]">|</span>
-        <Link href="/players" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">Players</Link>
-        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">NPCs</span>
-        <Link href="/dm/maps" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">Maps</Link>
-        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">Magic</span>
-        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">Marketplace</span>
+        <Link href="/players" className="text-white hover:text-[#c9a84c] no-underline">Players</Link>
+        <Link href="/dm/maps" className="text-white hover:text-[#c9a84c] no-underline">Maps</Link>
+        <Link href="/dm/magic" className="text-white hover:text-[#c9a84c] no-underline">Magic</Link>
+        <Link href="/dm/marketplace" className="text-white hover:text-[#c9a84c] no-underline">Marketplace</Link>
+        <Link href="/dm/poisons" className="text-white hover:text-[#c9a84c] no-underline">Poisons & Traps</Link>
       </div>
 
       <div className="max-w-[480px] mx-auto px-8 py-8">

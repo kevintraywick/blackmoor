@@ -77,7 +77,7 @@ function SortableSession({
       {/* Maps link for this session */}
       <Link
         href={`/dm/maps?session=${session.id}`}
-        className="text-[#6a5a50] hover:text-[#c9a84c] text-xs no-underline flex-shrink-0 mr-1"
+        className="text-white/70 hover:text-[#c9a84c] text-xs no-underline flex-shrink-0 mr-1"
         title="Maps for this session"
       >
         Maps

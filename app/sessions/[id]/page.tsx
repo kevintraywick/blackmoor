@@ -29,14 +29,17 @@ export default async function SessionPage({ params }: Props) {
 
       {/* Sticky top bar with breadcrumb nav and save status (save status is in SessionForm) */}
       <div className="sticky top-0 bg-[#231f1c] border-b border-[#3d3530] px-8 py-3 flex items-center gap-3 z-10 text-sm">
-        <Link href="/dm" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← Sessions</Link>
+        <Link href="/" className="text-white hover:text-[#c9a84c] no-underline">← Home</Link>
         <span className="text-[#3d3530]">|</span>
-        <span className="text-[#8a7d6e]">{label}</span>
+        <Link href="/dm" className="text-white hover:text-[#c9a84c] no-underline">Sessions</Link>
         <span className="text-[#3d3530]">|</span>
-        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">NPCs</span>
-        <Link href="/players" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">Players</Link>
-        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">Maps</span>
-        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">Magic</span>
+        <span className="text-[#c9a84c] font-bold">{label}</span>
+        <span className="text-[#3d3530]">|</span>
+        <Link href="/players" className="text-white hover:text-[#c9a84c] no-underline">Players</Link>
+        <Link href={`/dm/maps?session=${id}`} className="text-white hover:text-[#c9a84c] no-underline">Maps</Link>
+        <Link href="/dm/magic" className="text-white hover:text-[#c9a84c] no-underline">Magic</Link>
+        <Link href="/dm/marketplace" className="text-white hover:text-[#c9a84c] no-underline">Marketplace</Link>
+        <Link href="/dm/poisons" className="text-white hover:text-[#c9a84c] no-underline">Poisons & Traps</Link>
       </div>
 
       {/* The editable form — handles all state and autosave client-side */}
