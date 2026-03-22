@@ -74,9 +74,12 @@ export default function PlayerMapPanel({ playerId: _playerId }: Props) {
   useEffect(() => {
     if (!activeMapId) return;
     prevTiles.current = '';
+    failCount.current = 0;
+    setPollStatus('live');
 
     // Immediate fetch + load initial data
-    fetch(`/api/maps/${activeMapId}/player`)
+    const controller = new AbortController();
+    fetch(`/api/maps/${activeMapId}/player`, { signal: controller.signal })
       .then(r => r.json())
       .then((data: PlayerMapRow) => {
         setActiveMapData(data);
@@ -86,7 +89,10 @@ export default function PlayerMapPanel({ playerId: _playerId }: Props) {
 
     if (pollTimer.current) clearInterval(pollTimer.current);
     pollTimer.current = setInterval(() => poll(activeMapId), 2000);
-    return () => { if (pollTimer.current) clearInterval(pollTimer.current); };
+    return () => {
+      controller.abort();
+      if (pollTimer.current) clearInterval(pollTimer.current);
+    };
   }, [activeMapId, poll]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
