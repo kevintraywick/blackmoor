@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { MapRow, DmNote } from '@/lib/types';
 import MapCanvas from '@/components/MapCanvas';
 
@@ -26,6 +26,13 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revealAllTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+      if (revealAllTimer.current) clearTimeout(revealAllTimer.current);
+    };
+  }, []);
 
   const activeMap = maps.find(m => m.id === activeId) ?? null;
 
@@ -137,25 +144,32 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
   // ── Add map ────────────────────────────────────────────────────────────────
   async function handleAddMap() {
     if (!newMapName.trim() || !sessionId) return;
-    const res = await fetch('/api/maps', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, name: newMapName.trim(), grid_type: newMapGridType }),
-    });
-    const newMap: MapRow = await res.json();
-    setMaps(prev => [...prev, newMap]);
-    setActiveId(newMap.id);
-    setAddingMap(false);
-    setNewMapName('');
+    try {
+      const res = await fetch('/api/maps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, name: newMapName.trim(), grid_type: newMapGridType }),
+      });
+      if (!res.ok) return;
+      const newMap: MapRow = await res.json();
+      setMaps(prev => [...prev, newMap]);
+      setActiveId(newMap.id);
+      setAddingMap(false);
+      setNewMapName('');
 
-    // Upload image if selected
-    if (uploadFile) {
-      const fd = new FormData();
-      fd.append('file', uploadFile);
-      const imgRes = await fetch(`/api/maps/${newMap.id}/image`, { method: 'POST', body: fd });
-      const { image_path } = await imgRes.json();
-      setMaps(prev => prev.map(m => m.id === newMap.id ? { ...m, image_path } : m));
-      setUploadFile(null);
+      // Upload image if selected
+      if (uploadFile) {
+        const fd = new FormData();
+        fd.append('file', uploadFile);
+        const imgRes = await fetch(`/api/maps/${newMap.id}/image`, { method: 'POST', body: fd });
+        if (imgRes.ok) {
+          const { image_path } = await imgRes.json();
+          setMaps(prev => prev.map(m => m.id === newMap.id ? { ...m, image_path } : m));
+        }
+        setUploadFile(null);
+      }
+    } catch {
+      // Network error — silently ignore, user can retry
     }
   }
 
