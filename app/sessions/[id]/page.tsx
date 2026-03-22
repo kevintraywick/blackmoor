@@ -28,19 +28,23 @@ export default async function SessionPage({ params }: Props) {
     <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0] font-serif">
 
       {/* Sticky top bar with breadcrumb nav and save status (save status is in SessionForm) */}
-      <div className="sticky top-0 bg-[#231f1c] border-b border-[#3d3530] px-8 py-3 flex items-center gap-3 z-10 text-sm">
-        <Link href="/" className="text-white hover:text-[#c9a84c] no-underline">← Home</Link>
-        <span className="text-[#3d3530]">|</span>
-        <Link href="/dm" className="text-white hover:text-[#c9a84c] no-underline">Sessions</Link>
-        <span className="text-[#3d3530]">|</span>
-        <span className="text-[#c9a84c] font-bold">{label}</span>
-        <span className="text-[#3d3530]">|</span>
-        <Link href="/players" className="text-white hover:text-[#c9a84c] no-underline">Players</Link>
-        <Link href={`/dm/maps?session=${id}`} className="text-white hover:text-[#c9a84c] no-underline">Maps</Link>
-        <Link href="/dm/magic" className="text-white hover:text-[#c9a84c] no-underline">Magic</Link>
-        <Link href="/dm/marketplace" className="text-white hover:text-[#c9a84c] no-underline">Marketplace</Link>
-        <Link href="/dm/poisons" className="text-white hover:text-[#c9a84c] no-underline">Poisons & Traps</Link>
-      </div>
+      <nav className="sticky top-0 bg-[#1a1614]/95 backdrop-blur border-b border-[#3d3530] px-8 py-2.5 flex items-center gap-2 z-10 text-sm">
+        <Link href="/" className="text-[#8a7d6e] hover:text-[#e8ddd0] transition-colors no-underline">← Home</Link>
+        <span className="text-[#3d3530] select-none">·</span>
+        <Link href="/dm" className="text-[#e8ddd0] hover:text-[#c9a84c] transition-colors no-underline">Sessions</Link>
+        <span className="text-[#3d3530] select-none">·</span>
+        <span className="text-[#c9a84c] font-semibold">{label}</span>
+        <span className="text-[#3d3530] select-none">·</span>
+        <Link href="/players" className="text-[#e8ddd0] hover:text-[#c9a84c] transition-colors no-underline">Players</Link>
+        <span className="text-[#3d3530] select-none">·</span>
+        <Link href={`/dm/maps?session=${id}`} className="text-[#e8ddd0] hover:text-[#c9a84c] transition-colors no-underline">Maps</Link>
+        <span className="text-[#3d3530] select-none">·</span>
+        <Link href="/dm/magic" className="text-[#e8ddd0] hover:text-[#c9a84c] transition-colors no-underline">Magic</Link>
+        <span className="text-[#3d3530] select-none">·</span>
+        <Link href="/dm/marketplace" className="text-[#e8ddd0] hover:text-[#c9a84c] transition-colors no-underline">Marketplace</Link>
+        <span className="text-[#3d3530] select-none">·</span>
+        <Link href="/dm/poisons" className="text-[#e8ddd0] hover:text-[#c9a84c] transition-colors no-underline">Poisons & Traps</Link>
+      </nav>
 
       {/* The editable form — handles all state and autosave client-side */}
       <SessionForm session={session} />

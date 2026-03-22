@@ -35,15 +35,17 @@ export default async function PlayersPage() {
     <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0] font-serif">
 
       {/* Sticky nav */}
-      <div className="sticky top-0 bg-[#231f1c] border-b border-[#3d3530] px-8 py-3 flex items-center gap-3 z-10 text-sm">
-        <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← Home</Link>
-        <span className="text-[#3d3530]">|</span>
-        <span className="text-[#e8ddd0]">Players</span>
-        <span className="text-[#3d3530]">|</span>
-        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">NPCs</span>
-        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">Maps</span>
-        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">Magic</span>
-      </div>
+      <nav className="sticky top-0 bg-[#1a1614]/95 backdrop-blur border-b border-[#3d3530] px-8 py-2.5 flex items-center gap-2 z-10 text-sm">
+        <Link href="/" className="text-[#8a7d6e] hover:text-[#e8ddd0] transition-colors no-underline">← Home</Link>
+        <span className="text-[#3d3530] select-none">·</span>
+        <span className="text-[#c9a84c] font-semibold">Players</span>
+        <span className="text-[#3d3530] select-none">·</span>
+        <span title="Coming soon" className="text-[#4a3c35] cursor-not-allowed select-none">NPCs</span>
+        <span className="text-[#3d3530] select-none">·</span>
+        <span title="Coming soon" className="text-[#4a3c35] cursor-not-allowed select-none">Maps</span>
+        <span className="text-[#3d3530] select-none">·</span>
+        <span title="Coming soon" className="text-[#4a3c35] cursor-not-allowed select-none">Magic</span>
+      </nav>
 
       {/* Client component handles selector + active sheet */}
       <PlayerSheets sheets={sheets} />

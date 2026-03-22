@@ -64,7 +64,7 @@ export default function SessionForm({ session }: { session: Session }) {
     <div className="max-w-[860px] mx-auto px-8 py-8">
 
       {/* Save status indicator */}
-      <div className={`fixed bottom-4 right-4 text-xs px-3 py-1 rounded border border-[#3d3530] bg-[#231f1c] transition-opacity ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} ${statusColor}`}>
+      <div className={`fixed bottom-4 right-4 text-xs px-3 py-1 rounded border border-[#3d3530] bg-[#231f1c] transition-opacity duration-200 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} ${statusColor}`}>
         {statusText}
       </div>
 
@@ -95,7 +95,7 @@ export default function SessionForm({ session }: { session: Session }) {
           value={values.date}
           placeholder="Date"
           onChange={e => handleChange('date', e.target.value)}
-          className="bg-transparent border-none border-b border-transparent focus:border-[#3d3530] text-[#8a7d6e] text-sm outline-none placeholder:text-[#3d3530]"
+          className="bg-transparent border-none border-b border-transparent focus:border-[#3d3530] text-[#8a7d6e] text-sm italic outline-none placeholder:text-[#3d3530]"
         />
       </div>
 
