@@ -25,7 +25,7 @@ export default async function DMPage() {
         <span className="text-[#3d3530]">|</span>
         <Link href="/players" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">Players</Link>
         <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">NPCs</span>
-        <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">Maps</span>
+        <Link href="/dm/maps" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">Maps</Link>
         <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">Magic</span>
         <span title="Coming soon" className="text-[#3d3530] cursor-not-allowed">Marketplace</span>
       </div>

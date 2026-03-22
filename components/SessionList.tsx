@@ -74,6 +74,15 @@ function SortableSession({
         {session.title || 'Untitled'}
       </Link>
 
+      {/* Maps link for this session */}
+      <Link
+        href={`/dm/maps?session=${session.id}`}
+        className="text-[#6a5a50] hover:text-[#c9a84c] text-xs no-underline flex-shrink-0 mr-1"
+        title="Maps for this session"
+      >
+        Maps
+      </Link>
+
       {/* Delete button — first click asks to confirm, second click deletes */}
       <button
         onClick={handleDeleteClick}

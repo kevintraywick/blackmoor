@@ -7,6 +7,7 @@ import { ensureSchema } from '@/lib/schema';
 import type { PlayerSheet as PlayerSheetType } from '@/lib/types';
 import { PLAYERS } from '@/lib/players';
 import { Sheet } from '@/components/PlayerSheet';
+import PlayerMapPanel from '@/components/PlayerMapPanel';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -50,6 +51,7 @@ export default async function PlayerPage({ params }: Props) {
           initial={player.initial}
           data={data}
         />
+        <PlayerMapPanel playerId={player.id} />
       </div>
     </div>
   );
