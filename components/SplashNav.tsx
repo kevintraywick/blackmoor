@@ -10,8 +10,15 @@ export default function SplashNav() {
 
       {/* DM circle */}
       <Link href="/dm" className="flex flex-col items-center gap-1.5 no-underline group" title="Dungeon Master">
-        <div className="w-24 h-24 rounded-full border-2 border-[#6b8fa8] bg-[rgba(42,49,64,0.7)] flex items-center justify-center transition-all group-hover:border-[#8ab4cc] group-hover:scale-105">
+        <div className="relative w-24 h-24 rounded-full border-2 border-[#6b8fa8] bg-[rgba(42,49,64,0.7)] flex items-center justify-center overflow-hidden transition-all group-hover:border-[#8ab4cc] group-hover:scale-105">
           <span className="text-[#6b8fa8] text-xl font-bold tracking-wider font-sans">DM</span>
+          <Image
+            src="/images/dm.png"
+            alt="Dungeon Master"
+            fill
+            className="object-cover absolute inset-0"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
         </div>
         <span className="text-xs uppercase tracking-[0.1em] text-[#6b8fa8] font-sans">DM</span>
       </Link>
