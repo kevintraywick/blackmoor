@@ -3,7 +3,7 @@ import Link from 'next/link';
 export default function MagicPage() {
   return (
     <div className="min-h-screen bg-[#1a1614] text-white">
-      <div className="sticky top-0 bg-[#231f1c] border-b border-[#3d3530] px-8 py-3 flex items-center gap-3 z-10 text-sm">
+      <div className="sticky top-0 bg-[#1a1614]/95 backdrop-blur border-b border-[#3d3530] px-6 py-2.5 flex items-center gap-3 z-10 text-sm">
         <Link href="/" className="text-white hover:text-[#c9a84c] no-underline">← Home</Link>
         <span className="text-[#3d3530]">|</span>
         <Link href="/dm" className="text-white hover:text-[#c9a84c] no-underline">Sessions</Link>
