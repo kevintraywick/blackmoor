@@ -15,15 +15,9 @@ export default async function MarketplacePage({ searchParams }: Props) {
     <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0]">
       {player ? (
         <div className="sticky top-0 bg-[#231f1c] border-b border-[#3d3530] px-8 py-3 flex items-center gap-3 z-10 text-sm">
-          <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← Home</Link>
-          <span className="text-[#3d3530]">|</span>
-          <span className="text-[#c9a84c] font-bold">{player.playerName}</span>
-          <span className="text-[#3d3530]">/</span>
-          <span className="text-[#e8ddd0]">{player.character}</span>
+          <Link href={`/players/${player.id}`} className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← {player.character}</Link>
           <span className="text-[#3d3530]">|</span>
           <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">All Players</Link>
-          <span className="text-[#3d3530]">|</span>
-          <span className="text-[#c9a84c] font-bold">Marketplace</span>
         </div>
       ) : (
         <DmNav current="marketplace" />
