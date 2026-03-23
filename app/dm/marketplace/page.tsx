@@ -22,6 +22,13 @@ export default function MarketplacePage() {
         <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mt-1.5 mb-6">
           Goods · Prices · Available Stock
         </p>
+
+        <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Shop Inventory</h2>
+        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Items for sale from the marketplace</p>
+        <div className="border border-[#3d3530] rounded min-h-[320px] mb-10" />
+
+        <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Player Listings</h2>
+        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Items for sale by players</p>
         <div className="border border-[#3d3530] rounded min-h-[320px]" />
       </div>
     </div>
