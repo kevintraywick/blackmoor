@@ -41,7 +41,7 @@ export default async function PlayerPage({ params }: Props) {
         <span className="text-[#3d3530]">/</span>
         <span className="text-[#e8ddd0]">{player.character}</span>
         <span className="text-[#3d3530]">|</span>
-        <Link href="/players" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">All Players</Link>
+        <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">All Players</Link>
         <span className="text-[#3d3530]">|</span>
         <Link href={`/dm/marketplace?player=${player.id}`} className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">Marketplace</Link>
       </div>
