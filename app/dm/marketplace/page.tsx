@@ -34,11 +34,11 @@ export default async function MarketplacePage({ searchParams }: Props) {
         />
       </div>
 
-      <div className="relative z-10 -mt-[169px] max-w-[780px] mx-auto px-4 pt-6 pb-16 bg-[#1a1614] rounded-t-2xl">
+      <div className="relative z-10 -mt-[84px] max-w-[780px] mx-auto px-4 pt-6 pb-16 bg-[#1a1614] rounded-t-2xl">
         <div className="border border-[#3d3530] rounded bg-[#2e1a08]">
-          {/* Shop Inventory */}
+          {/* Marketplace */}
           <div className="px-6 pt-5 pb-6 min-h-[320px]">
-            <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Shop Inventory</h2>
+            <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Marketplace</h2>
             <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Items for sale from the marketplace</p>
             <div className="border-t border-[#3d3530]" />
           </div>
