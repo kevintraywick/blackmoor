@@ -41,18 +41,24 @@ export default async function MarketplacePage({ searchParams }: Props) {
       </div>
 
       <div className="max-w-[780px] mx-auto px-8 py-10">
-        <h1 className="font-serif text-[2rem] italic text-[#e8ddd0] leading-none tracking-tight">Marketplace</h1>
-        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mt-1.5 mb-6">
-          Goods · Prices · Available Stock
-        </p>
+        <div className="border border-[#3d3530] rounded">
+          {/* Shop Inventory */}
+          <div className="px-6 pt-5 pb-6 min-h-[320px]">
+            <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Shop Inventory</h2>
+            <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Items for sale from the marketplace</p>
+            <div className="border-t border-[#3d3530]" />
+          </div>
 
-        <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Shop Inventory</h2>
-        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Items for sale from the marketplace</p>
-        <div className="border border-[#3d3530] rounded min-h-[320px] mb-10" />
+          {/* Divider */}
+          <div className="border-t border-[#3d3530]" />
 
-        <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Player Listings</h2>
-        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Items for sale by players</p>
-        <div className="border border-[#3d3530] rounded min-h-[320px]" />
+          {/* Player Listings */}
+          <div className="px-6 pt-5 pb-6 min-h-[320px]">
+            <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Player Listings</h2>
+            <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Items for sale by players</p>
+            <div className="border-t border-[#3d3530]" />
+          </div>
+        </div>
       </div>
     </div>
   );
