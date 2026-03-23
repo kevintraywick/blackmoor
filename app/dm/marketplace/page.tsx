@@ -22,9 +22,7 @@ export default function MarketplacePage() {
         <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mt-1.5 mb-6">
           Goods · Prices · Available Stock
         </p>
-        <div className="border-t border-[#3d3530] pt-6 text-[#5a4a44] text-sm font-serif italic">
-          Goods, prices, and available stock. A record of what can be bought and sold. Coming soon.
-        </div>
+        <div className="border border-[#3d3530] rounded min-h-[320px]" />
       </div>
     </div>
   );
