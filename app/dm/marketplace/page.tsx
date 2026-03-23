@@ -17,7 +17,7 @@ export default function MarketplacePage() {
         />
       </div>
 
-      <div className="max-w-[640px] mx-auto px-8 py-10">
+      <div className="max-w-[780px] mx-auto px-8 py-10">
         <h1 className="font-serif text-[2rem] italic text-[#e8ddd0] leading-none tracking-tight">Marketplace</h1>
         <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mt-1.5 mb-6">
           Goods · Prices · Available Stock
