@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export type NavSection = 'sessions' | 'players' | 'maps' | 'magic' | 'marketplace' | 'poisons';
+export type NavSection = 'sessions' | 'players' | 'maps' | 'magic' | 'marketplace' | 'poisons' | 'inventory';
 
 const LINKS: { key: NavSection; label: string; href: string }[] = [
   { key: 'sessions',    label: 'Sessions',        href: '/dm' },
@@ -8,6 +8,7 @@ const LINKS: { key: NavSection; label: string; href: string }[] = [
   { key: 'maps',        label: 'Maps',            href: '/dm/maps' },
   { key: 'magic',       label: 'Magic',           href: '/dm/magic' },
   { key: 'marketplace', label: 'Marketplace',     href: '/dm/marketplace' },
+  { key: 'inventory',   label: 'Inventory',       href: '/dm/inventory' },
   { key: 'poisons',     label: 'Poisons & Traps', href: '/dm/poisons' },
 ];
 
