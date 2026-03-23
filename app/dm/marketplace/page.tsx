@@ -21,7 +21,7 @@ export default async function MarketplacePage({ searchParams }: Props) {
           <span className="text-[#3d3530]">/</span>
           <span className="text-[#e8ddd0]">{player.character}</span>
           <span className="text-[#3d3530]">|</span>
-          <Link href="/players" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">All Players</Link>
+          <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">All Players</Link>
           <span className="text-[#3d3530]">|</span>
           <span className="text-[#c9a84c] font-bold">Marketplace</span>
         </div>
