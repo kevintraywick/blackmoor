@@ -41,7 +41,7 @@ export default async function MarketplacePage({ searchParams }: Props) {
       </div>
 
       <div className="max-w-[780px] mx-auto px-8 py-10">
-        <div className="border border-[#3d3530] rounded">
+        <div className="border border-[#3d3530] rounded bg-[#2e1a08]">
           {/* Shop Inventory */}
           <div className="px-6 pt-5 pb-6 min-h-[320px]">
             <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Shop Inventory</h2>
