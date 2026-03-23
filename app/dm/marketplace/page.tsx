@@ -1,10 +1,33 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import DmNav from '@/components/DmNav';
+import { PLAYERS } from '@/lib/players';
 
-export default function MarketplacePage() {
+interface Props {
+  searchParams: Promise<{ player?: string }>;
+}
+
+export default async function MarketplacePage({ searchParams }: Props) {
+  const { player: playerId } = await searchParams;
+  const player = playerId ? PLAYERS.find(p => p.id === playerId) : null;
+
   return (
     <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0]">
-      <DmNav current="marketplace" />
+      {player ? (
+        <div className="sticky top-0 bg-[#231f1c] border-b border-[#3d3530] px-8 py-3 flex items-center gap-3 z-10 text-sm">
+          <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← Home</Link>
+          <span className="text-[#3d3530]">|</span>
+          <span className="text-[#c9a84c] font-bold">{player.playerName}</span>
+          <span className="text-[#3d3530]">/</span>
+          <span className="text-[#e8ddd0]">{player.character}</span>
+          <span className="text-[#3d3530]">|</span>
+          <Link href="/players" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">All Players</Link>
+          <span className="text-[#3d3530]">|</span>
+          <span className="text-[#c9a84c] font-bold">Marketplace</span>
+        </div>
+      ) : (
+        <DmNav current="marketplace" />
+      )}
 
       {/* Full-width banner */}
       <div className="relative w-full h-48 sm:h-64">
