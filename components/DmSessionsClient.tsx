@@ -35,11 +35,13 @@ export default function DmSessionsClient({ initial }: { initial: Session[] }) {
   );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const creating = useRef(false);
 
   const selected = sessions.find(s => s.id === selectedId) ?? null;
 
   // Switch selected session — update values to match
   function handleSelect(session: Session) {
+    if (timer.current) clearTimeout(timer.current);
     setSelectedId(session.id);
     setValues(emptyValues(session));
     setSaveStatus('idle');
@@ -80,17 +82,23 @@ export default function DmSessionsClient({ initial }: { initial: Session[] }) {
 
   // Create a new session and auto-select it
   async function handleNew() {
-    const maxNum = sessions.reduce((m, s) => Math.max(m, s.number), 0);
-    const id = Date.now().toString(36);
-    const res = await fetch('/api/sessions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, number: maxNum + 1 }),
-    });
-    if (!res.ok) { console.error('Failed to create session'); return; }
-    const session: Session = await res.json();
-    setSessions(prev => [...prev, session]);
-    handleSelect(session);
+    if (creating.current) return;
+    creating.current = true;
+    try {
+      const maxNum = sessions.reduce((m, s) => Math.max(m, s.number), 0);
+      const id = Date.now().toString(36);
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, number: maxNum + 1 }),
+      });
+      if (!res.ok) { console.error('Failed to create session'); return; }
+      const session: Session = await res.json();
+      setSessions(prev => [...prev, session]);
+      handleSelect(session);
+    } finally {
+      creating.current = false;
+    }
   }
 
   const statusText = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed' }[saveStatus];
