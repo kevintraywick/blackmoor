@@ -35,7 +35,7 @@ export default async function MarketplacePage({ searchParams }: Props) {
       </div>
 
       <div className="relative z-10 -mt-[84px] max-w-[780px] mx-auto px-4 pt-6 pb-16 bg-[#1a1614] rounded-t-2xl">
-        <div className="border border-[#3d3530] rounded bg-[#2e1a08]">
+        <div className="border border-[#3d3530] rounded bg-[#4a2208]">
           {/* Marketplace */}
           <div className="px-6 pt-5 pb-6 min-h-[320px]">
             <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Marketplace</h2>
