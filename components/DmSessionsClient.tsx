@@ -113,7 +113,7 @@ export default function DmSessionsClient({ initial }: { initial: Session[] }) {
     <div>
       {/* Session box row */}
       <div className="border-b border-[#3d3530] bg-[#1e1b18] px-6 py-4">
-        <div className="flex gap-2.5 overflow-x-auto pb-1">
+        <div className="max-w-[860px] mx-auto flex gap-2.5 overflow-x-auto pb-1">
           {sessions.map(s => {
             const isSelected = s.id === selectedId;
             return (
@@ -151,7 +151,7 @@ export default function DmSessionsClient({ initial }: { initial: Session[] }) {
       </div>
 
       {/* Session detail panel */}
-      <div className="px-8 py-8 max-w-[860px]">
+      <div className="px-8 py-8 max-w-[860px] mx-auto">
         {!selected ? (
           <p className="text-[#5a4a44] font-serif italic text-sm">
             No sessions yet — click + to create your first one.
