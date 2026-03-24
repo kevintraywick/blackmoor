@@ -2,41 +2,64 @@
 
 import { useState } from 'react';
 import InventoryCreateForm from './InventoryCreateForm';
-import InventoryItemGrid from './InventoryItemGrid';
+import InventoryItemGrid, { type Item } from './InventoryItemGrid';
 
 export default function InventoryPageClient() {
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [editItem, setEditItem] = useState<Item | null>(null);
 
-  function handleSelect(id: number) {
-    setSelectedItemId(prev => prev === id ? null : id);
+  function handleSelect(item: Item) {
+    setSelectedItem(prev => prev?.id === item.id ? null : item);
   }
 
   async function sendToMarketplace() {
-    if (selectedItemId === null) return;
-    await fetch(`/api/items/${selectedItemId}`, {
+    if (!selectedItem) return;
+    await fetch(`/api/items/${selectedItem.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ in_marketplace: true }),
     });
-    setSelectedItemId(null);
+    setSelectedItem(null);
     setRefreshKey(k => k + 1);
+  }
+
+  function handleEdit() {
+    if (!selectedItem) return;
+    setEditItem(selectedItem);
+    setSelectedItem(null);
   }
 
   return (
     <div className="flex flex-col gap-4">
       {/* Create pane */}
       <div className="border border-[#3d3530] rounded bg-[#2e3a4a]">
-        <InventoryCreateForm onCreated={() => setRefreshKey(k => k + 1)} />
+        <InventoryCreateForm
+          key={editItem?.id ?? 'new'}
+          onCreated={() => { setRefreshKey(k => k + 1); setEditItem(null); }}
+          editItem={editItem}
+        />
       </div>
 
       {/* Inventory pane */}
       <div className="relative border border-[#3d3530] rounded bg-[#2e3a4a]">
-        {/* Send-to-marketplace button — top-right corner */}
+        {/* EDIT button */}
+        <button
+          onClick={handleEdit}
+          disabled={!selectedItem}
+          title={selectedItem ? 'Load item into form' : 'Select an item first'}
+          className="absolute top-4 right-16 w-10 h-10 rounded-full bg-[#2d6a4f] text-white
+                     text-[9px] font-bold tracking-wider flex items-center justify-center
+                     hover:bg-[#3a8a65] disabled:opacity-50 transition-colors"
+        >
+          EDIT
+        </button>
+
+        {/* Send-to-marketplace button */}
         <button
           onClick={sendToMarketplace}
-          disabled={selectedItemId === null}
-          title={selectedItemId !== null ? 'Send to marketplace' : 'Select an item first'}
+          disabled={!selectedItem}
+          title={selectedItem ? 'Send to marketplace' : 'Select an item first'}
           className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[#c9a84c] text-black text-xl
                      font-bold flex items-center justify-center hover:bg-[#e0bc5a]
                      disabled:opacity-50 transition-colors"
@@ -54,7 +77,7 @@ export default function InventoryPageClient() {
           <div className="border-t border-[#3d3530] mb-6" />
           <InventoryItemGrid
             refreshKey={refreshKey}
-            selectedItemId={selectedItemId}
+            selectedItemId={selectedItem?.id ?? null}
             onSelect={handleSelect}
           />
         </div>

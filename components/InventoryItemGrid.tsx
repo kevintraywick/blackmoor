@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 
-interface Item {
+export interface Item {
   id: number;
   title: string;
   price: number;
@@ -24,7 +24,7 @@ function statBadgeClass(type: Item['stat_type']): string {
 interface Props {
   refreshKey: number;
   selectedItemId: number | null;
-  onSelect: (id: number) => void;
+  onSelect: (item: Item) => void;
 }
 
 export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect }: Props) {
@@ -49,7 +49,7 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
         <div
           key={item.id}
           className="flex flex-col items-center cursor-pointer"
-          onClick={() => onSelect(item.id)}
+          onClick={() => onSelect(item)}
         >
           {/* Outer wrapper: selection ring + badge positioning context */}
           <div className={`relative group w-24 h-24 rounded-full transition-all

@@ -1,9 +1,11 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import type { Item } from './InventoryItemGrid';
 
 interface Props {
   onCreated: () => void;
+  editItem?: Item | null;
 }
 
 const STAT_OPTIONS = [
@@ -64,11 +66,16 @@ function StepCounter({
   );
 }
 
-export default function InventoryCreateForm({ onCreated }: Props) {
-  const [preview, setPreview] = useState<string | null>(null);
-  const [statType, setStatType] = useState('');
-  const [price, setPrice] = useState(0);
-  const [statValue, setStatValue] = useState(0);
+function itemImageUrl(path: string | null): string | null {
+  if (!path) return null;
+  return path.startsWith('uploads/') ? `/api/${path}` : `/${path}`;
+}
+
+export default function InventoryCreateForm({ onCreated, editItem }: Props) {
+  const [preview, setPreview] = useState<string | null>(() => itemImageUrl(editItem?.image_path ?? null));
+  const [statType, setStatType] = useState(editItem?.stat_type ?? '');
+  const [price, setPrice] = useState(editItem?.price ?? 0);
+  const [statValue, setStatValue] = useState(editItem?.stat_value ?? 0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -183,6 +190,7 @@ export default function InventoryCreateForm({ onCreated }: Props) {
               name="title"
               required
               placeholder="Title"
+              defaultValue={editItem?.title ?? ''}
               className="flex-1 bg-[#231f1c] border border-[#3d3530] rounded px-3 py-2
                          text-[#e8ddd0] text-sm placeholder:text-[#5a4f46] focus:outline-none
                          focus:border-[#c9a84c]"
@@ -219,6 +227,7 @@ export default function InventoryCreateForm({ onCreated }: Props) {
             name="description"
             rows={2}
             placeholder="Description (shown on hover)"
+            defaultValue={editItem?.description ?? ''}
             className="bg-[#231f1c] border border-[#3d3530] rounded px-3 py-1.5
                        text-[#e8ddd0] text-sm placeholder:text-[#5a4f46] focus:outline-none
                        focus:border-[#c9a84c] resize-none"
