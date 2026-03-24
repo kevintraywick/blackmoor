@@ -105,7 +105,7 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
             )}
           </div>
 
-          <p className="text-[0.65rem] text-center text-[#e8ddd0] mt-1 w-24 truncate">
+          <p className="text-[0.65rem] text-center text-[#e8ddd0] mt-1 w-24 leading-tight line-clamp-2">
             {item.title}
           </p>
         </div>
