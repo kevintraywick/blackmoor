@@ -5,10 +5,10 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join, extname } from 'path';
 import { randomUUID } from 'crypto';
 
-const UPLOAD_DIR = '/data/uploads/items';
+const UPLOAD_DIR = `${process.env.DATA_DIR ?? '/data'}/uploads/items`;
 
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
-const ALLOWED_STAT_TYPES = ['heal', 'magic', 'attack'];
+const ALLOWED_STAT_TYPES = ['heal', 'magic', 'attack', 'damage'];
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB
 
 export async function GET() {

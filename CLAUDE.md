@@ -29,3 +29,6 @@ This is a tool for heroes and the people who run their world. It should feel lik
 
 ### UI Preferences
 - **No hidden-choice controls without asking first.** Before implementing a `<select>` dropdown, `<datalist>`, or any pull-down menu, ask the user — they prefer options to be visible on the page (radio buttons, button groups, segmented controls, etc.). Only use a dropdown if the user explicitly approves it after seeing the alternatives.
+
+## GITHUB
+Alert the user on a local push or commit if the change has not been pushed to Github. 

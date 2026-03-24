@@ -89,14 +89,20 @@ async function _initSchema() {
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS items (
-      id          SERIAL PRIMARY KEY,
-      title       TEXT        NOT NULL,
-      price       INTEGER     NOT NULL,
-      description TEXT,
-      stat_type   TEXT        CHECK (stat_type IN ('heal', 'magic', 'attack')),
-      stat_value  INTEGER,
-      image_path  TEXT,
-      created_at  TIMESTAMPTZ DEFAULT now()
+      id             SERIAL PRIMARY KEY,
+      title          TEXT        NOT NULL,
+      price          INTEGER     NOT NULL,
+      description    TEXT,
+      stat_type      TEXT        CHECK (stat_type IN ('heal', 'magic', 'attack', 'damage')),
+      stat_value     INTEGER,
+      image_path     TEXT,
+      in_marketplace BOOLEAN     NOT NULL DEFAULT false,
+      created_at     TIMESTAMPTZ DEFAULT now()
     )
+  `);
+
+  await pool.query(`
+    ALTER TABLE items
+    ADD COLUMN IF NOT EXISTS in_marketplace BOOLEAN NOT NULL DEFAULT false
   `);
 }

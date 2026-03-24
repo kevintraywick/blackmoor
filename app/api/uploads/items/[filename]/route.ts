@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import { join, extname } from 'path';
 
-const UPLOAD_DIR = '/data/uploads/items';
+const UPLOAD_DIR = `${process.env.DATA_DIR ?? '/data'}/uploads/items`;
 
 const MIME: Record<string, string> = {
   '.png':  'image/png',
