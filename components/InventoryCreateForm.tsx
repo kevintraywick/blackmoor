@@ -15,6 +15,9 @@ export default function InventoryCreateForm({ onCreated }: Props) {
   const formRef = useRef<HTMLFormElement>(null);
 
   function handleFile(file: File) {
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
     setPreview(URL.createObjectURL(file));
   }
 
@@ -37,7 +40,8 @@ export default function InventoryCreateForm({ onCreated }: Props) {
     setSaving(true);
     setError(null);
 
-    const form = formRef.current!;
+    const form = formRef.current;
+    if (!form) return;
     const fd = new FormData(form);
 
     try {
