@@ -8,6 +8,7 @@ export default function InventoryPageClient() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [editItem, setEditItem] = useState<Item | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   function handleSelect(item: Item) {
     setSelectedItem(prev => prev?.id === item.id ? null : item);
@@ -30,6 +31,14 @@ export default function InventoryPageClient() {
     setSelectedItem(null);
   }
 
+  async function handleDeleteConfirmed() {
+    if (!selectedItem) return;
+    await fetch(`/api/items/${selectedItem.id}`, { method: 'DELETE' });
+    setConfirmDelete(false);
+    setSelectedItem(null);
+    setRefreshKey(k => k + 1);
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Create pane */}
@@ -43,6 +52,18 @@ export default function InventoryPageClient() {
 
       {/* Inventory pane */}
       <div className="relative border border-[#3d3530] rounded bg-[#2e3a4a]">
+        {/* DELETE button */}
+        <button
+          onClick={() => selectedItem && setConfirmDelete(true)}
+          disabled={!selectedItem}
+          title={selectedItem ? 'Delete item' : 'Select an item first'}
+          className="absolute top-4 right-28 w-10 h-10 rounded-full bg-red-700 text-white
+                     text-lg font-bold flex items-center justify-center
+                     hover:bg-red-600 disabled:opacity-50 transition-colors"
+        >
+          ✕
+        </button>
+
         {/* EDIT button */}
         <button
           onClick={handleEdit}
@@ -82,6 +103,33 @@ export default function InventoryPageClient() {
           />
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-[#1a1614] border border-[#3d3530] rounded px-8 py-6 max-w-sm w-full mx-4 shadow-xl">
+            <p className="font-serif text-[1.1rem] italic text-[#e8ddd0] mb-6 text-center">
+              Do you wish to delete this item?
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={handleDeleteConfirmed}
+                className="px-6 py-2 rounded bg-red-700 text-white text-sm font-bold
+                           hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="px-6 py-2 rounded border border-[#3d3530] text-[#8a7d6e] text-sm
+                           hover:text-[#e8ddd0] hover:border-[#5a4f46] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
