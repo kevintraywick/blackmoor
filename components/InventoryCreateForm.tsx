@@ -173,6 +173,10 @@ export default function InventoryCreateForm({ onCreated, editItem }: Props) {
             </span>
           )}
         </div>
+        {/* Preserve original image path when not replaced */}
+        {editItem?.image_path && (
+          <input type="hidden" name="existing_image_path" value={editItem.image_path} />
+        )}
         <input
           ref={fileRef}
           type="file"

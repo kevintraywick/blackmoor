@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
 
     const image = formData.get('image') as File | null;
+    const existingImagePath = (formData.get('existing_image_path') as string) || null;
     const title = formData.get('title') as string;
     const price = parseInt(formData.get('price') as string, 10);
     const description = (formData.get('description') as string) || null;
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
       );
     }
 
-    let imagePath: string | null = null;
+    let imagePath: string | null = existingImagePath;
 
     if (image && image.size > 0) {
       if (!ALLOWED_MIME_TYPES.includes(image.type)) {
