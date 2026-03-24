@@ -13,6 +13,7 @@ interface Item {
   stat_type: 'heal' | 'magic' | 'attack' | 'damage' | null;
   stat_value: number | null;
   image_path: string | null;
+  marketplace_qty: number;
 }
 
 function itemImageSrc(path: string): string {
@@ -36,7 +37,7 @@ export default async function MarketplacePage({ searchParams }: Props) {
 
   await ensureSchema();
   const items: Item[] = await query(
-    'SELECT * FROM items WHERE in_marketplace = true ORDER BY created_at DESC'
+    'SELECT * FROM items WHERE marketplace_qty > 0 ORDER BY created_at DESC'
   );
 
   return (
@@ -76,8 +77,9 @@ export default async function MarketplacePage({ searchParams }: Props) {
               <p className="text-[#5a4f46] text-sm italic">No items available.</p>
             ) : (
               <div className="flex flex-wrap gap-6">
-                {items.map(item => (
-                  <div key={item.id} className="flex flex-col items-center">
+                {items.flatMap(item =>
+                  Array.from({ length: item.marketplace_qty }, (_, i) => (
+                  <div key={`${item.id}-${i}`} className="flex flex-col items-center">
                     <div className="relative w-24 h-24">
                       {/* Circle image */}
                       <div className="absolute inset-0 rounded-full overflow-hidden border border-[#3d3530]">
@@ -118,7 +120,8 @@ export default async function MarketplacePage({ searchParams }: Props) {
                       {item.title}
                     </p>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             )}
           </div>

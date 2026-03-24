@@ -11,6 +11,7 @@ export interface Item {
   stat_value: number | null;
   image_path: string | null;
   in_marketplace: boolean;
+  marketplace_qty: number;
 }
 
 function statBadgeClass(type: Item['stat_type']): string {

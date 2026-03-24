@@ -19,7 +19,7 @@ export default function InventoryPageClient() {
     await fetch(`/api/items/${selectedItem.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ in_marketplace: true }),
+      body: JSON.stringify({ marketplace_action: 'add' }),
     });
     setSelectedItem(null);
     setRefreshKey(k => k + 1);

@@ -20,15 +20,15 @@ export async function PATCH(request: Request, { params }: Props) {
     }
 
     const body = await request.json();
-    const { in_marketplace } = body;
+    const { marketplace_action } = body;
 
-    if (typeof in_marketplace !== 'boolean') {
-      return NextResponse.json({ error: 'in_marketplace must be a boolean' }, { status: 400 });
+    if (marketplace_action !== 'add') {
+      return NextResponse.json({ error: 'marketplace_action must be "add"' }, { status: 400 });
     }
 
     const rows = await query(
-      'UPDATE items SET in_marketplace = $1 WHERE id = $2 RETURNING *',
-      [in_marketplace, itemId]
+      'UPDATE items SET marketplace_qty = marketplace_qty + 1, in_marketplace = true WHERE id = $1 RETURNING *',
+      [itemId]
     );
 
     if (rows.length === 0) {

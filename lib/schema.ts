@@ -115,6 +115,17 @@ async function _initSchema() {
     CHECK (stat_type IN ('heal', 'magic', 'attack', 'damage'))
   `);
 
+  // Switch from boolean in_marketplace to integer marketplace_qty
+  await pool.query(`
+    ALTER TABLE items
+    ADD COLUMN IF NOT EXISTS marketplace_qty INTEGER NOT NULL DEFAULT 0
+  `);
+  // Migrate existing in_marketplace = true rows to qty = 1 (only if still 0)
+  await pool.query(`
+    UPDATE items SET marketplace_qty = 1
+    WHERE in_marketplace = true AND marketplace_qty = 0
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS npcs (
       id       TEXT PRIMARY KEY,
