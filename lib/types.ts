@@ -82,3 +82,17 @@ export interface MapRow {
 
 // Player version — dm_notes omitted (never sent to client)
 export type PlayerMapRow = Omit<MapRow, 'dm_notes'>;
+
+export interface Npc {
+  id: string;
+  name: string;
+  species: string;
+  cr: string;
+  hp: string;
+  ac: string;
+  speed: string;
+  attacks: string;
+  traits: string;
+  actions: string;
+  notes: string;
+}

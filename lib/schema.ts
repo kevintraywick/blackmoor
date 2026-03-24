@@ -114,4 +114,21 @@ async function _initSchema() {
     ALTER TABLE items ADD CONSTRAINT items_stat_type_check
     CHECK (stat_type IN ('heal', 'magic', 'attack', 'damage'))
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS npcs (
+      id       TEXT PRIMARY KEY,
+      name     TEXT NOT NULL DEFAULT '',
+      species  TEXT NOT NULL DEFAULT '',
+      cr       TEXT NOT NULL DEFAULT '',
+      hp       TEXT NOT NULL DEFAULT '',
+      ac       TEXT NOT NULL DEFAULT '',
+      speed    TEXT NOT NULL DEFAULT '',
+      attacks  TEXT NOT NULL DEFAULT '',
+      traits   TEXT NOT NULL DEFAULT '',
+      actions  TEXT NOT NULL DEFAULT '',
+      notes    TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT now()
+    )
+  `);
 }
