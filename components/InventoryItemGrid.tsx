@@ -82,7 +82,7 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
             {/* Gold price badge — bottom-LEFT, coin image bg */}
             <div className="absolute -bottom-1 -left-1 w-[26px] h-[26px] rounded-full
                             overflow-hidden border border-[#1a1614] z-10 flex items-center justify-center">
-              <img src="/images/inventory/gold_coin.png" alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
               <span className="relative text-[9px] font-bold text-black drop-shadow-sm">{item.price}</span>
             </div>
 
