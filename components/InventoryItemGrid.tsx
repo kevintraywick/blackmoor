@@ -43,39 +43,43 @@ export default function InventoryItemGrid({ refreshKey }: Props) {
     <div className="flex flex-wrap gap-6">
       {items.map(item => (
         <div key={item.id} className="flex flex-col items-center">
-          <div className="relative group w-24 h-24 rounded-full overflow-hidden border border-[#3d3530]">
-            {item.image_path ? (
-              <img
-                src={`/api/${item.image_path}`}
-                alt={item.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-[#2a2420]" />
-            )}
+          {/* Outer wrapper: relative positioning context for badges, no overflow clip */}
+          <div className="relative group w-24 h-24">
+            {/* Inner circle: clips image and tooltip */}
+            <div className="absolute inset-0 rounded-full overflow-hidden border border-[#3d3530]">
+              {item.image_path ? (
+                <img
+                  src={`/api/${item.image_path}`}
+                  alt={item.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-[#2a2420]" />
+              )}
 
-            {/* Gold price badge */}
-            <div className="absolute bottom-0.5 right-0.5 w-6 h-6 rounded-full bg-[#c9a84c]
+              {/* Hover tooltip (inside clip so it stays circular) */}
+              {item.description && (
+                <div className="absolute inset-0 invisible group-hover:visible
+                                bg-black/85 flex items-center justify-center p-2
+                                text-[10px] text-[#e8ddd0] text-center leading-tight">
+                  {item.description}
+                </div>
+              )}
+            </div>
+
+            {/* Gold price badge — outside overflow-hidden, overlays the circle */}
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#c9a84c]
                             flex items-center justify-center text-[9px] font-bold text-black
-                            border border-[#1a1614]">
+                            border border-[#1a1614] z-10">
               {item.price}
             </div>
 
-            {/* Stat badge */}
+            {/* Stat badge — outside overflow-hidden, overlays the circle */}
             {item.stat_type && item.stat_value !== null && (
-              <div className={`absolute bottom-0.5 left-0.5 w-6 h-6 rounded-full
+              <div className={`absolute -bottom-1 -left-1 w-6 h-6 rounded-full
                               flex items-center justify-center text-[9px] font-bold
-                              border border-[#1a1614] ${statBadgeClass(item.stat_type)}`}>
+                              border border-[#1a1614] z-10 ${statBadgeClass(item.stat_type)}`}>
                 {item.stat_value}
-              </div>
-            )}
-
-            {/* Hover tooltip */}
-            {item.description && (
-              <div className="absolute inset-0 invisible group-hover:visible
-                              bg-black/85 flex items-center justify-center p-2
-                              text-[10px] text-[#e8ddd0] text-center leading-tight">
-                {item.description}
               </div>
             )}
           </div>
