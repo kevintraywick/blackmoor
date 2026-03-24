@@ -58,7 +58,7 @@ export async function DELETE(_: Request, { params }: Props) {
     }
 
     // Clean up uploaded image if present
-    const imagePath: string | null = rows[0].image_path;
+    const imagePath = (rows[0] as { image_path: string | null }).image_path;
     if (imagePath) {
       const filename = imagePath.split('/').pop()!;
       await unlink(join(UPLOAD_DIR, filename)).catch(() => {});
