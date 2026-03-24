@@ -79,16 +79,16 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
               )}
             </div>
 
-            {/* Gold price badge — bottom-LEFT, black text on gold */}
-            <div className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-[#c9a84c]
-                            flex items-center justify-center text-[9px] font-bold text-black
-                            border border-[#1a1614] z-10">
-              {item.price}
+            {/* Gold price badge — bottom-LEFT, coin image bg */}
+            <div className="absolute -bottom-1 -left-1 w-[26px] h-[26px] rounded-full
+                            overflow-hidden border border-[#1a1614] z-10 flex items-center justify-center">
+              <img src="/images/inventory/gold_coin.png" alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <span className="relative text-[9px] font-bold text-black drop-shadow-sm">{item.price}</span>
             </div>
 
             {/* Stat badge — bottom-RIGHT */}
             {item.stat_type && item.stat_value !== null && (
-              <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full
+              <div className={`absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full
                               flex items-center justify-center text-[9px] font-bold
                               border border-[#1a1614] z-10 ${statBadgeClass(item.stat_type)}`}>
                 {item.stat_value}
