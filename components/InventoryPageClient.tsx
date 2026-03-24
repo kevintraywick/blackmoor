@@ -10,12 +10,12 @@ export default function InventoryPageClient() {
   return (
     <div className="flex flex-col gap-4">
       {/* Create pane */}
-      <div className="border border-[#3d3530] rounded bg-[#7a3c10]">
+      <div className="border border-[#3d3530] rounded bg-[#2e3a4a]">
         <InventoryCreateForm onCreated={() => setRefreshKey(k => k + 1)} />
       </div>
 
       {/* Inventory pane */}
-      <div className="border border-[#3d3530] rounded bg-[#7a3c10]">
+      <div className="border border-[#3d3530] rounded bg-[#2e3a4a]">
         <div className="px-6 pt-5 pb-6 min-h-[480px]">
           <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">
             Inventory
