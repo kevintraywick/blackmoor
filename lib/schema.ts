@@ -105,4 +105,13 @@ async function _initSchema() {
     ALTER TABLE items
     ADD COLUMN IF NOT EXISTS in_marketplace BOOLEAN NOT NULL DEFAULT false
   `);
+
+  // Migrate stat_type constraint to include 'damage'
+  await pool.query(`
+    ALTER TABLE items DROP CONSTRAINT IF EXISTS items_stat_type_check
+  `);
+  await pool.query(`
+    ALTER TABLE items ADD CONSTRAINT items_stat_type_check
+    CHECK (stat_type IN ('heal', 'magic', 'attack', 'damage'))
+  `);
 }
