@@ -61,7 +61,7 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
             <div className="absolute inset-0 rounded-full overflow-hidden border border-[#3d3530]">
               {item.image_path ? (
                 <img
-                  src={`/api/${item.image_path}`}
+                  src={item.image_path!.startsWith('uploads/') ? `/api/${item.image_path}` : `/${item.image_path}`}
                   alt={item.title}
                   className="w-full h-full object-cover"
                 />
