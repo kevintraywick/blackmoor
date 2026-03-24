@@ -86,4 +86,17 @@ async function _initSchema() {
     CREATE INDEX IF NOT EXISTS maps_session_id_idx
     ON maps (session_id, sort_order)
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS items (
+      id          SERIAL PRIMARY KEY,
+      title       TEXT        NOT NULL,
+      price       INTEGER     NOT NULL,
+      description TEXT,
+      stat_type   TEXT        CHECK (stat_type IN ('heal', 'magic', 'attack')),
+      stat_value  INTEGER,
+      image_path  TEXT,
+      created_at  TIMESTAMPTZ DEFAULT now()
+    )
+  `);
 }
