@@ -9,6 +9,7 @@ const UPLOAD_DIR = '/data/uploads/items';
 
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const ALLOWED_STAT_TYPES = ['heal', 'magic', 'attack'];
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB
 
 export async function GET() {
   try {
@@ -52,6 +53,13 @@ export async function POST(request: Request) {
       if (!ALLOWED_MIME_TYPES.includes(image.type)) {
         return NextResponse.json(
           { error: 'image must be png, jpeg, webp, or gif' },
+          { status: 400 }
+        );
+      }
+
+      if (image.size > MAX_IMAGE_BYTES) {
+        return NextResponse.json(
+          { error: 'Image must be 4 MB or smaller' },
           { status: 400 }
         );
       }
