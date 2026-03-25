@@ -10,11 +10,10 @@ function npcImageUrl(path: string | null | undefined): string | null {
 
 // Fields to render in the detail panel — npcs replaced by NPC checkboxes
 const FIELDS = [
-  { key: 'goal',       label: 'Goal / Hook',    rows: 3,  placeholder: "What's the session goal? How does it open?",   cols: 1 },
-  { key: 'scenes',     label: 'Scene Outline',  rows: 7,  placeholder: 'Encounters, beats, traps, treasure, exits…',   cols: 1 },
-  { key: 'locations',  label: 'Locations',      rows: 5,  placeholder: 'Key locations and descriptions…',              cols: 2 },
-  { key: 'loose_ends', label: 'Loose Ends',     rows: 4,  placeholder: 'Unresolved threads from last session…',        cols: 2 },
-  { key: 'notes',      label: 'Notes',          rows: 4,  placeholder: 'Music, atmosphere, misc reminders…',           cols: 2 },
+  { key: 'goal',      label: 'Goal / Hook',   rows: 3, placeholder: "What's the session goal? How does it open?",  cols: 1 },
+  { key: 'scenes',    label: 'Scene Outline', rows: 7, placeholder: 'Encounters, beats, traps, treasure, exits…',  cols: 1 },
+  { key: 'locations', label: 'Locations',     rows: 5, placeholder: 'Key locations and descriptions…',             cols: 2 },
+  { key: 'notes',     label: 'Notes',         rows: 4, placeholder: 'Music, atmosphere, misc reminders…',          cols: 2 },
 ] as const;
 
 type FieldKey = (typeof FIELDS)[number]['key'];
@@ -214,11 +213,11 @@ export default function DmSessionsClient({
               </div>
             ))}
 
-            {/* Key NPCs — checkbox list + two-column fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7">
-              {/* Key NPCs checklist */}
+            {/* Two-column: NPCs checklist (left) | Locations + Notes (right) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-start">
+              {/* NPCs checklist */}
               <div>
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-2">Key NPCs</div>
+                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-2">NPCs</div>
                 {allNpcs.length === 0 ? (
                   <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs yet.</p>
                 ) : (
@@ -232,7 +231,6 @@ export default function DmSessionsClient({
                           key={npc.id}
                           className={`flex items-center gap-2.5 cursor-pointer rounded px-2 py-1 transition-colors hover:bg-[#231f1c] ${checked ? '' : 'opacity-50'}`}
                         >
-                          {/* Mini portrait */}
                           <div className="w-7 h-7 rounded-full overflow-hidden bg-[#2e2825] border border-[#3d3530] flex items-center justify-center flex-shrink-0">
                             {imgUrl ? (
                               <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
@@ -240,7 +238,6 @@ export default function DmSessionsClient({
                               <span className="text-[0.7rem] text-[#8a7d6e] font-serif">{initial}</span>
                             )}
                           </div>
-                          {/* Custom checkbox */}
                           <div
                             className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
                               checked ? 'border-[#c9a84c] bg-[#c9a84c]' : 'border-[#3d3530] bg-transparent'
@@ -262,45 +259,30 @@ export default function DmSessionsClient({
                 )}
               </div>
 
-              {/* Locations */}
-              {FIELDS.filter(f => f.cols === 2).slice(0, 1).map(f => (
-                <div key={f.key}>
-                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-1">{f.label}</div>
+              {/* Right column: Locations + Notes stacked */}
+              <div className="flex flex-col gap-4">
+                <div>
+                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-1">Locations</div>
                   <textarea
-                    rows={f.rows}
-                    value={values[f.key as FieldKey] as string}
-                    placeholder={f.placeholder}
-                    onChange={e => handleChange(f.key, e.target.value)}
+                    rows={5}
+                    value={values.locations as string}
+                    placeholder="Key locations and descriptions…"
+                    onChange={e => handleChange('locations', e.target.value)}
                     className="w-full bg-[#231f1c] border border-[#3d3530] rounded text-[#e8ddd0] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[#c9a84c] placeholder:text-[#8a7d6e] font-serif"
                   />
                 </div>
-              ))}
-            </div>
-
-            {/* Remaining two-column fields */}
-            {(() => {
-              const remaining = FIELDS.filter(f => f.cols === 2).slice(1);
-              const pairs: (typeof FIELDS[number])[][] = [];
-              for (let i = 0; i < remaining.length; i += 2) {
-                pairs.push([remaining[i], remaining[i + 1]].filter(Boolean));
-              }
-              return pairs.map((pair, i) => (
-                <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7">
-                  {pair.map(f => (
-                    <div key={f.key}>
-                      <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-1">{f.label}</div>
-                      <textarea
-                        rows={f.rows}
-                        value={values[f.key as FieldKey] as string}
-                        placeholder={f.placeholder}
-                        onChange={e => handleChange(f.key, e.target.value)}
-                        className="w-full bg-[#231f1c] border border-[#3d3530] rounded text-[#e8ddd0] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[#c9a84c] placeholder:text-[#8a7d6e] font-serif"
-                      />
-                    </div>
-                  ))}
+                <div>
+                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-1">Notes</div>
+                  <textarea
+                    rows={4}
+                    value={values.notes as string}
+                    placeholder="Music, atmosphere, misc reminders…"
+                    onChange={e => handleChange('notes', e.target.value)}
+                    className="w-full bg-[#231f1c] border border-[#3d3530] rounded text-[#e8ddd0] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[#c9a84c] placeholder:text-[#8a7d6e] font-serif"
+                  />
                 </div>
-              ));
-            })()}
+              </div>
+            </div>
 
             {/* Save status */}
             <div className={`text-xs text-right mt-2 h-4 transition-opacity duration-200 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} ${statusColor}`}>
