@@ -56,9 +56,6 @@ export default function DmSessionsClient({
     setValues(emptyValues(session));
     setNpcIds(session.npc_ids ?? []);
     setSaveStatus('idle');
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('blackmoor_current_session_id', session.id);
-    }
   }
 
   const autosave = useCallback((id: string, patch: Record<string, unknown>) => {
