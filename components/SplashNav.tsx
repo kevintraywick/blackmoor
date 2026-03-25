@@ -34,7 +34,7 @@ export default function SplashNav({ players }: { players: Player[] }) {
           className="flex flex-col items-center gap-1.5 no-underline group"
           title={p.character}
         >
-          <span className="text-xs uppercase tracking-[0.08em] text-[#8b1a1a] font-sans whitespace-nowrap">{p.character}</span>
+          <span className="text-xs uppercase tracking-[0.08em] text-[#e8ddd0] font-sans whitespace-nowrap">{p.character}</span>
           <div className="relative w-24 h-24 rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden transition-all group-hover:border-[#c0392b] group-hover:scale-105">
             <span className="text-[#8a7d6e] text-2xl select-none">{p.initial}</span>
             <Image
