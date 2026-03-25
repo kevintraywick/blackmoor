@@ -4,8 +4,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
+import { getPlayers } from '@/lib/getPlayers';
 import type { PlayerSheet as PlayerSheetType } from '@/lib/types';
-import { PLAYERS } from '@/lib/players';
 import { Sheet } from '@/components/PlayerSheet';
 import PlayerMapPanel from '@/components/PlayerMapPanel';
 import PlayerBanner from '@/components/PlayerBanner';
@@ -17,10 +17,11 @@ interface Props {
 export default async function PlayerPage({ params }: Props) {
   const { id } = await params;
 
-  const player = PLAYERS.find(p => p.id === id);
+  await ensureSchema();
+  const players = await getPlayers();
+  const player = players.find(p => p.id === id);
   if (!player) notFound();
 
-  await ensureSchema();
   const rows = await query<PlayerSheetType>('SELECT * FROM player_sheets WHERE id = $1', [id]);
 
   const empty: PlayerSheetType = {
@@ -55,6 +56,7 @@ export default async function PlayerPage({ params }: Props) {
           playerName={player.playerName}
           character={player.character}
           initial={player.initial}
+          img={player.img}
           data={data}
         />
         <PlayerMapPanel playerId={player.id} />

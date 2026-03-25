@@ -2,9 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { PLAYERS } from '@/components/PlayerSheet';
-
-type Player = (typeof PLAYERS)[number];
+import type { Player } from '@/lib/types';
 
 function PlayerCircle({ player }: { player: Player }) {
   return (
@@ -31,10 +29,10 @@ function PlayerCircle({ player }: { player: Player }) {
 }
 
 // Renders all player circles in a row
-export default function PlayerCircles() {
+export default function PlayerCircles({ players }: { players: Player[] }) {
   return (
     <div className="flex flex-wrap gap-2 mt-4 pl-1">
-      {PLAYERS.map(p => <PlayerCircle key={p.id} player={p} />)}
+      {players.map(p => <PlayerCircle key={p.id} player={p} />)}
     </div>
   );
 }

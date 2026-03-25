@@ -1,9 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import DmNav from '@/components/DmNav';
-import { PLAYERS } from '@/lib/players';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
+import { getPlayers } from '@/lib/getPlayers';
 
 interface Item {
   id: number;
@@ -33,9 +33,10 @@ interface Props {
 
 export default async function MarketplacePage({ searchParams }: Props) {
   const { player: playerId } = await searchParams;
-  const player = playerId ? PLAYERS.find(p => p.id === playerId) : null;
 
   await ensureSchema();
+  const players = await getPlayers();
+  const player = playerId ? players.find(p => p.id === playerId) : null;
   const items: Item[] = await query(
     'SELECT * FROM items WHERE marketplace_qty > 0 ORDER BY created_at DESC'
   );

@@ -1,5 +1,13 @@
 // Shared TypeScript types used across the app
 
+export interface Player {
+  id: string;
+  playerName: string;
+  character: string;
+  initial: string;
+  img: string;
+}
+
 export interface WeaponItem {
   id: string;
   name: string;

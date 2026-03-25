@@ -1,6 +1,7 @@
 // Run this once to create database tables.
 // Called automatically on first API request if tables don't exist.
 import { pool } from './db';
+import { PLAYERS } from './players';
 
 // Memoize across the process lifetime — avoids DDL round-trip on every request
 let schemaReady: Promise<void> | null = null;
@@ -167,4 +168,27 @@ async function _initSchema() {
   await pool.query(`
     ALTER TABLE sessions ALTER COLUMN npc_ids SET DEFAULT '[]'::jsonb
   `);
+
+  // Players table — dynamic player roster (seeded from static config)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS players (
+      id          TEXT PRIMARY KEY,
+      player_name TEXT NOT NULL DEFAULT '',
+      character   TEXT NOT NULL DEFAULT '',
+      initial     TEXT NOT NULL DEFAULT '',
+      img         TEXT NOT NULL DEFAULT '',
+      sort_order  INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+  // Seed from static PLAYERS if table is empty
+  const [{ count }] = await pool.query('SELECT COUNT(*)::int as count FROM players').then(r => r.rows);
+  if (count === 0) {
+    for (let i = 0; i < PLAYERS.length; i++) {
+      const p = PLAYERS[i];
+      await pool.query(
+        `INSERT INTO players (id, player_name, character, initial, img, sort_order) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO NOTHING`,
+        [p.id, p.playerName, p.character, p.initial, p.img, i]
+      );
+    }
+  }
 }

@@ -5,16 +5,18 @@ import DmNav from '@/components/DmNav';
 import InitiativePageClient from '@/components/InitiativePageClient';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
+import { getPlayers } from '@/lib/getPlayers';
 import type { Session, Npc, PlayerSheet } from '@/lib/types';
 
 type SessionMeta = Pick<Session, 'id' | 'number' | 'title' | 'npc_ids'>;
 
 export default async function InitiativePage() {
   await ensureSchema();
-  const [sessions, npcs, playerRows] = await Promise.all([
+  const [sessions, npcs, playerRows, players] = await Promise.all([
     query<SessionMeta>('SELECT id, number, title, npc_ids FROM sessions ORDER BY number ASC'),
     query<Npc>('SELECT * FROM npcs ORDER BY name ASC'),
     query<Pick<PlayerSheet, 'id' | 'status'>>('SELECT id, status FROM player_sheets'),
+    getPlayers(),
   ]);
 
   const playerStatuses: Record<string, string> = Object.fromEntries(
@@ -36,7 +38,7 @@ export default async function InitiativePage() {
         />
       </div>
 
-      <InitiativePageClient sessions={sessions} npcs={npcs} playerStatuses={playerStatuses} />
+      <InitiativePageClient sessions={sessions} npcs={npcs} playerStatuses={playerStatuses} players={players} />
     </div>
   );
 }

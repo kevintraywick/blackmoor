@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { PLAYERS } from '@/lib/players';
+import type { Player } from '@/lib/types';
 
-export default function SplashNav() {
+export default function SplashNav({ players }: { players: Player[] }) {
   return (
     <div className="bg-[#231f1c]/90 backdrop-blur border-b border-[#3d3530] px-4 py-4 flex items-center justify-center gap-5 z-10">
 
@@ -27,7 +27,7 @@ export default function SplashNav() {
       <div className="w-px h-20 bg-[#3d3530] mx-1 flex-shrink-0" />
 
       {/* Player circles */}
-      {PLAYERS.map(p => (
+      {players.map(p => (
         <Link
           key={p.id}
           href={`/players/${p.id}`}

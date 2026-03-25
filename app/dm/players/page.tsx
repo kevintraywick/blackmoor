@@ -1,15 +1,13 @@
 export const dynamic = 'force-dynamic';
 
-import Link from 'next/link';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
+import { getPlayers } from '@/lib/getPlayers';
 import type { PlayerSheet } from '@/lib/types';
-import { PLAYERS } from '@/lib/players';
 import DmNav from '@/components/DmNav';
 import DmPlayersClient from '@/components/DmPlayersClient';
 
-async function getSheets(): Promise<Record<string, PlayerSheet>> {
-  await ensureSchema();
+async function getSheets(playerIds: string[]): Promise<Record<string, PlayerSheet>> {
   const rows = await query<PlayerSheet>('SELECT * FROM player_sheets');
 
   const empty: Omit<PlayerSheet, 'id'> = {
@@ -20,23 +18,25 @@ async function getSheets(): Promise<Record<string, PlayerSheet>> {
   };
 
   return Object.fromEntries(
-    PLAYERS.map(p => {
-      const row = rows.find(r => r.id === p.id);
-      return [p.id, row
+    playerIds.map(id => {
+      const row = rows.find(r => r.id === id);
+      return [id, row
         ? { ...row, gear: row.gear ?? [], spells: row.spells ?? [], dm_notes: row.dm_notes ?? '', status: row.status ?? 'active' }
-        : { id: p.id, ...empty }
+        : { id, ...empty }
       ];
     })
   );
 }
 
 export default async function DmPlayersPage() {
-  const sheets = await getSheets();
+  await ensureSchema();
+  const players = await getPlayers();
+  const sheets = await getSheets(players.map(p => p.id));
 
   return (
     <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0] font-serif">
       <DmNav current="players" />
-      <DmPlayersClient sheets={sheets} />
+      <DmPlayersClient players={players} sheets={sheets} />
     </div>
   );
 }

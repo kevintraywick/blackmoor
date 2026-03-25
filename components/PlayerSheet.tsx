@@ -2,9 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem } from '@/lib/types';
-import { PLAYERS } from '@/lib/players';
-export { PLAYERS } from '@/lib/players';
+import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, Player } from '@/lib/types';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 
@@ -279,19 +277,19 @@ export function Sheet({
   playerName,
   character,
   initial,
+  img,
   data,
 }: {
   playerId: string;
   playerName: string;
   character: string;
   initial: string;
+  img?: string;
   data: PlayerSheetType;
 }) {
   const [values, setValues] = useState<PlayerSheetType>(data);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const playerConfig = PLAYERS.find(p => p.id === playerId);
 
   const autosave = useCallback((patch: Partial<PlayerSheetType>) => {
     setSaveStatus('saving');
@@ -360,9 +358,9 @@ export function Sheet({
         {/* Portrait circle */}
         <div className="relative w-14 h-14 rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0">
           <span className="text-[1.2rem] text-[#8a7d6e] select-none">{initial}</span>
-          {playerConfig?.img && (
+          {img && (
             <Image
-              src={playerConfig.img}
+              src={img}
               alt={character}
               fill
               className="object-cover absolute inset-0"
@@ -455,10 +453,11 @@ export function Sheet({
 }
 
 // ── Top-level component: selector row + active sheet ─────────────────────────
-export default function PlayerSheets({ sheets }: { sheets: Record<string, PlayerSheetType> }) {
-  const [activeId, setActiveId] = useState<string>('levi');
+export default function PlayerSheets({ players, sheets }: { players: Player[]; sheets: Record<string, PlayerSheetType> }) {
+  const firstActive = players.find(p => (sheets[p.id]?.status ?? 'active') !== 'removed')?.id ?? players[0]?.id ?? '';
+  const [activeId, setActiveId] = useState<string>(firstActive);
 
-  const activePlayer = PLAYERS.find(p => p.id === activeId)!;
+  const activePlayer = players.find(p => p.id === activeId)!;
   const activeData = sheets[activeId];
 
   return (
@@ -466,7 +465,7 @@ export default function PlayerSheets({ sheets }: { sheets: Record<string, Player
 
       {/* Player selector */}
       <div className="flex justify-center gap-4 flex-wrap py-5 bg-[#231f1c] border-b border-[#3d3530] -mx-4 px-4 mb-6">
-        {PLAYERS.map(p => {
+        {players.map(p => {
           const status = sheets[p.id]?.status ?? 'active';
           if (status === 'removed') return null;
           const isAway = status === 'away';
@@ -507,6 +506,7 @@ export default function PlayerSheets({ sheets }: { sheets: Record<string, Player
         playerName={activePlayer.playerName}
         character={activePlayer.character}
         initial={activePlayer.initial}
+        img={activePlayer.img}
         data={activeData}
       />
     </div>

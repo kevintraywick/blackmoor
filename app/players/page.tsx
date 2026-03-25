@@ -4,16 +4,13 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
+import { getPlayers } from '@/lib/getPlayers';
 import type { PlayerSheet } from '@/lib/types';
-import { PLAYERS } from '@/lib/players';
 import PlayerSheets from '@/components/PlayerSheet';
 
-// Fetch all player sheet rows, return a keyed object { levi: {...}, jeanette: {...}, ... }
-async function getSheets(): Promise<Record<string, PlayerSheet>> {
-  await ensureSchema();
+async function getSheets(playerIds: string[]): Promise<Record<string, PlayerSheet>> {
   const rows = await query<PlayerSheet>('SELECT * FROM player_sheets');
 
-  // Build an id-keyed map, filling in empty defaults for any player with no row yet
   const empty: Omit<PlayerSheet, 'id'> = {
     discord: '', species: '', class: '', level: '', hp: '', xp: '',
     speed: '', size: '', ac: '', boons: '', class_features: '',
@@ -22,15 +19,17 @@ async function getSheets(): Promise<Record<string, PlayerSheet>> {
   };
 
   return Object.fromEntries(
-    PLAYERS.map(p => {
-      const row = rows.find(r => r.id === p.id);
-      return [p.id, row ? { ...row, gear: row.gear ?? [], spells: row.spells ?? [] } : { id: p.id, ...empty }];
+    playerIds.map(id => {
+      const row = rows.find(r => r.id === id);
+      return [id, row ? { ...row, gear: row.gear ?? [], spells: row.spells ?? [] } : { id, ...empty }];
     })
   );
 }
 
 export default async function PlayersPage() {
-  const sheets = await getSheets();
+  await ensureSchema();
+  const players = await getPlayers();
+  const sheets = await getSheets(players.map(p => p.id));
 
   return (
     <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0] font-serif">
@@ -49,7 +48,7 @@ export default async function PlayersPage() {
       </nav>
 
       {/* Client component handles selector + active sheet */}
-      <PlayerSheets sheets={sheets} />
+      <PlayerSheets players={players} sheets={sheets} />
     </div>
   );
 }

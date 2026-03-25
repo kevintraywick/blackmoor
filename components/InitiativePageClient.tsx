@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import type { Npc } from '@/lib/types';
-import { PLAYERS } from '@/lib/players';
+import type { Npc, Player } from '@/lib/types';
 
 interface SessionMeta { id: string; number: number; title: string; npc_ids: string[]; }
 
@@ -61,12 +60,14 @@ export default function InitiativePageClient({
   sessions,
   npcs,
   playerStatuses = {},
+  players = [],
 }: {
   sessions: SessionMeta[];
   npcs: Npc[];
   playerStatuses?: Record<string, string>;
+  players?: Player[];
 }) {
-  const activePlayers = PLAYERS.filter(p => {
+  const activePlayers = players.filter(p => {
     const s = playerStatuses[p.id] ?? 'active';
     return s !== 'away' && s !== 'removed';
   });
@@ -75,7 +76,7 @@ export default function InitiativePageClient({
     sessions[sessions.length - 1]?.id ?? null
   );
   const [playerInits, setPlayerInits] = useState<Record<string, number>>(
-    Object.fromEntries(PLAYERS.map(p => [p.id, 0]))
+    Object.fromEntries(players.map(p => [p.id, 0]))
   );
   const [npcIncluded, setNpcIncluded] = useState<Record<string, boolean>>(
     Object.fromEntries(npcs.map(n => [n.id, true]))
@@ -131,7 +132,7 @@ export default function InitiativePageClient({
   function handleReset() {
     setResults(null);
     setCurrentTurn(0);
-    setPlayerInits(Object.fromEntries(PLAYERS.map(p => [p.id, 0])));
+    setPlayerInits(Object.fromEntries(players.map(p => [p.id, 0])));
   }
 
   // ── RESULTS VIEW ─────────────────────────────────────────────────────────────

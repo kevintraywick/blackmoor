@@ -5,9 +5,9 @@ import { useState, useRef, useCallback } from 'react';
 type PlayerStatus = 'active' | 'away' | 'removed';
 
 const STATUSES: { key: PlayerStatus; label: string }[] = [
-  { key: 'active',  label: '+'    },
-  { key: 'removed', label: '−'    },
-  { key: 'away',    label: 'Away' },
+  { key: 'active',  label: 'Active' },
+  { key: 'removed', label: 'Delete' },
+  { key: 'away',    label: 'Away'   },
 ];
 
 export default function DmPlayerBox({
