@@ -10,18 +10,21 @@ export default async function HomePage() {
   const players = await getPlayers();
 
   return (
-    <div className="min-h-screen bg-[#2a3140] flex flex-col">
-      <SplashNav players={players} />
-      {/* Campaign splash art fills the remaining viewport */}
-      <div className="flex-1 relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a3140] relative">
+      {/* Splash art fills the whole viewport, sits behind the nav */}
+      <div className="absolute inset-0 overflow-hidden">
         <Image
           src="/SOTW_splash_rev2.png"
           alt="Shadow of the Wolf"
           fill
           className="object-contain object-top"
           priority
-          style={{ transform: 'translateY(-30px)' }}
+          style={{ transform: 'scale(1.5) translateY(66px)', transformOrigin: 'top center' }}
         />
+      </div>
+      {/* Nav floats above the image */}
+      <div className="relative z-10">
+        <SplashNav players={players} />
       </div>
     </div>
   );
