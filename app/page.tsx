@@ -15,7 +15,7 @@ export default async function HomePage() {
       {/* Campaign splash art fills the remaining viewport */}
       <div className="flex-1 relative overflow-hidden">
         <Image
-          src="/SOTW_splash.png"
+          src="/SOTW_splash_rev2.png"
           alt="Shadow of the Wolf"
           fill
           className="object-contain object-top"
