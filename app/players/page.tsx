@@ -18,6 +18,7 @@ async function getSheets(): Promise<Record<string, PlayerSheet>> {
     discord: '', species: '', class: '', level: '', hp: '', xp: '',
     speed: '', size: '', ac: '', boons: '', class_features: '',
     species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [],
+    dm_notes: '', status: 'active',
   };
 
   return Object.fromEntries(

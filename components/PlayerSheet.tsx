@@ -466,33 +466,38 @@ export default function PlayerSheets({ sheets }: { sheets: Record<string, Player
 
       {/* Player selector */}
       <div className="flex justify-center gap-4 flex-wrap py-5 bg-[#231f1c] border-b border-[#3d3530] -mx-4 px-4 mb-6">
-        {PLAYERS.map(p => (
-          <button
-            key={p.id}
-            onClick={() => setActiveId(p.id)}
-            className="flex flex-col items-center gap-1.5 cursor-pointer bg-transparent border-none"
-          >
-            <div className={`relative w-20 h-20 rounded-full overflow-hidden border-[3px] transition-all ${
-              activeId === p.id
-                ? 'border-[#c9a84c]'
-                : 'border-[#3d3530] hover:border-[#8a7d6e] hover:scale-105'
-            } bg-[#2e2825] flex items-center justify-center`}>
-              <span className="text-[1.6rem] text-[#8a7d6e] select-none">{p.initial}</span>
-              <Image
-                src={p.img}
-                alt={p.playerName}
-                fill
-                className="object-cover absolute inset-0"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-            </div>
-            <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
-              activeId === p.id ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'
-            }`}>
-              {p.playerName}
-            </span>
-          </button>
-        ))}
+        {PLAYERS.map(p => {
+          const status = sheets[p.id]?.status ?? 'active';
+          if (status === 'removed') return null;
+          const isAway = status === 'away';
+          return (
+            <button
+              key={p.id}
+              onClick={() => setActiveId(p.id)}
+              className={`flex flex-col items-center gap-1.5 cursor-pointer bg-transparent border-none transition-opacity ${isAway ? 'opacity-40' : ''}`}
+            >
+              <div className={`relative w-20 h-20 rounded-full overflow-hidden border-[3px] transition-all ${
+                activeId === p.id
+                  ? 'border-[#c9a84c]'
+                  : 'border-[#3d3530] hover:border-[#8a7d6e] hover:scale-105'
+              } bg-[#2e2825] flex items-center justify-center`}>
+                <span className="text-[1.6rem] text-[#8a7d6e] select-none">{p.initial}</span>
+                <Image
+                  src={p.img}
+                  alt={p.playerName}
+                  fill
+                  className="object-cover absolute inset-0"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              </div>
+              <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
+                activeId === p.id ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'
+              }`}>
+                {p.playerName}{isAway ? ' · away' : ''}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Active sheet */}

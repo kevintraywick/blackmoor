@@ -9,6 +9,7 @@ const PLAYER_COLUMNS: Record<string, string> = {
   boons: 'boons', class_features: 'class_features', species_traits: 'species_traits',
   player_notes: 'player_notes', general_notes: 'general_notes',
   gear: 'gear', spells: 'spells',
+  dm_notes: 'dm_notes', status: 'status',
 };
 
 // Fields that contain JSON arrays and must be serialized before INSERT/UPDATE

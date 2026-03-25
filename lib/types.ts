@@ -36,6 +36,8 @@ export interface PlayerSheet {
   general_notes: string;   // "Background" in UI
   gear: WeaponItem[];      // "Weapons" in UI — stored as JSONB
   spells: SpellItem[];     // "Magic Spells or Items" — stored as JSONB
+  dm_notes: string;        // DM-only notes (not shown to player)
+  status: string;          // 'active' | 'away' | 'removed'
 }
 
 export interface Session {

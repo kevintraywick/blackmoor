@@ -153,6 +153,10 @@ async function _initSchema() {
     ADD COLUMN IF NOT EXISTS npc_ids JSONB NOT NULL DEFAULT '[]'
   `);
 
+  // DM-only player fields
+  await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS dm_notes TEXT NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`);
+
   // Repair any rows where npc_ids is not an array (e.g. {} from a bad default)
   await pool.query(`
     UPDATE sessions SET npc_ids = '[]'::jsonb

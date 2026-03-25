@@ -27,6 +27,7 @@ export default async function PlayerPage({ params }: Props) {
     id, discord: '', species: '', class: '', level: '', hp: '', xp: '',
     speed: '', size: '', ac: '', boons: '', class_features: '',
     species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [],
+    dm_notes: '', status: 'active',
   };
 
   const data = rows[0] ? { ...rows[0], gear: rows[0].gear ?? [], spells: rows[0].spells ?? [] } : empty;
