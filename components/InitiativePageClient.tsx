@@ -258,9 +258,18 @@ export default function InitiativePageClient({
       <div className="border border-[#3d3530] rounded bg-[#2e3a4a]">
 
         {/* Players */}
-        <div className="px-6 pt-5 pb-5">
-          <h2 className="font-serif text-[1.1rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Players</h2>
-          <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Enter rolled initiative</p>
+        <div className="relative px-6 pt-5 pb-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-serif text-[1.1rem] italic text-[#e8ddd0] leading-none tracking-tight">Players</h2>
+            <button
+              onClick={handleGo}
+              className="w-10 h-10 rounded-full bg-[#c9a84c] text-black font-bold text-xl
+                         flex items-center justify-center hover:bg-[#e0bc5a] transition-colors"
+              title="Roll Initiative"
+            >
+              →
+            </button>
+          </div>
           <div className="border-t border-[#3d3530] mb-4" />
           <div className="flex flex-col gap-4">
             {PLAYERS.map(p => (
@@ -293,8 +302,7 @@ export default function InitiativePageClient({
           <>
             <div className="border-t border-[#3d3530]" />
             <div className="px-6 pt-5 pb-5">
-              <div className="flex items-baseline justify-between mb-1">
-                <h2 className="font-serif text-[1.1rem] italic text-[#e8ddd0] leading-none tracking-tight">NPCs</h2>
+              <div className="flex items-center justify-end mb-4">
                 <button
                   onClick={() => setNpcIncluded(Object.fromEntries(npcs.map(n => [n.id, !allIncluded])))}
                   className="text-[0.6rem] uppercase tracking-[0.15em] text-[#8a7d6e] hover:text-[#c9a84c] transition-colors"
@@ -302,8 +310,6 @@ export default function InitiativePageClient({
                   {allIncluded ? 'Deselect all' : 'Select all'}
                 </button>
               </div>
-              <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Toggle to include · initiative auto-rolled on Go</p>
-              <div className="border-t border-[#3d3530] mb-4" />
               <div className="flex flex-col gap-3">
                 {npcs.map(n => {
                   const included = npcIncluded[n.id] ?? false;
@@ -348,14 +354,6 @@ export default function InitiativePageClient({
         )}
       </div>
 
-      {/* GO button */}
-      <button
-        onClick={handleGo}
-        className="mt-6 w-full py-5 rounded bg-[#c9a84c] text-black font-serif font-bold text-2xl
-                   hover:bg-[#e0bc5a] transition-colors tracking-wide"
-      >
-        Roll Initiative →
-      </button>
     </div>
   );
 }
