@@ -300,7 +300,7 @@ export default function InitiativePageClient({
                            flex items-center justify-center hover:bg-[#e0bc5a] transition-colors mr-[2px]"
                 title="Roll Initiative"
               >
-                →
+                🎲
               </button>
             </div>
             <div className="flex flex-col gap-4">
