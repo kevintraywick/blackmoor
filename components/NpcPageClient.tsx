@@ -241,6 +241,7 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
             </div>
           )}
 
+          <div className="-mx-4">
           {/* Header */}
           <div className="bg-[#231f1c] border border-[#3d3530] rounded-tl-md rounded-tr-md px-4 py-3 border-b-0 flex items-center gap-4">
             {/* Portrait circle — drop zone */}
@@ -353,6 +354,7 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
               <textarea rows={5} value={values.notes} onChange={e => handleChange('notes', e.target.value)} className={ta} placeholder="Tactics, lore, encounter notes…" />
             </div>
           </div>
+          </div>{/* end -mx-4 wrapper */}
         </>
       )}
 
