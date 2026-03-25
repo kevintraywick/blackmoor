@@ -7,7 +7,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 
 const EMPTY_NPC: Omit<Npc, 'id'> = {
   name: '', species: '', cr: '', hp: '', ac: '', speed: '',
-  attacks: '', traits: '', actions: '', notes: '', image_path: null,
+  attacks: '', traits: '', actions: '', notes: '', image_path: '',
 };
 
 function npcImageUrl(path: string | null | undefined): string | null {
@@ -281,7 +281,17 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
               }}
             />
 
-            <div className="flex items-baseline gap-2 flex-1 min-w-0">
+            <div className="flex flex-col gap-1 flex-1 min-w-0">
+              <div className="flex items-baseline gap-2">
+                <input
+                  value={values.image_path ?? ''}
+                  onChange={e => handleChange('image_path', e.target.value)}
+                  placeholder="images/NPCs/orc.png"
+                  title="Path to a committed public image, e.g. images/NPCs/orc.png"
+                  className="bg-transparent border-b border-[#2a2420] text-[#5a4f46] font-sans text-[0.65rem]
+                             outline-none focus:border-[#c9a84c] focus:text-[#8a7d6e] placeholder:text-[#2a2420] pb-0.5 w-full"
+                />
+              </div>
               <input
                 value={values.name}
                 placeholder="NPC Name…"
