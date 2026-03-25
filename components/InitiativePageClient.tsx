@@ -91,6 +91,9 @@ export default function InitiativePageClient({
   const [npcIncluded, setNpcIncluded] = useState<Record<string, boolean>>(
     Object.fromEntries(npcs.map(n => [n.id, true]))
   );
+  const [npcBonuses, setNpcBonuses] = useState<Record<string, number>>(
+    Object.fromEntries(npcs.map(n => [n.id, 0]))
+  );
 
   const [results, setResults] = useState<Combatant[] | null>(null);
   const [currentTurn, setCurrentTurn] = useState(0);
@@ -117,7 +120,7 @@ export default function InitiativePageClient({
         id: n.id,
         name: n.name || 'Unnamed NPC',
         type: 'npc',
-        initiative: Math.floor(Math.random() * 20) + 1,
+        initiative: Math.floor(Math.random() * 20) + 1 + (npcBonuses[n.id] ?? 0),
         rolled: true,
         initial: n.name?.trim()?.[0]?.toUpperCase() ?? '?',
         imagePath: n.image_path,
@@ -364,7 +367,13 @@ export default function InitiativePageClient({
                         }`}>
                           {included && <span className="text-black text-[10px] font-bold leading-none">✓</span>}
                         </div>
-                        <span className="text-[0.6rem] uppercase tracking-[0.1em] text-[#5a4a44] flex-shrink-0">d20</span>
+                        <span className="text-[0.6rem] uppercase tracking-[0.1em] text-[#5a4a44] flex-shrink-0">d20+</span>
+                        <div onClick={e => e.stopPropagation()}>
+                          <InitCounter
+                            value={npcBonuses[n.id] ?? 0}
+                            onChange={v => setNpcBonuses(prev => ({ ...prev, [n.id]: v }))}
+                          />
+                        </div>
                       </div>
                     );
                   })}
