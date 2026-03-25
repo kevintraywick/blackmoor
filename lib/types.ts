@@ -95,4 +95,5 @@ export interface Npc {
   traits: string;
   actions: string;
   notes: string;
+  image_path: string | null;
 }

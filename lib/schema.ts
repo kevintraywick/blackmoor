@@ -128,18 +128,22 @@ async function _initSchema() {
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS npcs (
-      id       TEXT PRIMARY KEY,
-      name     TEXT NOT NULL DEFAULT '',
-      species  TEXT NOT NULL DEFAULT '',
-      cr       TEXT NOT NULL DEFAULT '',
-      hp       TEXT NOT NULL DEFAULT '',
-      ac       TEXT NOT NULL DEFAULT '',
-      speed    TEXT NOT NULL DEFAULT '',
-      attacks  TEXT NOT NULL DEFAULT '',
-      traits   TEXT NOT NULL DEFAULT '',
-      actions  TEXT NOT NULL DEFAULT '',
-      notes    TEXT NOT NULL DEFAULT '',
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL DEFAULT '',
+      species    TEXT NOT NULL DEFAULT '',
+      cr         TEXT NOT NULL DEFAULT '',
+      hp         TEXT NOT NULL DEFAULT '',
+      ac         TEXT NOT NULL DEFAULT '',
+      speed      TEXT NOT NULL DEFAULT '',
+      attacks    TEXT NOT NULL DEFAULT '',
+      traits     TEXT NOT NULL DEFAULT '',
+      actions    TEXT NOT NULL DEFAULT '',
+      notes      TEXT NOT NULL DEFAULT '',
+      image_path TEXT,
       created_at TIMESTAMPTZ DEFAULT now()
     )
+  `);
+  await pool.query(`
+    ALTER TABLE npcs ADD COLUMN IF NOT EXISTS image_path TEXT
   `);
 }

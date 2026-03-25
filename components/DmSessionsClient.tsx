@@ -120,15 +120,17 @@ export default function DmSessionsClient({ initial }: { initial: Session[] }) {
               <button
                 key={s.id}
                 onClick={() => handleSelect(s)}
-                className={`flex-shrink-0 w-[88px] rounded px-2.5 py-2 flex flex-col items-start gap-0.5 text-left transition-colors border ${
+                className={`flex-shrink-0 w-[96px] rounded px-2 py-2.5 flex flex-col items-center gap-1 text-left transition-colors border ${
                   isSelected
                     ? 'border-[#c9a84c] bg-[#231f1c]'
                     : 'border-[#3d3530] bg-[#1a1614] hover:border-[#5a4a44]'
                 }`}
               >
-                <span className={`text-[11px] font-serif leading-tight line-clamp-2 ${isSelected ? 'text-[#e8ddd0]' : 'text-[#8a7d6e]'}`}>
-                  <span className={isSelected ? 'text-[#c9a84c]' : 'text-[#5a4a44]'}>·</span>
-                  {' '}{s.title || 'Untitled'}
+                <span className="text-lg font-bold leading-none font-serif text-[#c9a84c]">
+                  #{s.number}
+                </span>
+                <span className={`text-[13px] font-serif leading-tight line-clamp-2 text-center w-full ${isSelected ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'}`}>
+                  {s.title || 'Untitled'}
                 </span>
                 {s.date && (
                   <span className="text-[8px] text-[#3d3530]">{s.date}</span>
