@@ -89,7 +89,7 @@ export default function InitiativePageClient({
     Object.fromEntries(PLAYERS.map(p => [p.id, 0]))
   );
   const [npcIncluded, setNpcIncluded] = useState<Record<string, boolean>>(
-    Object.fromEntries(npcs.map(n => [n.id, false]))
+    Object.fromEntries(npcs.map(n => [n.id, true]))
   );
 
   const [results, setResults] = useState<Combatant[] | null>(null);
@@ -349,11 +349,6 @@ export default function InitiativePageClient({
                         className={`flex items-center gap-3 cursor-pointer transition-opacity ${included ? '' : 'opacity-40'}`}
                         onClick={() => setNpcIncluded(prev => ({ ...prev, [n.id]: !prev[n.id] }))}
                       >
-                        <div className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-                          included ? 'border-[#c9a84c] bg-[#c9a84c]' : 'border-[#3d3530] bg-transparent'
-                        }`}>
-                          {included && <span className="text-black text-[10px] font-bold leading-none">✓</span>}
-                        </div>
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-[#2e2825] border border-[#3d3530] flex items-center justify-center flex-shrink-0">
                           {imgUrl ? (
                             <img src={imgUrl} alt={n.name} className="w-full h-full object-cover" />
@@ -363,9 +358,11 @@ export default function InitiativePageClient({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-serif text-sm text-[#e8ddd0] truncate">{n.name || 'Unnamed'}</div>
-                          {n.species && (
-                            <div className="text-[0.6rem] uppercase tracking-[0.1em] text-[#5a4a44]">{n.species} · CR {n.cr}</div>
-                          )}
+                        </div>
+                        <div className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                          included ? 'border-[#c9a84c] bg-[#c9a84c]' : 'border-[#3d3530] bg-transparent'
+                        }`}>
+                          {included && <span className="text-black text-[10px] font-bold leading-none">✓</span>}
                         </div>
                         <span className="text-[0.6rem] uppercase tracking-[0.1em] text-[#5a4a44] flex-shrink-0">d20</span>
                       </div>
