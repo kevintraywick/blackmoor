@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import type { Npc } from '@/lib/types';
 import { PLAYERS } from '@/lib/players';
@@ -64,21 +64,40 @@ export default function InitiativePageClient({
   sessions: SessionMeta[];
   npcs: Npc[];
 }) {
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
-    sessions[sessions.length - 1]?.id ?? null
-  );
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('blackmoor_current_session_id');
+      if (stored && sessions.find(s => s.id === stored)) return stored;
+    }
+    return sessions[sessions.length - 1]?.id ?? null;
+  });
   const [playerInits, setPlayerInits] = useState<Record<string, number>>(
     Object.fromEntries(PLAYERS.map(p => [p.id, 0]))
   );
-  const [npcIncluded, setNpcIncluded] = useState<Record<string, boolean>>(
-    Object.fromEntries(npcs.map(n => [n.id, true]))
-  );
+  const [npcIncluded, setNpcIncluded] = useState<Record<string, boolean>>(() => {
+    let sessionId: string | null = sessions[sessions.length - 1]?.id ?? null;
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('blackmoor_current_session_id');
+      if (stored && sessions.find(s => s.id === stored)) sessionId = stored;
+    }
+    const session = sessions.find(s => s.id === sessionId) ?? null;
+    const sessionNpcIds = session?.npc_ids ?? [];
+    return Object.fromEntries(npcs.map(n => [n.id, sessionNpcIds.includes(n.id)]));
+  });
   const [npcBonuses, setNpcBonuses] = useState<Record<string, number>>(
     Object.fromEntries(npcs.map(n => [n.id, 0]))
   );
 
   const [results, setResults] = useState<Combatant[] | null>(null);
   const [currentTurn, setCurrentTurn] = useState(0);
+
+  // Reset NPC inclusion when session changes
+  useEffect(() => {
+    const session = sessions.find(s => s.id === selectedSessionId) ?? null;
+    const sessionNpcIds = session?.npc_ids ?? [];
+    setNpcIncluded(Object.fromEntries(npcs.map(n => [n.id, sessionNpcIds.includes(n.id)])));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSessionId]);
 
   function handleGo() {
     const combatants: Combatant[] = [];
@@ -233,9 +252,7 @@ export default function InitiativePageClient({
   // ── SETUP VIEW ───────────────────────────────────────────────────────────────
   const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null;
   const sessionNpcIds = selectedSession?.npc_ids ?? [];
-  const visibleNpcs = sessionNpcIds.length > 0
-    ? npcs.filter(n => sessionNpcIds.includes(n.id))
-    : npcs;
+  const visibleNpcs = npcs.filter(n => sessionNpcIds.includes(n.id));
   const allIncluded = visibleNpcs.length > 0 && visibleNpcs.every(n => npcIncluded[n.id]);
 
   return (
