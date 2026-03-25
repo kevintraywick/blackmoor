@@ -64,23 +64,13 @@ export default function InitiativePageClient({
   sessions: SessionMeta[];
   npcs: Npc[];
 }) {
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('blackmoor_current_session_id');
-      if (stored && sessions.find(s => s.id === stored)) return stored;
-    }
-    return sessions[sessions.length - 1]?.id ?? null;
-  });
+  const lastSessionId = sessions[sessions.length - 1]?.id ?? null;
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(lastSessionId);
   const [playerInits, setPlayerInits] = useState<Record<string, number>>(
     Object.fromEntries(PLAYERS.map(p => [p.id, 0]))
   );
   const [npcIncluded, setNpcIncluded] = useState<Record<string, boolean>>(() => {
-    let sessionId: string | null = sessions[sessions.length - 1]?.id ?? null;
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('blackmoor_current_session_id');
-      if (stored && sessions.find(s => s.id === stored)) sessionId = stored;
-    }
-    const session = sessions.find(s => s.id === sessionId) ?? null;
+    const session = sessions.find(s => s.id === lastSessionId) ?? null;
     const sessionNpcIds = session?.npc_ids ?? [];
     return Object.fromEntries(npcs.map(n => [n.id, sessionNpcIds.includes(n.id)]));
   });
@@ -90,6 +80,15 @@ export default function InitiativePageClient({
 
   const [results, setResults] = useState<Combatant[] | null>(null);
   const [currentTurn, setCurrentTurn] = useState(0);
+
+  // Restore last selected session from localStorage after mount (avoids SSR hydration mismatch)
+  useEffect(() => {
+    const stored = localStorage.getItem('blackmoor_current_session_id');
+    if (stored && sessions.find(s => s.id === stored)) {
+      setSelectedSessionId(stored);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reset NPC inclusion when session changes
   useEffect(() => {
