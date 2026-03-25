@@ -1,13 +1,17 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import type { Session } from '@/lib/types';
+import type { Session, Npc } from '@/lib/types';
 
-// Fields to render in the detail panel — matches SessionForm's FIELDS array
+function npcImageUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  return path.startsWith('uploads/') ? `/api/${path}` : `/${path}`;
+}
+
+// Fields to render in the detail panel — npcs replaced by NPC checkboxes
 const FIELDS = [
   { key: 'goal',       label: 'Goal / Hook',    rows: 3,  placeholder: "What's the session goal? How does it open?",   cols: 1 },
   { key: 'scenes',     label: 'Scene Outline',  rows: 7,  placeholder: 'Encounters, beats, traps, treasure, exits…',   cols: 1 },
-  { key: 'npcs',       label: 'Key NPCs',       rows: 5,  placeholder: 'Names, roles, motivations…',                   cols: 2 },
   { key: 'locations',  label: 'Locations',      rows: 5,  placeholder: 'Key locations and descriptions…',              cols: 2 },
   { key: 'loose_ends', label: 'Loose Ends',     rows: 4,  placeholder: 'Unresolved threads from last session…',        cols: 2 },
   { key: 'notes',      label: 'Notes',          rows: 4,  placeholder: 'Music, atmosphere, misc reminders…',           cols: 2 },
@@ -16,7 +20,6 @@ const FIELDS = [
 type FieldKey = (typeof FIELDS)[number]['key'];
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 
-// Empty field values for a new/unselected session
 function emptyValues(session: Session): Record<string, string | number> {
   return {
     title: session.title,
@@ -25,7 +28,13 @@ function emptyValues(session: Session): Record<string, string | number> {
   };
 }
 
-export default function DmSessionsClient({ initial }: { initial: Session[] }) {
+export default function DmSessionsClient({
+  initial,
+  allNpcs,
+}: {
+  initial: Session[];
+  allNpcs: Npc[];
+}) {
   const [sessions, setSessions] = useState<Session[]>(initial);
   const [selectedId, setSelectedId] = useState<string | null>(
     initial.length > 0 ? initial[0].id : null
@@ -33,22 +42,24 @@ export default function DmSessionsClient({ initial }: { initial: Session[] }) {
   const [values, setValues] = useState<Record<string, string | number>>(
     initial.length > 0 ? emptyValues(initial[0]) : {}
   );
+  const [npcIds, setNpcIds] = useState<string[]>(
+    initial.length > 0 ? (initial[0].npc_ids ?? []) : []
+  );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const creating = useRef(false);
 
   const selected = sessions.find(s => s.id === selectedId) ?? null;
 
-  // Switch selected session — update values to match
   function handleSelect(session: Session) {
     if (timer.current) clearTimeout(timer.current);
     setSelectedId(session.id);
     setValues(emptyValues(session));
+    setNpcIds(session.npc_ids ?? []);
     setSaveStatus('idle');
   }
 
-  // Debounced autosave — fires 600ms after the last keystroke
-  const autosave = useCallback((id: string, patch: Record<string, string | number>) => {
+  const autosave = useCallback((id: string, patch: Record<string, unknown>) => {
     setSaveStatus('saving');
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
@@ -72,7 +83,6 @@ export default function DmSessionsClient({ initial }: { initial: Session[] }) {
     const updated = { ...values, [key]: value };
     setValues(updated);
     autosave(selectedId, { [key]: value });
-    // Mirror title/date changes into the sessions array for the box row
     if (key === 'title' || key === 'date') {
       setSessions(prev => prev.map(s =>
         s.id === selectedId ? { ...s, [key]: value as string } : s
@@ -80,7 +90,18 @@ export default function DmSessionsClient({ initial }: { initial: Session[] }) {
     }
   }
 
-  // Create a new session and auto-select it
+  function handleNpcToggle(npcId: string) {
+    if (!selectedId) return;
+    const next = npcIds.includes(npcId)
+      ? npcIds.filter(id => id !== npcId)
+      : [...npcIds, npcId];
+    setNpcIds(next);
+    autosave(selectedId, { npc_ids: next });
+    setSessions(prev => prev.map(s =>
+      s.id === selectedId ? { ...s, npc_ids: next } : s
+    ));
+  }
+
   async function handleNew() {
     if (creating.current) return;
     creating.current = true;
@@ -193,12 +214,75 @@ export default function DmSessionsClient({ initial }: { initial: Session[] }) {
               </div>
             ))}
 
-            {/* Two-column fields (cols: 2) — paired by order */}
+            {/* Key NPCs — checkbox list + two-column fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7">
+              {/* Key NPCs checklist */}
+              <div>
+                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-2">Key NPCs</div>
+                {allNpcs.length === 0 ? (
+                  <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs yet.</p>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {allNpcs.map(npc => {
+                      const checked = npcIds.includes(npc.id);
+                      const imgUrl = npcImageUrl(npc.image_path);
+                      const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
+                      return (
+                        <label
+                          key={npc.id}
+                          className={`flex items-center gap-2.5 cursor-pointer rounded px-2 py-1 transition-colors hover:bg-[#231f1c] ${checked ? '' : 'opacity-50'}`}
+                        >
+                          {/* Mini portrait */}
+                          <div className="w-7 h-7 rounded-full overflow-hidden bg-[#2e2825] border border-[#3d3530] flex items-center justify-center flex-shrink-0">
+                            {imgUrl ? (
+                              <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-[0.7rem] text-[#8a7d6e] font-serif">{initial}</span>
+                            )}
+                          </div>
+                          {/* Custom checkbox */}
+                          <div
+                            className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                              checked ? 'border-[#c9a84c] bg-[#c9a84c]' : 'border-[#3d3530] bg-transparent'
+                            }`}
+                          >
+                            {checked && <span className="text-black text-[8px] font-bold leading-none">✓</span>}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => handleNpcToggle(npc.id)}
+                            className="sr-only"
+                          />
+                          <span className="font-serif text-sm text-[#e8ddd0] truncate">{npc.name || 'Unnamed'}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Locations */}
+              {FIELDS.filter(f => f.cols === 2).slice(0, 1).map(f => (
+                <div key={f.key}>
+                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-1">{f.label}</div>
+                  <textarea
+                    rows={f.rows}
+                    value={values[f.key as FieldKey] as string}
+                    placeholder={f.placeholder}
+                    onChange={e => handleChange(f.key, e.target.value)}
+                    className="w-full bg-[#231f1c] border border-[#3d3530] rounded text-[#e8ddd0] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[#c9a84c] placeholder:text-[#8a7d6e] font-serif"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Remaining two-column fields */}
             {(() => {
-              const twoCols = FIELDS.filter(f => f.cols === 2);
+              const remaining = FIELDS.filter(f => f.cols === 2).slice(1);
               const pairs: (typeof FIELDS[number])[][] = [];
-              for (let i = 0; i < twoCols.length; i += 2) {
-                pairs.push([twoCols[i], twoCols[i + 1]].filter(Boolean));
+              for (let i = 0; i < remaining.length; i += 2) {
+                pairs.push([remaining[i], remaining[i + 1]].filter(Boolean));
               }
               return pairs.map((pair, i) => (
                 <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7">
@@ -218,7 +302,7 @@ export default function DmSessionsClient({ initial }: { initial: Session[] }) {
               ));
             })()}
 
-            {/* Save status — inline, bottom of form */}
+            {/* Save status */}
             <div className={`text-xs text-right mt-2 h-4 transition-opacity duration-200 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} ${statusColor}`}>
               {statusText}
             </div>

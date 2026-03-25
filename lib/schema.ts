@@ -146,4 +146,10 @@ async function _initSchema() {
   await pool.query(`
     ALTER TABLE npcs ADD COLUMN IF NOT EXISTS image_path TEXT
   `);
+
+  // Add npc_ids JSONB column to sessions for explicit NPC selection
+  await pool.query(`
+    ALTER TABLE sessions
+    ADD COLUMN IF NOT EXISTS npc_ids JSONB NOT NULL DEFAULT '[]'
+  `);
 }

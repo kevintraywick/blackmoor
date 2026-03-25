@@ -5,6 +5,7 @@ import { query } from '@/lib/db';
 const SESSION_COLUMNS: Record<string, string> = {
   title: 'title', date: 'date', goal: 'goal', scenes: 'scenes',
   npcs: 'npcs', locations: 'locations', loose_ends: 'loose_ends', notes: 'notes',
+  npc_ids: 'npc_ids',
 };
 
 // DELETE /api/sessions/:id — remove a session

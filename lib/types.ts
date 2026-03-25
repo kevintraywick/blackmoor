@@ -49,6 +49,7 @@ export interface Session {
   locations: string;
   loose_ends: string;
   notes: string;
+  npc_ids: string[];
   sort_order: number;
   last_modified: number;
 }

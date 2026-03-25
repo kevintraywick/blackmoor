@@ -5,25 +5,7 @@ import Image from 'next/image';
 import type { Npc } from '@/lib/types';
 import { PLAYERS } from '@/lib/players';
 
-interface SessionMeta { id: string; number: number; title: string; npcs: string | null; }
-
-/** Parse "Wight, Wolf Skeletons (6)" → ["wight", "wolf skeletons"] */
-function parseSessionNpcNames(text: string | null): string[] {
-  if (!text) return [];
-  return text.split(/[,\n;]+/)
-    .map(s => s.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase())
-    .filter(Boolean);
-}
-
-/** True if npc.name loosely matches any token from the session npcs field */
-function npcInSession(npcName: string, tokens: string[]): boolean {
-  const name = npcName.toLowerCase();
-  return tokens.some(t =>
-    t.includes(name) || name.includes(t) ||
-    (t.endsWith('s') && name === t.slice(0, -1)) ||
-    (name.endsWith('s') && t === name.slice(0, -1))
-  );
-}
+interface SessionMeta { id: string; number: number; title: string; npc_ids: string[]; }
 
 interface Combatant {
   id: string;
@@ -250,9 +232,9 @@ export default function InitiativePageClient({
 
   // ── SETUP VIEW ───────────────────────────────────────────────────────────────
   const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null;
-  const sessionNpcTokens = parseSessionNpcNames(selectedSession?.npcs ?? null);
-  const visibleNpcs = sessionNpcTokens.length > 0
-    ? npcs.filter(n => npcInSession(n.name, sessionNpcTokens))
+  const sessionNpcIds = selectedSession?.npc_ids ?? [];
+  const visibleNpcs = sessionNpcIds.length > 0
+    ? npcs.filter(n => sessionNpcIds.includes(n.id))
     : npcs;
   const allIncluded = visibleNpcs.length > 0 && visibleNpcs.every(n => npcIncluded[n.id]);
 
