@@ -213,50 +213,43 @@ export default function DmSessionsClient({
               </div>
             ))}
 
-            {/* Two-column: NPCs checklist (left) | Locations + Notes (right) */}
+            {/* Two-column: NPCs (left) | Locations + Notes (right) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-start">
-              {/* NPCs checklist */}
+              {/* NPCs added from NPC page */}
               <div>
                 <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-2">NPCs</div>
-                {allNpcs.length === 0 ? (
-                  <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs yet.</p>
-                ) : (
-                  <div className="flex flex-col gap-1.5">
-                    {allNpcs.map(npc => {
-                      const checked = npcIds.includes(npc.id);
-                      const imgUrl = npcImageUrl(npc.image_path);
-                      const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
-                      return (
-                        <label
-                          key={npc.id}
-                          className={`flex items-center gap-2.5 cursor-pointer rounded px-2 py-1 transition-colors hover:bg-[#231f1c] ${checked ? '' : 'opacity-50'}`}
-                        >
-                          <div className="w-7 h-7 rounded-full overflow-hidden bg-[#2e2825] border border-[#3d3530] flex items-center justify-center flex-shrink-0">
-                            {imgUrl ? (
-                              <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-[0.7rem] text-[#8a7d6e] font-serif">{initial}</span>
+                {(() => {
+                  const counts: Record<string, number> = {};
+                  npcIds.forEach(id => { counts[id] = (counts[id] ?? 0) + 1; });
+                  const entries = Object.entries(counts);
+                  if (entries.length === 0) {
+                    return <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs added — use the NPC page to add.</p>;
+                  }
+                  return (
+                    <div className="flex flex-col gap-1.5">
+                      {entries.map(([npcId, count]) => {
+                        const npc = allNpcs.find(n => n.id === npcId);
+                        if (!npc) return null;
+                        const imgUrl = npcImageUrl(npc.image_path);
+                        const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
+                        return (
+                          <div key={npcId} className="flex items-center gap-2.5 px-2 py-1">
+                            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-[#2e2825] border border-[#3d3530] flex items-center justify-center flex-shrink-0">
+                              {imgUrl
+                                ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
+                                : <span className="text-[0.7rem] text-[#8a7d6e] font-serif">{initial}</span>
+                              }
+                            </div>
+                            <span className="font-serif text-sm text-[#e8ddd0] truncate">{npc.name || 'Unnamed'}</span>
+                            {count > 1 && (
+                              <span className="text-[0.7rem] text-[#c9a84c] font-bold ml-auto flex-shrink-0">×{count}</span>
                             )}
                           </div>
-                          <div
-                            className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-                              checked ? 'border-[#c9a84c] bg-[#c9a84c]' : 'border-[#3d3530] bg-transparent'
-                            }`}
-                          >
-                            {checked && <span className="text-black text-[8px] font-bold leading-none">✓</span>}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => handleNpcToggle(npc.id)}
-                            className="sr-only"
-                          />
-                          <span className="font-serif text-sm text-[#e8ddd0] truncate">{npc.name || 'Unnamed'}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Right column: Locations + Notes stacked */}

@@ -88,6 +88,9 @@ export default function InitiativePageClient({
   const [results, setResults] = useState<Combatant[] | null>(null);
   const [currentTurn, setCurrentTurn] = useState(0);
 
+  const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null;
+  const sessionNpcIds = Array.isArray(selectedSession?.npc_ids) ? selectedSession.npc_ids : [];
+
   function handleGo() {
     const combatants: Combatant[] = [];
 
@@ -104,11 +107,21 @@ export default function InitiativePageClient({
       });
     });
 
-    npcs.forEach(n => {
-      if (!npcIncluded[n.id]) return;
+    // Count occurrences per NPC type to know if we need numbering
+    const npcCounts: Record<string, number> = {};
+    sessionNpcIds.forEach(id => { npcCounts[id] = (npcCounts[id] ?? 0) + 1; });
+    const npcInstanceNum: Record<string, number> = {};
+
+    const idsToRoll = sessionNpcIds.length > 0 ? sessionNpcIds : npcs.map(n => n.id);
+    idsToRoll.forEach(npcId => {
+      const n = npcs.find(x => x.id === npcId);
+      if (!n || !npcIncluded[n.id]) return;
+      npcInstanceNum[npcId] = (npcInstanceNum[npcId] ?? 0) + 1;
+      const count = npcCounts[npcId] ?? 1;
+      const instanceNum = npcInstanceNum[npcId];
       combatants.push({
-        id: n.id,
-        name: n.name || 'Unnamed NPC',
+        id: `${n.id}-${instanceNum}`,
+        name: count > 1 ? `${n.name || 'Unnamed'} ${instanceNum}` : (n.name || 'Unnamed NPC'),
         type: 'npc',
         initiative: Math.floor(Math.random() * 20) + 1 + (npcBonuses[n.id] ?? 0),
         rolled: true,
@@ -239,8 +252,6 @@ export default function InitiativePageClient({
   }
 
   // ── SETUP VIEW ───────────────────────────────────────────────────────────────
-  const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null;
-  const sessionNpcIds = Array.isArray(selectedSession?.npc_ids) ? selectedSession.npc_ids : [];
   const visibleNpcs = sessionNpcIds.length > 0
     ? npcs.filter(n => sessionNpcIds.includes(n.id))
     : npcs;

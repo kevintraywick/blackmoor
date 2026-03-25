@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback } from 'react';
 import type { Npc } from '@/lib/types';
 
+type SessionMeta = { id: string; number: number; title: string; date: string; npc_ids: string[] };
+
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 
 const EMPTY_NPC: Omit<Npc, 'id'> = {
@@ -30,7 +32,7 @@ function StatField({ label, value, onChange }: { label: string; value: string; o
   );
 }
 
-export default function NpcPageClient({ initial }: { initial: Npc[] }) {
+export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc[]; sessions?: SessionMeta[] }) {
   const [npcs, setNpcs] = useState<Npc[]>(initial);
   const [activeId, setActiveId] = useState<string | null>(initial[0]?.id ?? null);
   const [values, setValues] = useState<Record<string, string>>(
@@ -47,6 +49,31 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
   const portraitFileRef = useRef<HTMLInputElement>(null);
 
   const active = npcs.find(n => n.id === activeId) ?? null;
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(sessions[sessions.length - 1]?.id ?? null);
+  const [sessionNpcIds, setSessionNpcIds] = useState<Record<string, string[]>>(
+    Object.fromEntries(sessions.map(s => [s.id, Array.isArray(s.npc_ids) ? s.npc_ids : []]))
+  );
+
+  async function handleSessionClick(sessionId: string, e: React.MouseEvent) {
+    if (!activeId) return;
+    const current = sessionNpcIds[sessionId] ?? [];
+    let next: string[];
+    if (e.altKey) {
+      // Option-click: remove one instance
+      const idx = current.lastIndexOf(activeId);
+      if (idx === -1) return;
+      next = [...current.slice(0, idx), ...current.slice(idx + 1)];
+    } else {
+      next = [...current, activeId];
+    }
+    setSessionNpcIds(prev => ({ ...prev, [sessionId]: next }));
+    setSelectedSessionId(sessionId);
+    await fetch(`/api/sessions/${sessionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ npc_ids: next }),
+    });
+  }
 
   function handleSelect(npc: Npc) {
     if (timer.current) clearTimeout(timer.current);
@@ -228,6 +255,39 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
           />
         </div>
       </div>
+
+      {/* Session selector bar */}
+      {sessions.length > 0 && (
+        <div className="border-b border-[#3d3530] bg-[#1e1b18] -mx-4 px-4 py-3 mb-4 flex gap-2 overflow-x-auto">
+          {sessions.map(s => {
+            const isSelected = s.id === selectedSessionId;
+            const count = activeId ? (sessionNpcIds[s.id] ?? []).filter(id => id === activeId).length : 0;
+            return (
+              <button
+                key={s.id}
+                onClick={e => handleSessionClick(s.id, e)}
+                title={activeId ? 'Click to add NPC · Option-click to remove one' : 'Select an NPC first'}
+                className={`relative flex-shrink-0 w-[96px] rounded px-2 py-2.5 flex flex-col items-center gap-1 transition-colors border ${
+                  isSelected
+                    ? 'border-[#c9a84c] bg-[#231f1c]'
+                    : 'border-[#3d3530] bg-[#1a1614] hover:border-[#5a4a44]'
+                }`}
+              >
+                <span className="text-lg font-bold leading-none font-serif text-[#c9a84c]">#{s.number}</span>
+                <span className={`text-[13px] font-serif leading-tight line-clamp-2 text-center w-full ${isSelected ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'}`}>
+                  {s.title || 'Untitled'}
+                </span>
+                {s.date && <span className="text-[8px] text-[#3d3530]">{s.date}</span>}
+                {count > 0 && (
+                  <div className="absolute bottom-1.5 right-1.5 w-4 h-4 rounded-full bg-[#c9a84c] text-black text-[9px] font-bold flex items-center justify-center leading-none">
+                    {count}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {!active ? (
         <p className="text-[#5a4a44] font-serif italic text-sm text-center mt-8">
