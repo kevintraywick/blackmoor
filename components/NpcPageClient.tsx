@@ -288,15 +288,6 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
                 onChange={e => handleChange('name', e.target.value)}
                 className={fi}
               />
-              <span className="text-[#3d3530]">·</span>
-              <input
-                value={values.species}
-                placeholder="Type / Species…"
-                onChange={e => handleChange('species', e.target.value)}
-                className="bg-transparent border-none border-b border-[#3d3530] text-[#e8ddd0] font-serif text-lg font-bold
-                           outline-none focus:border-b-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
-                style={{ minWidth: 80, width: 140 }}
-              />
             </div>
 
             {/* Delete button */}
@@ -312,7 +303,7 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
 
           {/* Stats row */}
           <div className="flex gap-6 flex-wrap bg-[#1e1b18] border border-[#3d3530] border-t-0 border-b-0 px-6 py-3">
-            {(['cr', 'hp', 'ac', 'speed'] as const).map(key => (
+            {(['cr', 'ac', 'speed'] as const).map(key => (
               <StatField
                 key={key}
                 label={key.toUpperCase()}
@@ -320,6 +311,17 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
                 onChange={v => handleChange(key, v)}
               />
             ))}
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[#c9a84c]">HP</span>
+              <input
+                value={values.hp}
+                onChange={e => handleChange('hp', e.target.value)}
+                placeholder="e.g. 15 (2d8+6)"
+                className="bg-transparent border-b border-[#3d3530] text-[#e8ddd0] font-serif text-lg font-bold
+                           outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
+                style={{ width: 160 }}
+              />
+            </div>
           </div>
 
           {/* 2-col content grid */}
