@@ -7,12 +7,12 @@ import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import type { Session, Npc } from '@/lib/types';
 
-type SessionMeta = Pick<Session, 'id' | 'number' | 'title'>;
+type SessionMeta = Pick<Session, 'id' | 'number' | 'title'> & { npcs: string | null };
 
 export default async function InitiativePage() {
   await ensureSchema();
   const sessions = await query<SessionMeta>(
-    'SELECT id, number, title FROM sessions ORDER BY number ASC'
+    'SELECT id, number, title, npcs FROM sessions ORDER BY number ASC'
   );
   const npcs = await query<Npc>('SELECT * FROM npcs ORDER BY name ASC');
 

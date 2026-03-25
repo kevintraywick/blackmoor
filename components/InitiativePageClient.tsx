@@ -5,7 +5,25 @@ import Image from 'next/image';
 import type { Npc } from '@/lib/types';
 import { PLAYERS } from '@/lib/players';
 
-interface SessionMeta { id: string; number: number; title: string; }
+interface SessionMeta { id: string; number: number; title: string; npcs: string | null; }
+
+/** Parse "Wight, Wolf Skeletons (6)" → ["wight", "wolf skeletons"] */
+function parseSessionNpcNames(text: string | null): string[] {
+  if (!text) return [];
+  return text.split(/[,\n;]+/)
+    .map(s => s.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/** True if npc.name loosely matches any token from the session npcs field */
+function npcInSession(npcName: string, tokens: string[]): boolean {
+  const name = npcName.toLowerCase();
+  return tokens.some(t =>
+    t.includes(name) || name.includes(t) ||
+    (t.endsWith('s') && name === t.slice(0, -1)) ||
+    (name.endsWith('s') && t === name.slice(0, -1))
+  );
+}
 
 interface Combatant {
   id: string;
@@ -228,14 +246,19 @@ export default function InitiativePageClient({
   }
 
   // ── SETUP VIEW ───────────────────────────────────────────────────────────────
-  const allIncluded = npcs.length > 0 && npcs.every(n => npcIncluded[n.id]);
+  const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null;
+  const sessionNpcTokens = parseSessionNpcNames(selectedSession?.npcs ?? null);
+  const visibleNpcs = sessionNpcTokens.length > 0
+    ? npcs.filter(n => npcInSession(n.name, sessionNpcTokens))
+    : npcs;
+  const allIncluded = visibleNpcs.length > 0 && visibleNpcs.every(n => npcIncluded[n.id]);
 
   return (
     <div className="relative z-10 -mt-[84px] max-w-[780px] mx-auto px-4 pb-16 flex gap-4 items-start">
 
-      {/* Left: session boxes stacked vertically, start below banner */}
+      {/* Left: session boxes stacked vertically, start 50px below banner */}
       {sessions.length > 0 && (
-        <div className="flex-shrink-0 w-[96px] pt-[84px] flex flex-col gap-2">
+        <div className="flex-shrink-0 w-[96px] pt-[134px] flex flex-col gap-2">
           {sessions.map(s => (
             <button
               key={s.id}
@@ -267,16 +290,16 @@ export default function InitiativePageClient({
           <div className="relative px-6 pt-5 pb-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-serif text-[1.1rem] italic text-[#e8ddd0] leading-none tracking-tight">Players</h2>
+              {/* Arrow positioned above the counter column */}
               <button
                 onClick={handleGo}
                 className="w-10 h-10 rounded-full bg-[#c9a84c] text-black font-bold text-xl
-                           flex items-center justify-center hover:bg-[#e0bc5a] transition-colors"
+                           flex items-center justify-center hover:bg-[#e0bc5a] transition-colors mr-[2px]"
                 title="Roll Initiative"
               >
                 →
               </button>
             </div>
-            <div className="border-t border-[#3d3530] mb-4" />
             <div className="flex flex-col gap-4">
               {PLAYERS.map(p => (
                 <div key={p.id} className="flex items-center gap-3">
@@ -292,7 +315,6 @@ export default function InitiativePageClient({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-serif text-sm text-[#e8ddd0]">{p.character}</div>
-                    <div className="text-[0.6rem] uppercase tracking-[0.1em] text-[#5a4a44]">{p.playerName}</div>
                   </div>
                   <InitCounter
                     value={playerInits[p.id] ?? 0}
@@ -304,20 +326,20 @@ export default function InitiativePageClient({
           </div>
 
           {/* NPCs */}
-          {npcs.length > 0 && (
+          {visibleNpcs.length > 0 && (
             <>
               <div className="border-t border-[#3d3530]" />
               <div className="px-6 pt-4 pb-5">
                 <div className="flex items-center justify-end mb-3">
                   <button
-                    onClick={() => setNpcIncluded(Object.fromEntries(npcs.map(n => [n.id, !allIncluded])))}
+                    onClick={() => setNpcIncluded(Object.fromEntries(visibleNpcs.map(n => [n.id, !allIncluded])))}
                     className="text-[0.6rem] uppercase tracking-[0.15em] text-[#8a7d6e] hover:text-[#c9a84c] transition-colors"
                   >
                     {allIncluded ? 'Deselect all' : 'Select all'}
                   </button>
                 </div>
                 <div className="flex flex-col gap-3">
-                  {npcs.map(n => {
+                  {visibleNpcs.map(n => {
                     const included = npcIncluded[n.id] ?? false;
                     const imgUrl = npcImageUrl(n.image_path);
                     const initial = n.name?.trim()?.[0]?.toUpperCase() ?? '?';
