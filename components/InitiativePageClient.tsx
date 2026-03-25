@@ -60,10 +60,17 @@ function InitCounter({ value, onChange }: { value: number; onChange: (n: number)
 export default function InitiativePageClient({
   sessions,
   npcs,
+  playerStatuses = {},
 }: {
   sessions: SessionMeta[];
   npcs: Npc[];
+  playerStatuses?: Record<string, string>;
 }) {
+  const activePlayers = PLAYERS.filter(p => {
+    const s = playerStatuses[p.id] ?? 'active';
+    return s !== 'away' && s !== 'removed';
+  });
+
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     sessions[sessions.length - 1]?.id ?? null
   );
@@ -83,7 +90,7 @@ export default function InitiativePageClient({
   function handleGo() {
     const combatants: Combatant[] = [];
 
-    PLAYERS.forEach(p => {
+    activePlayers.forEach(p => {
       combatants.push({
         id: p.id,
         name: p.character,
@@ -286,7 +293,7 @@ export default function InitiativePageClient({
               </button>
             </div>
             <div className="flex flex-col gap-4">
-              {PLAYERS.map(p => (
+              {activePlayers.map(p => (
                 <div key={p.id} className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-[#2e2825] border border-[#3d3530] flex items-center justify-center flex-shrink-0">
                     <Image

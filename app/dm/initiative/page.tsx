@@ -5,16 +5,21 @@ import DmNav from '@/components/DmNav';
 import InitiativePageClient from '@/components/InitiativePageClient';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
-import type { Session, Npc } from '@/lib/types';
+import type { Session, Npc, PlayerSheet } from '@/lib/types';
 
 type SessionMeta = Pick<Session, 'id' | 'number' | 'title' | 'npc_ids'>;
 
 export default async function InitiativePage() {
   await ensureSchema();
-  const sessions = await query<SessionMeta>(
-    'SELECT id, number, title, npc_ids FROM sessions ORDER BY number ASC'
+  const [sessions, npcs, playerRows] = await Promise.all([
+    query<SessionMeta>('SELECT id, number, title, npc_ids FROM sessions ORDER BY number ASC'),
+    query<Npc>('SELECT * FROM npcs ORDER BY name ASC'),
+    query<Pick<PlayerSheet, 'id' | 'status'>>('SELECT id, status FROM player_sheets'),
+  ]);
+
+  const playerStatuses: Record<string, string> = Object.fromEntries(
+    playerRows.map(r => [r.id, r.status ?? 'active'])
   );
-  const npcs = await query<Npc>('SELECT * FROM npcs ORDER BY name ASC');
 
   return (
     <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0]">
@@ -31,7 +36,7 @@ export default async function InitiativePage() {
         />
       </div>
 
-      <InitiativePageClient sessions={sessions} npcs={npcs} />
+      <InitiativePageClient sessions={sessions} npcs={npcs} playerStatuses={playerStatuses} />
     </div>
   );
 }
