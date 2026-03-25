@@ -152,4 +152,15 @@ async function _initSchema() {
     ALTER TABLE sessions
     ADD COLUMN IF NOT EXISTS npc_ids JSONB NOT NULL DEFAULT '[]'
   `);
+
+  // Repair any rows where npc_ids is not an array (e.g. {} from a bad default)
+  await pool.query(`
+    UPDATE sessions SET npc_ids = '[]'::jsonb
+    WHERE jsonb_typeof(npc_ids) IS DISTINCT FROM 'array'
+  `);
+
+  // Ensure the column default is correct regardless of how it was first created
+  await pool.query(`
+    ALTER TABLE sessions ALTER COLUMN npc_ids SET DEFAULT '[]'::jsonb
+  `);
 }

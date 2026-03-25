@@ -42,7 +42,7 @@ export default function DmSessionsClient({
     initial.length > 0 ? emptyValues(initial[0]) : {}
   );
   const [npcIds, setNpcIds] = useState<string[]>(
-    initial.length > 0 ? (initial[0].npc_ids ?? []) : []
+    initial.length > 0 ? (Array.isArray(initial[0].npc_ids) ? initial[0].npc_ids : []) : []
   );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -54,7 +54,7 @@ export default function DmSessionsClient({
     if (timer.current) clearTimeout(timer.current);
     setSelectedId(session.id);
     setValues(emptyValues(session));
-    setNpcIds(session.npc_ids ?? []);
+    setNpcIds(Array.isArray(session.npc_ids) ? session.npc_ids : []);
     setSaveStatus('idle');
   }
 

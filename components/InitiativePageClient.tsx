@@ -232,7 +232,7 @@ export default function InitiativePageClient({
 
   // ── SETUP VIEW ───────────────────────────────────────────────────────────────
   const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null;
-  const sessionNpcIds = selectedSession?.npc_ids ?? [];
+  const sessionNpcIds = Array.isArray(selectedSession?.npc_ids) ? selectedSession.npc_ids : [];
   const visibleNpcs = sessionNpcIds.length > 0
     ? npcs.filter(n => sessionNpcIds.includes(n.id))
     : npcs;
