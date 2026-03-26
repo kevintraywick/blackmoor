@@ -8,12 +8,12 @@ const PLAYER_COLUMNS: Record<string, string> = {
   hp: 'hp', xp: 'xp', speed: 'speed', size: 'size', ac: 'ac', gold: 'gold',
   boons: 'boons', class_features: 'class_features', species_traits: 'species_traits',
   player_notes: 'player_notes', general_notes: 'general_notes',
-  gear: 'gear', spells: 'spells',
+  gear: 'gear', spells: 'spells', items: 'items',
   dm_notes: 'dm_notes', status: 'status',
 };
 
 // Fields that contain JSON arrays and must be serialized before INSERT/UPDATE
-const JSON_COLUMNS = new Set(['gear', 'spells']);
+const JSON_COLUMNS = new Set(['gear', 'spells', 'items']);
 
 // GET /api/players/:id — fetch one player's sheet
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

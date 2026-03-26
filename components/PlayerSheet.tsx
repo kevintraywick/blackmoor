@@ -52,19 +52,19 @@ function BoonList({ value, onChange }: { value: string; onChange: (v: string) =>
       })}
 
       <div className="flex gap-2 mt-2 pt-2 border-t border-[#2a2420] items-center">
+        <button
+          onClick={addBoon}
+          className="text-[0.85rem] text-[#6a5a50] hover:text-[#c9a84c] bg-transparent border-none transition-colors flex-shrink-0"
+        >
+          +
+        </button>
         <input
           value={newBoon}
           onChange={e => setNewBoon(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addBoon()}
-          placeholder="Add boon…"
+          placeholder=""
           className="flex-1 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
         />
-        <button
-          onClick={addBoon}
-          className="text-[0.72rem] text-[#8a7d6e] border border-[#4a3a35] rounded px-2 py-0.5 hover:border-[#c9a84c] hover:text-[#c9a84c] flex-shrink-0 transition-colors"
-        >
-          Add
-        </button>
       </div>
     </div>
   );
@@ -120,6 +120,12 @@ function WeaponList({
 
       {/* Add row */}
       <div className="flex gap-1 mt-2 items-center">
+        <button
+          onClick={submit}
+          className="text-[0.85rem] text-[#6a5a50] hover:text-[#c9a84c] bg-transparent border-none transition-colors flex-shrink-0"
+        >
+          +
+        </button>
         <input
           value={name}
           onChange={e => setName(e.target.value)}
@@ -141,12 +147,6 @@ function WeaponList({
           placeholder="1d8+0"
           className="w-14 text-center flex-shrink-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
         />
-        <button
-          onClick={submit}
-          className="text-[0.72rem] text-[#8a7d6e] border border-[#4a3a35] rounded px-1.5 py-0.5 hover:border-[#c9a84c] hover:text-[#c9a84c] flex-shrink-0 transition-colors"
-        >
-          Add
-        </button>
       </div>
     </div>
   );
@@ -233,7 +233,7 @@ function SpellList({
           onClick={() => setShowForm(true)}
           className="mt-2 text-[0.72rem] text-[#6a5a50] hover:text-[#c9a84c] bg-transparent border-none transition-colors"
         >
-          + Add spell or item
+          +
         </button>
       )}
     </div>
@@ -348,6 +348,14 @@ export function Sheet({
     setField('spells', (values.spells ?? []).map(s => s.id === id ? { ...s, [field]: value } : s));
   }
 
+  // Item helpers (purchased marketplace items — same shape as spells)
+  function deleteItem(id: string) {
+    setField('items', (values.items ?? []).filter(i => i.id !== id));
+  }
+  function updateItem(id: string, field: keyof SpellItem, value: string) {
+    setField('items', (values.items ?? []).map(i => i.id === id ? { ...i, [field]: value } : i));
+  }
+
   const statusText  = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed — check connection' }[saveStatus];
   const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[#8a7d6e]';
 
@@ -423,39 +431,40 @@ export function Sheet({
       <div className="grid grid-cols-2 border border-[#3d3530] border-t-0 rounded-bl-md rounded-br-md overflow-hidden">
 
         {/* Boons */}
-        <div className="bg-[#231f1c] border-r border-b border-[#3d3530] p-3" style={{ minWidth: 0 }}>
+        <div className="bg-[#231f1c] border-r border-b border-[#3d3530] p-3" style={{ minWidth: 0, minHeight: 210 }}>
           <div className={sh}>Boons</div>
           <BoonList value={values.boons} onChange={v => setField('boons', v)} />
         </div>
 
         {/* Weapons */}
-        <div className="bg-[#231f1c] border-b border-[#3d3530] p-3" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="bg-[#231f1c] border-b border-[#3d3530] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210 }}>
           <div className={sh}>Weapons</div>
           <WeaponList weapons={values.gear} onAdd={addWeapon} onDelete={deleteWeapon} onUpdate={updateWeapon} />
         </div>
 
-        {/* Class Features */}
-        <div className="bg-[#231f1c] border-r border-b border-[#3d3530] p-3" style={{ minWidth: 0 }}>
-          <div className={sh}>Class Features</div>
-          <textarea rows={5} value={values.class_features} onChange={e => setField('class_features', e.target.value)} className={ta} placeholder="Key class abilities…" />
-        </div>
-
-        {/* Magic Spells or Items */}
-        <div className="bg-[#231f1c] border-b border-[#3d3530] p-3" style={{ minWidth: 0, overflow: 'hidden' }}>
-          <div className={sh}>Magic Spells or Items</div>
+        {/* Magic Spells */}
+        <div className="bg-[#231f1c] border-r border-b border-[#3d3530] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 225 }}>
+          <div className={sh}>Magic Spells</div>
           <SpellList spells={values.spells ?? []} onAdd={addSpell} onDelete={deleteSpell} onUpdate={updateSpell} />
         </div>
 
-        {/* Species Notes (was: Player Notes) */}
-        <div className="bg-[#231f1c] border-r border-[#3d3530] p-3" style={{ minWidth: 0 }}>
-          <div className={sh}>Species Notes</div>
-          <textarea rows={5} value={values.player_notes} onChange={e => setField('player_notes', e.target.value)} className={ta} placeholder="Species traits and abilities…" />
+        {/* Magic Items */}
+        <div className="bg-[#231f1c] border-b border-[#3d3530] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 225 }}>
+          <div className={sh}>Magic Items</div>
+          <SpellList spells={values.items ?? []} onAdd={(item) => setField('items', [...(values.items ?? []), { ...item, id: Date.now().toString(36) }])} onDelete={deleteItem} onUpdate={updateItem} />
         </div>
 
-        {/* Background (was: General Notes) */}
+        {/* Class and Species Abilities */}
+        <div className="bg-[#231f1c] border-r border-[#3d3530] p-3" style={{ minWidth: 0 }}>
+          <div className={sh}>Class and Species Abilities</div>
+          <textarea rows={2} value={values.class_features} onChange={e => setField('class_features', e.target.value)} className={ta} placeholder="" />
+          <textarea rows={2} value={values.player_notes} onChange={e => setField('player_notes', e.target.value)} className={`${ta} mt-2`} placeholder="" />
+        </div>
+
+        {/* Background */}
         <div className="bg-[#231f1c] border-[#3d3530] p-3" style={{ minWidth: 0 }}>
           <div className={sh}>Background</div>
-          <textarea rows={5} value={values.general_notes} onChange={e => setField('general_notes', e.target.value)} className={ta} placeholder="Character background…" />
+          <textarea rows={4} value={values.general_notes} onChange={e => setField('general_notes', e.target.value)} className={ta} placeholder="" />
         </div>
 
       </div>

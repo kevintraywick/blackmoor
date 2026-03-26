@@ -26,8 +26,8 @@ export default async function PlayerPage({ params }: Props) {
 
   const empty: PlayerSheetType = {
     id, discord: '', species: '', class: '', level: '', hp: '', xp: '',
-    speed: '', size: '', ac: '', boons: '', class_features: '',
-    species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [],
+    speed: '', size: '', ac: '', gold: '', boons: '', class_features: '',
+    species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [], items: [],
     dm_notes: '', status: 'active',
   };
 

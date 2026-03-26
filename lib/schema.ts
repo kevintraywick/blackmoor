@@ -167,6 +167,12 @@ async function _initSchema() {
   await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS dm_notes TEXT NOT NULL DEFAULT ''`);
   await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`);
 
+  // Purchased marketplace items — separate from spells for future transfer
+  await pool.query(`
+    ALTER TABLE player_sheets
+    ADD COLUMN IF NOT EXISTS items JSONB NOT NULL DEFAULT '[]'
+  `);
+
   // Gold — currency for marketplace purchases
   await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS gold TEXT NOT NULL DEFAULT '0'`);
   // Seed gold: level 3 players (levi, brandon) → 100, others → 50
