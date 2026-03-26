@@ -2,7 +2,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { query } from '@/lib/db';
-import type { Session } from '@/lib/types';
+import { ensureSchema } from '@/lib/schema';
+import type { Session, Npc } from '@/lib/types';
 import SessionForm from '@/components/SessionForm';
 
 // Always render fresh — session data changes frequently
@@ -14,9 +15,13 @@ interface Props {
 
 export default async function SessionPage({ params }: Props) {
   const { id } = await params;
+  await ensureSchema();
 
-  // Fetch this specific session by ID
-  const rows = await query<Session>('SELECT * FROM sessions WHERE id = $1', [id]);
+  // Fetch session and all NPCs in parallel
+  const [rows, allNpcs] = await Promise.all([
+    query<Session>('SELECT * FROM sessions WHERE id = $1', [id]),
+    query<Npc>('SELECT * FROM npcs ORDER BY created_at ASC'),
+  ]);
   const session = rows[0];
 
   // Show 404 if session doesn't exist
@@ -47,7 +52,7 @@ export default async function SessionPage({ params }: Props) {
       </nav>
 
       {/* The editable form — handles all state and autosave client-side */}
-      <SessionForm session={session} />
+      <SessionForm session={session} allNpcs={allNpcs} />
     </div>
   );
 }

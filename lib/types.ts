@@ -48,6 +48,11 @@ export interface PlayerSheet {
   status: string;          // 'active' | 'away' | 'removed'
 }
 
+export interface MenagerieEntry {
+  npc_id: string;
+  hp: number;
+}
+
 export interface Session {
   id: string;
   number: number;
@@ -60,6 +65,7 @@ export interface Session {
   loose_ends: string;
   notes: string;
   npc_ids: string[];
+  menagerie: MenagerieEntry[];
   sort_order: number;
   last_modified: number;
 }
