@@ -34,11 +34,9 @@ function StatField({ label, value, onChange }: { label: string; value: string; o
 
 export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc[]; sessions?: SessionMeta[] }) {
   const [npcs, setNpcs] = useState<Npc[]>(initial);
-  const [activeId, setActiveId] = useState<string | null>(initial[0]?.id ?? null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, string>>(
-    initial[0]
-      ? Object.fromEntries(Object.entries({ ...EMPTY_NPC, ...initial[0] }).map(([k, v]) => [k, v ?? '']))
-      : Object.fromEntries(Object.entries(EMPTY_NPC).map(([k, v]) => [k, v ?? '']))
+    Object.fromEntries(Object.entries(EMPTY_NPC).map(([k, v]) => [k, v ?? '']))
   );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -49,30 +47,40 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
   const portraitFileRef = useRef<HTMLInputElement>(null);
 
   const active = npcs.find(n => n.id === activeId) ?? null;
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(sessions[sessions.length - 1]?.id ?? null);
+
+  // Session selection: null until DM actively picks one
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [sessionNpcIds, setSessionNpcIds] = useState<Record<string, string[]>>(
     Object.fromEntries(sessions.map(s => [s.id, Array.isArray(s.npc_ids) ? s.npc_ids : []]))
   );
 
-  async function handleSessionClick(sessionId: string, e: React.MouseEvent) {
-    if (!activeId) return;
-    const current = sessionNpcIds[sessionId] ?? [];
-    let next: string[];
-    if (e.altKey) {
-      // Option-click: remove one instance
-      const idx = current.lastIndexOf(activeId);
-      if (idx === -1) return;
-      next = [...current.slice(0, idx), ...current.slice(idx + 1)];
-    } else {
-      next = [...current, activeId];
+  // Click session to select/deselect — does NOT add an NPC
+  function handleSessionClick(sessionId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setSelectedSessionId(prev => prev === sessionId ? null : sessionId);
+  }
+
+  // Click NPC: select for editing + add to selected session (if any)
+  function handleNpcClick(npc: Npc, e: React.MouseEvent) {
+    e.stopPropagation();
+    handleSelect(npc);
+    if (selectedSessionId) {
+      const current = sessionNpcIds[selectedSessionId] ?? [];
+      const next = [...current, npc.id];
+      setSessionNpcIds(prev => ({ ...prev, [selectedSessionId]: next }));
+      fetch(`/api/sessions/${selectedSessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ npc_ids: next }),
+      });
     }
-    setSessionNpcIds(prev => ({ ...prev, [sessionId]: next }));
-    setSelectedSessionId(sessionId);
-    await fetch(`/api/sessions/${sessionId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ npc_ids: next }),
-    });
+  }
+
+  // Clicking outside a session or NPC deselects both
+  function handleOutsideClick() {
+    setActiveId(null);
+    setSelectedSessionId(null);
+    setSaveStatus('idle');
   }
 
   function handleSelect(npc: Npc) {
@@ -175,21 +183,65 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
   const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[#8a7d6e]';
 
   return (
-    <div className="max-w-[780px] mx-auto px-4 pb-16">
+    <div className="max-w-[780px] mx-auto px-4 pb-16" onClick={handleOutsideClick}>
+
+      {/* Session selector bar — select a session first, then click NPCs to add */}
+      {sessions.length > 0 && (
+        <div
+          className="border-b border-[#3d3530] bg-[#1e1b18] -mx-4 px-4 py-3 mb-0 flex gap-2 overflow-x-auto"
+          onClick={e => e.stopPropagation()}
+        >
+          {sessions.map(s => {
+            const isSelected = s.id === selectedSessionId;
+            const count = (sessionNpcIds[s.id] ?? []).length;
+            return (
+              <button
+                key={s.id}
+                onClick={e => handleSessionClick(s.id, e)}
+                title="Select session, then click an NPC to add it"
+                className={`relative flex-shrink-0 w-[96px] rounded px-2 py-2.5 flex flex-col items-center gap-1 transition-colors border ${
+                  isSelected
+                    ? 'border-[#c9a84c] bg-[#231f1c]'
+                    : 'border-[#3d3530] bg-[#1a1614] hover:border-[#5a4a44]'
+                }`}
+              >
+                <span className="text-lg font-bold leading-none font-serif text-[#c9a84c]">#{s.number}</span>
+                <span className={`text-[13px] font-serif leading-tight line-clamp-2 text-center w-full ${isSelected ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'}`}>
+                  {s.title || 'Untitled'}
+                </span>
+                {s.date && <span className="text-[8px] text-[#3d3530]">{s.date}</span>}
+                {count > 0 && (
+                  <div className="absolute bottom-1.5 right-1.5 w-4 h-4 rounded-full bg-[#c9a84c] text-black text-[9px] font-bold flex items-center justify-center leading-none">
+                    {count}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* NPC selector row */}
-      <div className="flex justify-center gap-4 flex-wrap py-5 bg-[#231f1c] border-b border-[#3d3530] -mx-4 px-4 mb-6">
+      <div
+        className="flex justify-center gap-4 flex-wrap py-5 bg-[#231f1c] border-b border-[#3d3530] -mx-4 px-4 mb-6"
+        onClick={e => e.stopPropagation()}
+      >
         {npcs.map(npc => {
           const isActive = activeId === npc.id;
           const imgUrl = npcImageUrl(npc.image_path);
           const initial = npc.name.trim() ? npc.name.trim()[0].toUpperCase() : '?';
 
+          const sessionCount = selectedSessionId
+            ? (sessionNpcIds[selectedSessionId] ?? []).filter(id => id === npc.id).length
+            : 0;
+
           return (
             <button
               key={npc.id}
-              onClick={() => handleSelect(npc)}
+              onClick={e => handleNpcClick(npc, e)}
               className="flex flex-col items-center gap-1.5 cursor-pointer bg-transparent border-none"
             >
+              <div className="relative">
               <div
                 className={`relative w-20 h-20 rounded-full border-[3px] transition-all overflow-hidden
                   bg-[#2e2825] ${isActive ? 'border-[#c9a84c]' : 'border-[#3d3530] hover:border-[#8a7d6e] hover:scale-105'}`}
@@ -208,6 +260,12 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
                     {initial}
                   </span>
                 )}
+              </div>
+              {sessionCount > 0 && (
+                <div className="absolute bottom-0 left-0 w-5 h-5 rounded-full bg-[#c9a84c] text-black text-[10px] font-bold flex items-center justify-center leading-none border-2 border-[#231f1c]">
+                  {sessionCount}
+                </div>
+              )}
               </div>
               <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
                 isActive ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'
@@ -256,42 +314,11 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
         </div>
       </div>
 
-      {/* Session selector bar */}
-      {sessions.length > 0 && (
-        <div className="border-b border-[#3d3530] bg-[#1e1b18] -mx-4 px-4 py-3 mb-4 flex gap-2 overflow-x-auto">
-          {sessions.map(s => {
-            const isSelected = s.id === selectedSessionId;
-            const count = activeId ? (sessionNpcIds[s.id] ?? []).filter(id => id === activeId).length : 0;
-            return (
-              <button
-                key={s.id}
-                onClick={e => handleSessionClick(s.id, e)}
-                title={activeId ? 'Click to add NPC · Option-click to remove one' : 'Select an NPC first'}
-                className={`relative flex-shrink-0 w-[96px] rounded px-2 py-2.5 flex flex-col items-center gap-1 transition-colors border ${
-                  isSelected
-                    ? 'border-[#c9a84c] bg-[#231f1c]'
-                    : 'border-[#3d3530] bg-[#1a1614] hover:border-[#5a4a44]'
-                }`}
-              >
-                <span className="text-lg font-bold leading-none font-serif text-[#c9a84c]">#{s.number}</span>
-                <span className={`text-[13px] font-serif leading-tight line-clamp-2 text-center w-full ${isSelected ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'}`}>
-                  {s.title || 'Untitled'}
-                </span>
-                {s.date && <span className="text-[8px] text-[#3d3530]">{s.date}</span>}
-                {count > 0 && (
-                  <div className="absolute bottom-1.5 right-1.5 w-4 h-4 rounded-full bg-[#c9a84c] text-black text-[9px] font-bold flex items-center justify-center leading-none">
-                    {count}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {!active ? (
         <p className="text-[#5a4a44] font-serif italic text-sm text-center mt-8">
-          No NPCs yet — click + to create one, or drop an image on + to create with a portrait.
+          {sessions.length > 0
+            ? 'Select a session above, then click an NPC to add it — or click an NPC to edit.'
+            : 'No NPCs yet — click + to create one, or drop an image on + to create with a portrait.'}
         </p>
       ) : (
         <>
@@ -301,7 +328,7 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
             </div>
           )}
 
-          <div className="-mx-4">
+          <div className="-mx-4" onClick={e => e.stopPropagation()}>
           {/* Header */}
           <div className="bg-[#231f1c] border border-[#3d3530] rounded-tl-md rounded-tr-md px-4 py-3 border-b-0 flex items-center gap-4">
             {/* Portrait circle — drop zone */}
@@ -420,7 +447,7 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
 
       {/* Delete confirmation */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={e => e.stopPropagation()}>
           <div className="bg-[#1a1614] border border-[#3d3530] rounded px-8 py-6 max-w-sm w-full mx-4 shadow-xl">
             <p className="font-serif text-[1.1rem] italic text-[#e8ddd0] mb-6 text-center">
               Delete {active?.name || 'this NPC'}?
