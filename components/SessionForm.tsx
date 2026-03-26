@@ -10,7 +10,7 @@ function npcImageUrl(path: string | null | undefined): string | null {
   return path.startsWith('uploads/') ? `/api/${path}` : `/${path}`;
 }
 
-export default function SessionForm({ session, allNpcs }: { session: Session; allNpcs: Npc[] }) {
+export default function SessionForm({ session, allNpcs: initialNpcs }: { session: Session; allNpcs: Npc[] }) {
   const [values, setValues] = useState<Record<string, string | number>>({
     number: session.number,
     title:  session.title,
@@ -19,9 +19,11 @@ export default function SessionForm({ session, allNpcs }: { session: Session; al
     notes:  session.notes ?? '',
   });
 
+  const [npcs, setNpcs] = useState<Npc[]>(initialNpcs);
   const [menagerie, setMenagerie] = useState<MenagerieEntry[]>(
     Array.isArray(session.menagerie) ? session.menagerie : []
   );
+  const adding = useRef(false);
 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -68,12 +70,72 @@ export default function SessionForm({ session, allNpcs }: { session: Session; al
     autosave({ [key]: value });
   }
 
-  // Add an NPC to the menagerie with its current HP
-  function addToMenagerie(npc: Npc) {
-    const hp = parseInt(npc.hp) || 0;
-    const next = [...menagerie, { npc_id: npc.id, hp }];
-    setMenagerie(next);
-    saveNow({ menagerie: next });
+  // Increment name: "Goblin" → "Goblin_2", "Goblin_2" → "Goblin_3"
+  function incrementedName(name: string): string {
+    const baseName = name.replace(/_\d+$/, '');
+    if (!baseName) return '';
+    const escaped = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = npcs.filter(n => n.name === baseName || n.name.match(new RegExp(`^${escaped}_\\d+$`)));
+    let max = 1;
+    for (const n of existing) {
+      const m = n.name.match(/_(\d+)$/);
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+      else max = Math.max(max, 1);
+    }
+    return `${baseName}_${max + 1}`;
+  }
+
+  // Create a new NPC in the catalog (duplicate of source with incremented name), then add to menagerie
+  async function addToMenagerie(source: Npc) {
+    if (adding.current) return;
+    adding.current = true;
+    try {
+      const id = Date.now().toString(36);
+      const newName = incrementedName(source.name);
+
+      // Create blank NPC
+      const createRes = await fetch('/api/npcs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!createRes.ok) return;
+
+      // Copy all fields from source with incremented name
+      const patch: Record<string, string> = {
+        name: newName,
+        species: source.species ?? '',
+        cr: source.cr ?? '',
+        hp: source.hp ?? '',
+        hp_roll: source.hp_roll ?? '',
+        ac: source.ac ?? '',
+        speed: source.speed ?? '',
+        attacks: source.attacks ?? '',
+        traits: source.traits ?? '',
+        actions: source.actions ?? '',
+        notes: source.notes ?? '',
+        image_path: source.image_path ?? '',
+      };
+
+      const patchRes = await fetch(`/api/npcs/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!patchRes.ok) return;
+      const newNpc: Npc = await patchRes.json();
+
+      // Add new NPC to local list
+      setNpcs(prev => [...prev, newNpc]);
+
+      // Add to menagerie
+      const hp = parseInt(newNpc.hp) || 0;
+      const next = [...menagerie, { npc_id: newNpc.id, hp }];
+      setMenagerie(next);
+      saveNow({ menagerie: next });
+    } finally {
+      adding.current = false;
+    }
   }
 
   // Remove a menagerie entry by index
@@ -85,7 +147,7 @@ export default function SessionForm({ session, allNpcs }: { session: Session; al
 
   // Look up NPC data by id
   function getNpc(id: string): Npc | undefined {
-    return allNpcs.find(n => n.id === id);
+    return npcs.find(n => n.id === id);
   }
 
   const statusText = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed — check connection' }[saveStatus];
@@ -93,7 +155,7 @@ export default function SessionForm({ session, allNpcs }: { session: Session; al
 
   const FIELDS = [
     { key: 'goal',   label: 'Goal / Hook',   rows: 3, placeholder: "What's the session goal? How does it open?" },
-    { key: 'scenes', label: 'Scene Outline', rows: 7, placeholder: 'Encounters, beats, traps, treasure, exits…' },
+    { key: 'scenes', label: 'Scene',          rows: 4, placeholder: 'Encounters, beats, traps, treasure, exits…' },
   ] as const;
 
   return (
@@ -194,7 +256,7 @@ export default function SessionForm({ session, allNpcs }: { session: Session; al
       <div className="mb-7">
         <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-1">Notes</div>
         <textarea
-          rows={5}
+          rows={3}
           value={values.notes as string}
           placeholder="Music, atmosphere, misc reminders…"
           onChange={e => handleChange('notes', e.target.value)}
@@ -206,13 +268,13 @@ export default function SessionForm({ session, allNpcs }: { session: Session; al
       <div className="mb-7">
         <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-2">Available For Hire</div>
         <div className="min-h-[60px] bg-[#231f1c] border border-[#3d3530] rounded px-3 py-3">
-          {allNpcs.length === 0 ? (
+          {initialNpcs.length === 0 ? (
             <p className="text-[#5a4a44] italic text-sm font-serif m-0">
               No NPCs in the catalog yet
             </p>
           ) : (
             <div className="flex flex-wrap gap-4">
-              {allNpcs.map(npc => {
+              {initialNpcs.map(npc => {
                 const imgUrl = npcImageUrl(npc.image_path);
                 const initial = npc.name.trim() ? npc.name.trim()[0].toUpperCase() : '?';
 
