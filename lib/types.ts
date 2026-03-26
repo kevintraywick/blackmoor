@@ -100,6 +100,7 @@ export interface Npc {
   species: string;
   cr: string;
   hp: string;
+  hp_roll: string;
   ac: string;
   speed: string;
   attacks: string;

@@ -2,13 +2,13 @@
 
 import { useState, useRef, useCallback } from 'react';
 import type { Npc } from '@/lib/types';
-
-type SessionMeta = { id: string; number: number; title: string; date: string; npc_ids: string[] };
+import { rollDice } from '@/lib/dice';
+import { lookupHpRoll } from '@/lib/srd-hp';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 
 const EMPTY_NPC: Omit<Npc, 'id'> = {
-  name: '', species: '', cr: '', hp: '', ac: '', speed: '',
+  name: '', species: '', cr: '', hp: '', hp_roll: '', ac: '', speed: '',
   attacks: '', traits: '', actions: '', notes: '', image_path: '',
 };
 
@@ -32,7 +32,7 @@ function StatField({ label, value, onChange }: { label: string; value: string; o
   );
 }
 
-export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc[]; sessions?: SessionMeta[] }) {
+export default function NpcPageClient({ initial }: { initial: Npc[] }) {
   const [npcs, setNpcs] = useState<Npc[]>(initial);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, string>>(
@@ -43,43 +43,12 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
   const [addDragOver, setAddDragOver] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const creating = useRef(false);
-  const addFileRef = useRef<HTMLInputElement>(null);
   const portraitFileRef = useRef<HTMLInputElement>(null);
 
   const active = npcs.find(n => n.id === activeId) ?? null;
 
-  // Session selection: null until DM actively picks one
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [sessionNpcIds, setSessionNpcIds] = useState<Record<string, string[]>>(
-    Object.fromEntries(sessions.map(s => [s.id, Array.isArray(s.npc_ids) ? s.npc_ids : []]))
-  );
-
-  // Click session to select/deselect — does NOT add an NPC
-  function handleSessionClick(sessionId: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    setSelectedSessionId(prev => prev === sessionId ? null : sessionId);
-  }
-
-  // Click NPC: select for editing + add to selected session (if any)
-  function handleNpcClick(npc: Npc, e: React.MouseEvent) {
-    e.stopPropagation();
-    handleSelect(npc);
-    if (selectedSessionId) {
-      const current = sessionNpcIds[selectedSessionId] ?? [];
-      const next = [...current, npc.id];
-      setSessionNpcIds(prev => ({ ...prev, [selectedSessionId]: next }));
-      fetch(`/api/sessions/${selectedSessionId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ npc_ids: next }),
-      });
-    }
-  }
-
-  // Clicking outside a session or NPC deselects both
   function handleOutsideClick() {
     setActiveId(null);
-    setSelectedSessionId(null);
     setSaveStatus('idle');
   }
 
@@ -114,9 +83,33 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
     const updated = { ...values, [key]: value };
     setValues(updated);
     autosave(activeId, { [key]: value });
-    if (key === 'name') {
-      setNpcs(prev => prev.map(n => n.id === activeId ? { ...n, name: value } : n));
+    // Keep npcs array in sync so clicking away and back doesn't lose changes
+    setNpcs(prev => prev.map(n => n.id === activeId ? { ...n, [key]: value } : n));
+  }
+
+  function handleRollHp(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const formula = values.hp_roll;
+    if (!formula.trim()) return;
+    const result = rollDice(formula);
+    if (result !== null) {
+      handleChange('hp', String(result));
     }
+  }
+
+  function incrementedName(name: string): string {
+    const baseName = name.replace(/_\d+$/, '');
+    if (!baseName) return '';
+    const escaped = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = npcs.filter(n => n.name === baseName || n.name.match(new RegExp(`^${escaped}_\\d+$`)));
+    let max = 1;
+    for (const n of existing) {
+      const m = n.name.match(/_(\d+)$/);
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+      else max = Math.max(max, 1);
+    }
+    return `${baseName}_${max + 1}`;
   }
 
   async function handleNew(imageFile?: File) {
@@ -141,6 +134,56 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
         });
         if (!res.ok) return;
         npc = await res.json();
+      }
+
+      setNpcs(prev => [...prev, npc]);
+      handleSelect(npc);
+    } finally {
+      creating.current = false;
+    }
+  }
+
+  async function handleDuplicate(source: Npc) {
+    if (creating.current) return;
+    creating.current = true;
+    try {
+      const id = Date.now().toString(36);
+      const newName = incrementedName(source.name);
+
+      // Create the NPC on the server
+      const res = await fetch('/api/npcs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) return;
+      let npc: Npc = await res.json();
+
+      // Copy all fields from source, with incremented name and blank HP
+      const patch: Record<string, string> = {
+        name: newName,
+        species: source.species ?? '',
+        cr: source.cr ?? '',
+        hp: '',
+        hp_roll: source.hp_roll ?? '',
+        ac: source.ac ?? '',
+        speed: source.speed ?? '',
+        attacks: source.attacks ?? '',
+        traits: source.traits ?? '',
+        actions: source.actions ?? '',
+        notes: source.notes ?? '',
+        image_path: source.image_path ?? '',
+      };
+
+      const patchRes = await fetch(`/api/npcs/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (patchRes.ok) {
+        npc = await patchRes.json();
+      } else {
+        npc = { ...npc, ...patch };
       }
 
       setNpcs(prev => [...prev, npc]);
@@ -175,6 +218,22 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
     }
   }
 
+  // When an NPC name is first set (on creation), suggest HP roll from SRD
+  function handleNameChange(value: string) {
+    handleChange('name', value);
+    // Only suggest if hp_roll is currently empty (don't overwrite manual entries)
+    if (!values.hp_roll && value.trim()) {
+      const suggestion = lookupHpRoll(value);
+      if (suggestion) {
+        const updated = { ...values, name: value, hp_roll: suggestion };
+        setValues(updated);
+        if (activeId) {
+          autosave(activeId, { hp_roll: suggestion });
+        }
+      }
+    }
+  }
+
   const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[#c9a84c] mb-2 pb-1.5 border-b border-[#3d3530] font-sans';
   const ta = 'w-full bg-transparent border-none text-[#c8bfb5] font-serif text-[0.88rem] leading-[1.55] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452]';
   const fi = 'bg-transparent border-none border-b border-[#3d3530] text-[#e8ddd0] font-serif text-3xl font-bold outline-none focus:border-b-[#c9a84c] placeholder:text-[#8a7452] pb-0.5 flex-1';
@@ -184,42 +243,6 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
 
   return (
     <div className="max-w-[780px] mx-auto px-4 pb-16" onClick={handleOutsideClick}>
-
-      {/* Session selector bar — select a session first, then click NPCs to add */}
-      {sessions.length > 0 && (
-        <div
-          className="border-b border-[#3d3530] bg-[#1e1b18] -mx-4 px-4 py-3 mb-0 flex gap-2 overflow-x-auto"
-          onClick={e => e.stopPropagation()}
-        >
-          {sessions.map(s => {
-            const isSelected = s.id === selectedSessionId;
-            const count = (sessionNpcIds[s.id] ?? []).length;
-            return (
-              <button
-                key={s.id}
-                onClick={e => handleSessionClick(s.id, e)}
-                title="Select session, then click an NPC to add it"
-                className={`relative flex-shrink-0 w-[96px] rounded px-2 py-2.5 flex flex-col items-center gap-1 transition-colors border ${
-                  isSelected
-                    ? 'border-[#c9a84c] bg-[#231f1c]'
-                    : 'border-[#3d3530] bg-[#1a1614] hover:border-[#5a4a44]'
-                }`}
-              >
-                <span className="text-lg font-bold leading-none font-serif text-[#c9a84c]">#{s.number}</span>
-                <span className={`text-[13px] font-serif leading-tight line-clamp-2 text-center w-full ${isSelected ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'}`}>
-                  {s.title || 'Untitled'}
-                </span>
-                {s.date && <span className="text-[8px] text-[#3d3530]">{s.date}</span>}
-                {count > 0 && (
-                  <div className="absolute bottom-1.5 right-1.5 w-4 h-4 rounded-full bg-[#c9a84c] text-black text-[9px] font-bold flex items-center justify-center leading-none">
-                    {count}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {/* NPC selector row */}
       <div
@@ -231,17 +254,12 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
           const imgUrl = npcImageUrl(npc.image_path);
           const initial = npc.name.trim() ? npc.name.trim()[0].toUpperCase() : '?';
 
-          const sessionCount = selectedSessionId
-            ? (sessionNpcIds[selectedSessionId] ?? []).filter(id => id === npc.id).length
-            : 0;
-
           return (
             <button
               key={npc.id}
-              onClick={e => handleNpcClick(npc, e)}
+              onClick={e => { e.stopPropagation(); e.altKey ? handleDuplicate(npc) : handleSelect(npc); }}
               className="flex flex-col items-center gap-1.5 cursor-pointer bg-transparent border-none"
             >
-              <div className="relative">
               <div
                 className={`relative w-20 h-20 rounded-full border-[3px] transition-all overflow-hidden
                   bg-[#2e2825] ${isActive ? 'border-[#c9a84c]' : 'border-[#3d3530] hover:border-[#8a7d6e] hover:scale-105'}`}
@@ -261,12 +279,6 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
                   </span>
                 )}
               </div>
-              {sessionCount > 0 && (
-                <div className="absolute bottom-0 left-0 w-5 h-5 rounded-full bg-[#c9a84c] text-black text-[10px] font-bold flex items-center justify-center leading-none border-2 border-[#231f1c]">
-                  {sessionCount}
-                </div>
-              )}
-              </div>
               <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
                 isActive ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'
               }`}>
@@ -276,10 +288,10 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
           );
         })}
 
-        {/* + circle — drop image here to create NPC with that portrait */}
+        {/* + circle — click to create blank NPC, drop image to create with portrait */}
         <div className="flex flex-col items-center gap-1.5">
           <div
-            onClick={() => addFileRef.current?.click()}
+            onClick={() => handleNew()}
             onDragOver={e => { e.preventDefault(); setAddDragOver(true); }}
             onDragLeave={() => setAddDragOver(false)}
             onDrop={e => {
@@ -300,25 +312,12 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
             </span>
           </div>
           <span className="text-[0.72rem] uppercase tracking-[0.1em] text-[#3d3530]">New NPC</span>
-          <input
-            ref={addFileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={e => {
-              const file = e.target.files?.[0];
-              handleNew(file ?? undefined);
-              e.target.value = '';
-            }}
-          />
         </div>
       </div>
 
       {!active ? (
         <p className="text-[#5a4a44] font-serif italic text-sm text-center mt-8">
-          {sessions.length > 0
-            ? 'Select a session above, then click an NPC to add it — or click an NPC to edit.'
-            : 'No NPCs yet — click + to create one, or drop an image on + to create with a portrait.'}
+          No NPCs yet — click + to create one, or drop an image on + to create with a portrait.
         </p>
       ) : (
         <>
@@ -383,7 +382,7 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
               <input
                 value={values.name}
                 placeholder="NPC Name…"
-                onChange={e => handleChange('name', e.target.value)}
+                onChange={e => handleNameChange(e.target.value)}
                 className={fi}
               />
             </div>
@@ -400,7 +399,7 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
           </div>
 
           {/* Stats row */}
-          <div className="flex gap-6 flex-wrap bg-[#1e1b18] border border-[#3d3530] border-t-0 border-b-0 px-6 py-3">
+          <div className="flex gap-6 flex-wrap items-end bg-[#1e1b18] border border-[#3d3530] border-t-0 border-b-0 px-6 py-3">
             {(['cr', 'ac', 'speed'] as const).map(key => (
               <StatField
                 key={key}
@@ -409,15 +408,40 @@ export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc
                 onChange={v => handleChange(key, v)}
               />
             ))}
-            <div className="flex flex-col gap-0.5">
+
+            {/* HP Roll → 🎲 → HP */}
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[#c9a84c]">HP Roll</span>
+              <input
+                value={values.hp_roll}
+                onChange={e => handleChange('hp_roll', e.target.value)}
+                placeholder="3d6+3"
+                className="w-20 bg-transparent border-b border-[#3d3530] text-[#e8ddd0] font-serif text-lg font-bold
+                           outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5 text-center"
+              />
+            </div>
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[#c9a84c]">&nbsp;</span>
+              <button
+                onClick={handleRollHp}
+                type="button"
+                title="Roll HP from formula"
+                className="text-xl leading-[1.55] hover:scale-125 transition-transform active:scale-95 select-none cursor-pointer
+                           bg-transparent border-none pb-0.5"
+              >
+                🎲
+              </button>
+            </div>
+            <div className="flex flex-col items-center gap-0.5">
               <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[#c9a84c]">HP</span>
               <input
+                type="number"
                 value={values.hp}
                 onChange={e => handleChange('hp', e.target.value)}
-                placeholder="e.g. 15 (2d8+6)"
-                className="bg-transparent border-b border-[#3d3530] text-[#e8ddd0] font-serif text-lg font-bold
-                           outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
-                style={{ width: 160 }}
+                placeholder="—"
+                className="w-14 bg-transparent border-b border-[#3d3530] text-[#e8ddd0] font-serif text-lg font-bold
+                           outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5 text-center
+                           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
           </div>
