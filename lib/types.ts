@@ -37,6 +37,7 @@ export interface PlayerSheet {
   speed: string;
   size: string;
   ac: string;
+  gold: string;
   boons: string;
   class_features: string;
   species_traits: string;  // kept for DB compat, unused in UI

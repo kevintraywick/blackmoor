@@ -167,6 +167,17 @@ async function _initSchema() {
   await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS dm_notes TEXT NOT NULL DEFAULT ''`);
   await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`);
 
+  // Gold — currency for marketplace purchases
+  await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS gold TEXT NOT NULL DEFAULT '0'`);
+  // Seed gold: level 3 players (levi, brandon) → 100, others → 50
+  await pool.query(`
+    UPDATE player_sheets SET gold = CASE
+      WHEN id IN ('levi', 'brandon') THEN '100'
+      ELSE '50'
+    END
+    WHERE gold = '0'
+  `);
+
   // Repair any rows where npc_ids is not an array (e.g. {} from a bad default)
   await pool.query(`
     UPDATE sessions SET npc_ids = '[]'::jsonb

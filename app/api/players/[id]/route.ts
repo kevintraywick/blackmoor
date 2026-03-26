@@ -5,7 +5,7 @@ import { ensureSchema } from '@/lib/schema';
 // Static mapping prevents user-supplied strings from ever touching the query template
 const PLAYER_COLUMNS: Record<string, string> = {
   discord: 'discord', species: 'species', class: 'class', level: 'level',
-  hp: 'hp', xp: 'xp', speed: 'speed', size: 'size', ac: 'ac',
+  hp: 'hp', xp: 'xp', speed: 'speed', size: 'size', ac: 'ac', gold: 'gold',
   boons: 'boons', class_features: 'class_features', species_traits: 'species_traits',
   player_notes: 'player_notes', general_notes: 'general_notes',
   gear: 'gear', spells: 'spells',

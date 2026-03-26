@@ -246,9 +246,20 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
     const n = parseFloat(value) || 0;
     onChange(String(n + delta));
   }
+  const icon = label === 'GOLD'
+    ? <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute top-1/2 -translate-y-1/2 w-[22px] h-[22px] rounded-full opacity-25 pointer-events-none" style={{ right: '100%', marginRight: '4px', marginTop: '-2px' }} />
+    : label === 'HP'
+    ? <svg viewBox="0 0 24 24" fill="#b91c1c" className="absolute top-1/2 -translate-y-1/2 w-[26px] h-[26px] opacity-25 pointer-events-none" style={{ right: '100%', marginRight: '5px', marginTop: '-1px' }}>
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+      </svg>
+    : null;
+
   return (
     <div className="flex flex-col items-center gap-0.5 flex-1 min-w-[60px]">
-      <div className="text-[0.68rem] uppercase tracking-[0.12em] text-[#8a7d6e]">{label}</div>
+      <div className="relative text-[0.68rem] uppercase tracking-[0.12em] text-[#8a7d6e]">
+        {icon}
+        {label}
+      </div>
       <input
         type="text"
         value={value}
@@ -403,7 +414,7 @@ export function Sheet({
 
       {/* Stats row */}
       <div className="flex gap-2 flex-wrap bg-[#1e1b18] border border-[#3d3530] border-t-0 border-b-0 px-4 py-2.5">
-        {(['level','hp','xp','speed','size','ac'] as const).map(key => (
+        {(['level','hp','xp','speed','size','ac','gold'] as const).map(key => (
           <Stat key={key} label={key.toUpperCase()} value={values[key]} onChange={v => setField(key, v)} />
         ))}
       </div>
