@@ -285,9 +285,9 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
     onChange(String(n + delta));
   }
   const icon = label === 'GOLD'
-    ? <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute top-1/2 -translate-y-1/2 w-[22px] h-[22px] rounded-full opacity-40 pointer-events-none" style={{ right: '100%', marginRight: '4px', marginTop: '-2px' }} />
+    ? <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute top-1/2 -translate-y-1/2 w-[22px] h-[22px] rounded-full pointer-events-none" style={{ right: '100%', marginRight: '4px', marginTop: '-2px' }} />
     : label === 'HP'
-    ? <svg viewBox="0 0 24 24" fill="#b91c1c" className="absolute top-1/2 -translate-y-1/2 w-[26px] h-[26px] opacity-40 pointer-events-none" style={{ right: '100%', marginRight: '5px', marginTop: '-1px' }}>
+    ? <svg viewBox="0 0 24 24" fill="#b91c1c" className="absolute top-1/2 -translate-y-1/2 w-[26px] h-[26px] pointer-events-none" style={{ right: '100%', marginRight: '5px', marginTop: '-1px' }}>
         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
       </svg>
     : null;
