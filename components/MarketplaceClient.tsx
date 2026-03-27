@@ -99,8 +99,10 @@ export default function MarketplaceClient({
 
         {/* Exit */}
         <Link href={`/players/${initialShopper.id}`}
-          className="text-[0.6rem] uppercase tracking-[0.1em] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] no-underline transition-colors">
-          Exit →
+          className="w-10 h-10 rounded-full border-2 border-white/80 flex items-center justify-center
+                     text-white text-base hover:bg-white/10 no-underline transition-colors -ml-5"
+          title="Exit marketplace">
+          →
         </Link>
       </div>
 
