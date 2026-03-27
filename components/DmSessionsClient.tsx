@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import type { Session, Npc } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import { resolveImageUrl } from '@/lib/imageUrl';
@@ -21,6 +21,144 @@ function emptyValues(session: Session): Record<string, string | number> {
     date:  session.date,
     ...Object.fromEntries(FIELDS.map(f => [f.key, session[f.key as keyof Session] ?? ''])),
   };
+}
+
+function NpcCastingBoard({
+  allNpcs,
+  npcIds,
+  onToggle,
+}: {
+  allNpcs: Npc[];
+  npcIds: string[];
+  onToggle: (id: string) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const [showAvailable, setShowAvailable] = useState(true);
+
+  // Count assigned NPCs (supports duplicates)
+  const counts: Record<string, number> = {};
+  npcIds.forEach(id => { counts[id] = (counts[id] ?? 0) + 1; });
+  const assignedEntries = Object.entries(counts);
+
+  // Filter available NPCs by search
+  const query = search.trim().toLowerCase();
+  const available = useMemo(() => {
+    if (!query) return allNpcs;
+    return allNpcs.filter(n => n.name?.toLowerCase().includes(query));
+  }, [allNpcs, query]);
+
+  return (
+    <div className="mb-7">
+      <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPCs in this Session</div>
+
+      {/* Assigned NPCs */}
+      {assignedEntries.length === 0 ? (
+        <p className="text-[#5a4a44] text-xs font-serif italic mb-3">No NPCs assigned yet.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {assignedEntries.map(([npcId, count]) => {
+            const npc = allNpcs.find(n => n.id === npcId);
+            if (!npc) return null;
+            const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
+            const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
+            return (
+              <button
+                key={npcId}
+                onClick={() => onToggle(npcId)}
+                className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border border-[var(--color-gold)]/40 bg-[#2e2825]
+                           hover:border-[#a05050] hover:bg-[#301a1a] transition-colors group"
+                title={`Remove ${npc.name}`}
+              >
+                <div className="w-6 h-6 rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center flex-shrink-0">
+                  {imgUrl
+                    ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
+                    : <span className="text-[0.6rem] text-[var(--color-text-muted)] font-serif">{initial}</span>
+                  }
+                </div>
+                <span className="font-serif text-xs text-[var(--color-text)] whitespace-nowrap">
+                  {npc.name || 'Unnamed'}
+                  {count > 1 && <span className="text-[var(--color-gold)] font-bold ml-1">×{count}</span>}
+                </span>
+                <span className="text-[var(--color-border)] group-hover:text-[#a05050] text-xs ml-0.5 transition-colors">×</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add NPCs toggle */}
+      {!showAvailable ? (
+        <button
+          onClick={() => setShowAvailable(true)}
+          className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] border border-dashed border-[var(--color-border)]
+                     rounded px-3 py-1.5 hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
+        >
+          + Add NPCs
+        </button>
+      ) : (
+        <div className="border border-[var(--color-border)] rounded bg-[var(--color-surface)] overflow-hidden">
+          {/* Search header */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-border)]">
+            <span className="text-[var(--color-text-muted)] text-sm">⌕</span>
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search NPCs…"
+              autoFocus
+              className="flex-1 bg-transparent border-none text-[var(--color-text)] text-sm outline-none placeholder:text-[var(--color-text-muted)] font-serif"
+            />
+            <button
+              onClick={() => { setShowAvailable(false); setSearch(''); }}
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-xs transition-colors"
+            >
+              Done
+            </button>
+          </div>
+
+          {/* NPC grid */}
+          <div className="px-2 py-2">
+            {available.length === 0 ? (
+              <p className="text-[#5a4a44] text-xs font-serif italic px-2 py-3">No NPCs match &ldquo;{search}&rdquo;</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+                {available.map(npc => {
+                  const isAssigned = npcIds.includes(npc.id);
+                  const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
+                  const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
+                  return (
+                    <button
+                      key={npc.id}
+                      onClick={() => onToggle(npc.id)}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
+                        isAssigned
+                          ? 'bg-[var(--color-gold)]/10 border border-[var(--color-gold)]/30'
+                          : 'hover:bg-[#2e2825] border border-transparent'
+                      }`}
+                    >
+                      <div className="w-7 h-7 rounded-full overflow-hidden bg-[#1a1714] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
+                        {imgUrl
+                          ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
+                          : <span className="text-[0.65rem] text-[var(--color-text-muted)] font-serif">{initial}</span>
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-serif text-xs text-[var(--color-text)] truncate">{npc.name || 'Unnamed'}</div>
+                        {npc.cr && <div className="text-[0.55rem] text-[#5a4a44] uppercase">CR {npc.cr}</div>}
+                      </div>
+                      {isAssigned && (
+                        <span className="text-[var(--color-gold)] text-xs flex-shrink-0">✓</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function DmSessionsClient({
@@ -187,69 +325,36 @@ export default function DmSessionsClient({
               </div>
             ))}
 
-            {/* Two-column: NPCs (left) | Locations + Notes (right) */}
+            {/* Two-column: Locations + Notes */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-start">
-              {/* NPCs added from NPC page */}
               <div>
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPCs</div>
-                {(() => {
-                  const counts: Record<string, number> = {};
-                  npcIds.forEach(id => { counts[id] = (counts[id] ?? 0) + 1; });
-                  const entries = Object.entries(counts);
-                  if (entries.length === 0) {
-                    return <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs added — use the NPC page to add.</p>;
-                  }
-                  return (
-                    <div className="flex flex-col gap-1.5">
-                      {entries.map(([npcId, count]) => {
-                        const npc = allNpcs.find(n => n.id === npcId);
-                        if (!npc) return null;
-                        const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
-                        const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
-                        return (
-                          <div key={npcId} className="flex items-center gap-2.5 px-2 py-1">
-                            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-[#2e2825] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
-                              {imgUrl
-                                ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
-                                : <span className="text-[0.7rem] text-[var(--color-text-muted)] font-serif">{initial}</span>
-                              }
-                            </div>
-                            <span className="font-serif text-sm text-[var(--color-text)] truncate">{npc.name || 'Unnamed'}</span>
-                            {count > 1 && (
-                              <span className="text-[0.7rem] text-[var(--color-gold)] font-bold ml-auto flex-shrink-0">×{count}</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
+                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Locations</div>
+                <textarea
+                  rows={5}
+                  value={values.locations as string}
+                  placeholder="Key locations and descriptions…"
+                  onChange={e => handleChange('locations', e.target.value)}
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
+                />
               </div>
-
-              {/* Right column: Locations + Notes stacked */}
-              <div className="flex flex-col gap-4">
-                <div>
-                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Locations</div>
-                  <textarea
-                    rows={5}
-                    value={values.locations as string}
-                    placeholder="Key locations and descriptions…"
-                    onChange={e => handleChange('locations', e.target.value)}
-                    className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
-                  />
-                </div>
-                <div>
-                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Notes</div>
-                  <textarea
-                    rows={4}
-                    value={values.notes as string}
-                    placeholder="Music, atmosphere, misc reminders…"
-                    onChange={e => handleChange('notes', e.target.value)}
-                    className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
-                  />
-                </div>
+              <div>
+                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Notes</div>
+                <textarea
+                  rows={4}
+                  value={values.notes as string}
+                  placeholder="Music, atmosphere, misc reminders…"
+                  onChange={e => handleChange('notes', e.target.value)}
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
+                />
               </div>
             </div>
+
+            {/* NPC Casting Board */}
+            <NpcCastingBoard
+              allNpcs={allNpcs}
+              npcIds={npcIds}
+              onToggle={handleNpcToggle}
+            />
 
             {/* Save status */}
             <div className={`text-xs text-right mt-2 h-4 transition-opacity duration-200 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} ${statusColor}`}>

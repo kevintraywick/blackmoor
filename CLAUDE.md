@@ -29,6 +29,7 @@ This is a tool for heroes and the people who run their world. It should feel lik
 
 ### UI Preferences
 - **No hidden-choice controls without asking first.** Before implementing a `<select>` dropdown, `<datalist>`, or any pull-down menu, ask the user — they prefer options to be visible on the page (radio buttons, button groups, segmented controls, etc.). Only use a dropdown if the user explicitly approves it after seeing the alternatives.
+- **No scrollable containers by default.** Do not use `overflow-y-auto`, `max-h-*`, or any scroll-constrained container unless the user specifically requests it. Show all content at full height. Only suggest a scrollable container if it is clearly the superior solution, and get approval first.
 
 ## Gotchas
 
