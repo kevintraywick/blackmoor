@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { resolveImageUrl } from '@/lib/imageUrl';
 
 export interface Item {
   id: number;
@@ -40,7 +41,7 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
 
   if (items.length === 0) {
     return (
-      <p className="text-[#5a4f46] text-sm italic">No items yet.</p>
+      <p className="text-[var(--color-text-dim)] text-sm italic">No items yet.</p>
     );
   }
 
@@ -55,26 +56,26 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
           {/* Outer wrapper: selection ring + badge positioning context */}
           <div className={`relative group w-24 h-24 rounded-full transition-all
             ${selectedItemId === item.id
-              ? 'ring-2 ring-[#c9a84c] ring-offset-2 ring-offset-[#2e3a4a]'
+              ? 'ring-2 ring-[var(--color-gold)] ring-offset-2 ring-offset-[#2e3a4a]'
               : ''}`}>
 
             {/* Inner circle: clips image and tooltip */}
-            <div className="absolute inset-0 rounded-full overflow-hidden border border-[#3d3530]">
+            <div className="absolute inset-0 rounded-full overflow-hidden border border-[var(--color-border)]">
               {item.image_path ? (
                 <img
-                  src={item.image_path!.startsWith('uploads/') ? `/api/${item.image_path}` : `/${item.image_path}`}
+                  src={resolveImageUrl(item.image_path!)}
                   alt={item.title}
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-[#2a2420]" />
+                <div className="w-full h-full bg-[var(--color-surface-raised)]" />
               )}
 
               {/* Hover tooltip */}
               {item.description && (
                 <div className="absolute inset-0 invisible group-hover:visible
                                 bg-black/85 flex items-center justify-center p-2
-                                text-[10px] text-[#e8ddd0] text-center leading-tight">
+                                text-[10px] text-[var(--color-text)] text-center leading-tight">
                   {item.description}
                 </div>
               )}
@@ -82,7 +83,7 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
 
             {/* Gold price badge — bottom-LEFT, coin image bg */}
             <div className="absolute -bottom-1 -left-1 w-[26px] h-[26px] rounded-full
-                            overflow-hidden border border-[#1a1614] z-10 flex items-center justify-center">
+                            overflow-hidden border border-[var(--color-bg)] z-10 flex items-center justify-center">
               <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
               <span className="relative text-[9px] font-bold text-black drop-shadow-sm">{item.price}</span>
             </div>
@@ -99,14 +100,14 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
               ) : (
                 <div className={`absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full
                                 flex items-center justify-center text-[9px] font-bold
-                                border border-[#1a1614] z-10 ${statBadgeClass(item.stat_type)}`}>
+                                border border-[var(--color-bg)] z-10 ${statBadgeClass(item.stat_type)}`}>
                   {item.stat_value}
                 </div>
               )
             )}
           </div>
 
-          <p className="text-[0.65rem] text-center text-[#e8ddd0] mt-1 w-24 leading-tight line-clamp-2">
+          <p className="text-[0.65rem] text-center text-[var(--color-text)] mt-1 w-24 leading-tight line-clamp-2">
             {item.title}
           </p>
         </div>

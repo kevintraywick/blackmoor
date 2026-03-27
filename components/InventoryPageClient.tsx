@@ -42,7 +42,7 @@ export default function InventoryPageClient() {
   return (
     <div className="flex flex-col gap-4">
       {/* Create pane */}
-      <div className="border border-[#3d3530] rounded bg-[#2e3a4a]">
+      <div className="border border-[var(--color-border)] rounded bg-[#2e3a4a]">
         <InventoryCreateForm
           key={editItem?.id ?? 'new'}
           onCreated={() => { setRefreshKey(k => k + 1); setEditItem(null); }}
@@ -51,7 +51,7 @@ export default function InventoryPageClient() {
       </div>
 
       {/* Inventory pane */}
-      <div className="relative border border-[#3d3530] rounded bg-[#2e3a4a]">
+      <div className="relative border border-[var(--color-border)] rounded bg-[#2e3a4a]">
         {/* DELETE button */}
         <button
           onClick={() => selectedItem && setConfirmDelete(true)}
@@ -81,7 +81,7 @@ export default function InventoryPageClient() {
           onClick={sendToMarketplace}
           disabled={!selectedItem}
           title={selectedItem ? 'Send to marketplace' : 'Select an item first'}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[#c9a84c] text-black text-xl
+          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[var(--color-gold)] text-black text-xl
                      font-bold flex items-center justify-center hover:bg-[#e0bc5a]
                      disabled:opacity-50 transition-colors"
         >
@@ -89,13 +89,13 @@ export default function InventoryPageClient() {
         </button>
 
         <div className="px-6 pt-5 pb-6 min-h-[480px]">
-          <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">
+          <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none tracking-tight mb-1">
             Inventory
           </h2>
-          <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">
+          <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)] mb-4">
             Items available to add to the Marketplace
           </p>
-          <div className="border-t border-[#3d3530] mb-6" />
+          <div className="border-t border-[var(--color-border)] mb-6" />
           <InventoryItemGrid
             refreshKey={refreshKey}
             selectedItemId={selectedItem?.id ?? null}
@@ -107,8 +107,8 @@ export default function InventoryPageClient() {
       {/* Delete confirmation dialog */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-[#1a1614] border border-[#3d3530] rounded px-8 py-6 max-w-sm w-full mx-4 shadow-xl">
-            <p className="font-serif text-[1.1rem] italic text-[#e8ddd0] mb-6 text-center">
+          <div className="bg-[var(--color-bg)] border border-[var(--color-border)] rounded px-8 py-6 max-w-sm w-full mx-4 shadow-xl">
+            <p className="font-serif text-[1.1rem] italic text-[var(--color-text)] mb-6 text-center">
               Do you wish to delete this item?
             </p>
             <div className="flex gap-3 justify-center">
@@ -121,8 +121,8 @@ export default function InventoryPageClient() {
               </button>
               <button
                 onClick={() => setConfirmDelete(false)}
-                className="px-6 py-2 rounded border border-[#3d3530] text-[#8a7d6e] text-sm
-                           hover:text-[#e8ddd0] hover:border-[#5a4f46] transition-colors"
+                className="px-6 py-2 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] text-sm
+                           hover:text-[var(--color-text)] hover:border-[var(--color-text-dim)] transition-colors"
               >
                 Cancel
               </button>

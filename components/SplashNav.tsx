@@ -24,7 +24,7 @@ export default function SplashNav({ players }: { players: Player[] }) {
       </Link>
 
       {/* Divider */}
-      <div className="w-px h-20 bg-[#3d3530] mx-1 flex-shrink-0" />
+      <div className="w-px h-20 bg-[var(--color-border)] mx-1 flex-shrink-0" />
 
       {/* Player circles */}
       {players.map(p => (
@@ -34,9 +34,9 @@ export default function SplashNav({ players }: { players: Player[] }) {
           className="flex flex-col items-center gap-1.5 no-underline group"
           title={p.character}
         >
-          <span className="text-xs uppercase tracking-[0.08em] text-[#e8ddd0] font-sans whitespace-nowrap">{p.character}</span>
+          <span className="text-xs uppercase tracking-[0.08em] text-[var(--color-text)] font-sans whitespace-nowrap">{p.character}</span>
           <div className="relative w-24 h-24 rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden transition-all group-hover:border-[#c0392b] group-hover:scale-105">
-            <span className="text-[#8a7d6e] text-2xl select-none">{p.initial}</span>
+            <span className="text-[var(--color-text-muted)] text-2xl select-none">{p.initial}</span>
             <Image
               src={p.img}
               alt={p.character}
@@ -53,11 +53,11 @@ export default function SplashNav({ players }: { players: Player[] }) {
         <button
           disabled
           title="Add new player (coming soon)"
-          className="w-20 h-20 rounded-full border-2 border-dashed border-[#3d3530] bg-transparent text-[#3d3530] text-3xl flex items-center justify-center cursor-not-allowed"
+          className="w-20 h-20 rounded-full border-2 border-dashed border-[var(--color-border)] bg-transparent text-[var(--color-border)] text-3xl flex items-center justify-center cursor-not-allowed"
         >
           +
         </button>
-        <span className="text-xs uppercase tracking-[0.08em] text-[#2a2420] font-sans">Add</span>
+        <span className="text-xs uppercase tracking-[0.08em] text-[var(--color-surface-raised)] font-sans">Add</span>
       </div>
     </div>
   );

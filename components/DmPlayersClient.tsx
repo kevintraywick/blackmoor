@@ -45,33 +45,33 @@ function AddPlayerModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <form
-        className="bg-[#231f1c] border border-[#4a7a5a] rounded-lg px-6 py-5 w-full max-w-sm mx-4"
+        className="bg-[var(--color-surface)] border border-[#4a7a5a] rounded-lg px-6 py-5 w-full max-w-sm mx-4"
         onClick={e => e.stopPropagation()}
         onSubmit={handleSubmit}
       >
         <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[#4a8a5a] mb-3">Add New Player</div>
 
         <label className="block mb-3">
-          <span className="text-[0.7rem] uppercase tracking-[0.1em] text-[#8a7d6e] block mb-1">Player Name</span>
+          <span className="text-[0.7rem] uppercase tracking-[0.1em] text-[var(--color-text-muted)] block mb-1">Player Name</span>
           <input
             autoFocus
             type="text"
             value={playerName}
             onChange={e => setPlayerName(e.target.value)}
             placeholder="e.g. Levi"
-            className="w-full bg-[#1a1614] border border-[#3d3530] rounded px-3 py-2 text-[#e8ddd0] text-sm font-serif outline-none focus:border-[#4a7a5a] placeholder:text-[#5a4f46]"
+            className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded px-3 py-2 text-[var(--color-text)] text-sm font-serif outline-none focus:border-[#4a7a5a] placeholder:text-[var(--color-text-dim)]"
           />
           {id && <span className="text-[0.65rem] text-[#5a6a60] mt-0.5 block">ID: {id}</span>}
         </label>
 
         <label className="block mb-4">
-          <span className="text-[0.7rem] uppercase tracking-[0.1em] text-[#8a7d6e] block mb-1">Character Name</span>
+          <span className="text-[0.7rem] uppercase tracking-[0.1em] text-[var(--color-text-muted)] block mb-1">Character Name</span>
           <input
             type="text"
             value={character}
             onChange={e => setCharacter(e.target.value)}
             placeholder="e.g. Garrick"
-            className="w-full bg-[#1a1614] border border-[#3d3530] rounded px-3 py-2 text-[#e8ddd0] text-sm font-serif outline-none focus:border-[#4a7a5a] placeholder:text-[#5a4f46]"
+            className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded px-3 py-2 text-[var(--color-text)] text-sm font-serif outline-none focus:border-[#4a7a5a] placeholder:text-[var(--color-text-dim)]"
           />
         </label>
 
@@ -81,7 +81,7 @@ function AddPlayerModal({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="text-sm px-3 py-1.5 text-[#8a7d6e] border border-[#3d3530] rounded hover:bg-[#2a2420] transition-colors font-serif"
+            className="text-sm px-3 py-1.5 text-[var(--color-text-muted)] border border-[var(--color-border)] rounded hover:bg-[var(--color-surface-raised)] transition-colors font-serif"
           >
             Cancel
           </button>
@@ -118,7 +118,7 @@ export default function DmPlayersClient({
       {showAddModal && <AddPlayerModal onClose={() => setShowAddModal(false)} />}
 
       {/* Player selector — same layout as /players, but DM sees all (incl. removed) */}
-      <div className="flex justify-center gap-4 flex-wrap py-5 bg-[#231f1c] border-b border-[#3d3530] -mx-4 px-4 mb-4">
+      <div className="flex justify-center gap-4 flex-wrap py-5 bg-[var(--color-surface)] border-b border-[var(--color-border)] -mx-4 px-4 mb-4">
         {players.map(p => {
           const status    = sheets[p.id]?.status ?? 'active';
           const isAway    = status === 'away';
@@ -134,10 +134,10 @@ export default function DmPlayersClient({
             >
               <div className={`relative w-20 h-20 rounded-full overflow-hidden border-[3px] transition-all ${
                 isActive
-                  ? 'border-[#c9a84c]'
-                  : 'border-[#3d3530] hover:border-[#8a7d6e] hover:scale-105'
+                  ? 'border-[var(--color-gold)]'
+                  : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)] hover:scale-105'
               } bg-[#2e2825] flex items-center justify-center`}>
-                <span className="text-[1.6rem] text-[#8a7d6e] select-none">{p.initial}</span>
+                <span className="text-[1.6rem] text-[var(--color-text-muted)] select-none">{p.initial}</span>
                 <Image
                   src={p.img}
                   alt={p.playerName}
@@ -147,7 +147,7 @@ export default function DmPlayersClient({
                 />
               </div>
               <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
-                isActive ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'
+                isActive ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'
               }`}>
                 {p.playerName}
                 {isAway    ? ' · away'    : ''}
@@ -162,10 +162,10 @@ export default function DmPlayersClient({
           onClick={() => setShowAddModal(true)}
           className="flex flex-col items-center gap-1.5 cursor-pointer bg-transparent border-none"
         >
-          <div className="relative w-20 h-20 rounded-full border-[3px] border-dashed border-[#3d3530] hover:border-[#4a7a5a] transition-colors bg-[#1e1c1a] flex items-center justify-center">
-            <span className="text-[2rem] text-[#3d3530] leading-none select-none" style={{ marginTop: '-2px' }}>+</span>
+          <div className="relative w-20 h-20 rounded-full border-[3px] border-dashed border-[var(--color-border)] hover:border-[#4a7a5a] transition-colors bg-[#1e1c1a] flex items-center justify-center">
+            <span className="text-[2rem] text-[var(--color-border)] leading-none select-none" style={{ marginTop: '-2px' }}>+</span>
           </div>
-          <span className="text-[0.72rem] uppercase tracking-[0.1em] text-[#3d3530]">Add Player</span>
+          <span className="text-[0.72rem] uppercase tracking-[0.1em] text-[var(--color-border)]">Add Player</span>
         </button>
       </div>
 

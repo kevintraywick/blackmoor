@@ -60,7 +60,7 @@ function SortableSession({
       <div
         {...attributes}
         {...listeners}
-        className="flex-shrink-0 px-1 py-1.5 text-[#3d3530] hover:text-[#8a7d6e] cursor-grab active:cursor-grabbing select-none"
+        className="flex-shrink-0 px-1 py-1.5 text-[var(--color-border)] hover:text-[var(--color-text-muted)] cursor-grab active:cursor-grabbing select-none"
         title="Drag to reorder"
       >
         ⠿
@@ -77,7 +77,7 @@ function SortableSession({
       {/* Maps link for this session */}
       <Link
         href={`/dm/maps?session=${session.id}`}
-        className="text-white/70 hover:text-[#c9a84c] text-xs no-underline flex-shrink-0 mr-1"
+        className="text-white/70 hover:text-[var(--color-gold)] text-xs no-underline flex-shrink-0 mr-1"
         title="Maps for this session"
       >
         Maps
@@ -88,7 +88,7 @@ function SortableSession({
         onClick={handleDeleteClick}
         className={`text-xs px-1 flex-shrink-0 transition-colors ${
           confirming
-            ? 'text-[#c9a84c] font-bold'
+            ? 'text-[var(--color-gold)] font-bold'
             : 'text-white/35 hover:text-white opacity-0 group-hover:opacity-100'
         }`}
         title={confirming ? 'Click again to confirm delete' : 'Delete session'}
@@ -159,7 +159,7 @@ export default function SessionList({ initial }: { initial: Session[] }) {
       {/* New session button */}
       <button
         onClick={handleNew}
-        className="mb-5 px-4 py-1.5 rounded text-sm text-[#c9a84c] border border-dashed border-[#c9a84c] bg-transparent hover:bg-[rgba(201,168,76,0.1)] text-left transition-colors"
+        className="mb-5 px-4 py-1.5 rounded text-sm text-[var(--color-gold)] border border-dashed border-[var(--color-gold)] bg-transparent hover:bg-[rgba(201,168,76,0.1)] text-left transition-colors"
       >
         + New Session
       </button>

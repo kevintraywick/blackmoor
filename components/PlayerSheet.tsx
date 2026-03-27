@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, MarketplaceItem, Player } from '@/lib/types';
-
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
+import { useAutosave } from '@/lib/useAutosave';
+import type { SaveStatus } from '@/lib/useAutosave';
 
 // ── Boon list — clickable ☐/☑ lines parsed from stored text ─────────────────
 function BoonList({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -39,22 +39,22 @@ function BoonList({ value, onChange }: { value: string; onChange: (v: string) =>
               className="flex items-center gap-2 py-0.5 cursor-pointer select-none"
               onClick={() => toggleLine(i)}
             >
-              <span className={`text-xl leading-none flex-shrink-0 ${isChecked ? 'text-[#c9a84c]' : 'text-[#6a5a50]'}`}>
+              <span className={`text-xl leading-none flex-shrink-0 ${isChecked ? 'text-[var(--color-gold)]' : 'text-[#6a5a50]'}`}>
                 {isChecked ? '☑' : '☐'}
               </span>
-              <span className={`font-serif text-[0.88rem] ${isChecked ? 'text-[#6a5a50] line-through' : 'text-[#c8bfb5]'}`}>
+              <span className={`font-serif text-[0.88rem] ${isChecked ? 'text-[#6a5a50] line-through' : 'text-[var(--color-text-body)]'}`}>
                 {text}
               </span>
             </div>
           );
         }
-        return <div key={i} className="font-serif text-[0.88rem] text-[#c8bfb5] py-0.5">{line}</div>;
+        return <div key={i} className="font-serif text-[0.88rem] text-[var(--color-text-body)] py-0.5">{line}</div>;
       })}
 
-      <div className="flex gap-2 mt-2 pt-2 border-t border-[#2a2420] items-center">
+      <div className="flex gap-2 mt-2 pt-2 border-t border-[var(--color-surface-raised)] items-center">
         <button
           onClick={addBoon}
-          className="text-[0.85rem] text-[#6a5a50] hover:text-[#c9a84c] bg-transparent border-none transition-colors flex-shrink-0"
+          className="text-[0.85rem] text-[#6a5a50] hover:text-[var(--color-gold)] bg-transparent border-none transition-colors flex-shrink-0"
         >
           +
         </button>
@@ -63,7 +63,7 @@ function BoonList({ value, onChange }: { value: string; onChange: (v: string) =>
           onChange={e => setNewBoon(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addBoon()}
           placeholder=""
-          className="flex-1 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
+          className="flex-1 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5"
         />
       </div>
     </div>
@@ -97,7 +97,7 @@ function WeaponList({
   return (
     <div>
       {/* Column headers */}
-      <div className="grid grid-cols-[1fr_50px_70px_16px] gap-1 text-[0.6rem] uppercase tracking-[0.1em] text-[#6a5a50] pb-1 border-b border-[#2a2420] mb-1.5 font-sans">
+      <div className="grid grid-cols-[1fr_50px_70px_16px] gap-1 text-[0.6rem] uppercase tracking-[0.1em] text-[#6a5a50] pb-1 border-b border-[var(--color-surface-raised)] mb-1.5 font-sans">
         <span>Weapon</span>
         <span className="text-center">Atk</span>
         <span className="text-center">Damage</span>
@@ -106,9 +106,9 @@ function WeaponList({
 
       {weapons.map(w => (
         <div key={w.id} className="grid grid-cols-[1fr_50px_70px_16px] gap-1 items-center py-[3px]">
-          <input value={w.name}         onChange={e => onUpdate(w.id, 'name', e.target.value)}         className={`${rowIn} text-[#c8bfb5] truncate`} />
-          <input value={w.attack_bonus} onChange={e => onUpdate(w.id, 'attack_bonus', e.target.value)} className={`${rowIn} text-[#c9a84c] text-center`} />
-          <input value={w.damage}       onChange={e => onUpdate(w.id, 'damage', e.target.value)}       className={`${rowIn} text-[#c8bfb5] text-center`} />
+          <input value={w.name}         onChange={e => onUpdate(w.id, 'name', e.target.value)}         className={`${rowIn} text-[var(--color-text-body)] truncate`} />
+          <input value={w.attack_bonus} onChange={e => onUpdate(w.id, 'attack_bonus', e.target.value)} className={`${rowIn} text-[var(--color-gold)] text-center`} />
+          <input value={w.damage}       onChange={e => onUpdate(w.id, 'damage', e.target.value)}       className={`${rowIn} text-[var(--color-text-body)] text-center`} />
           <button
             onClick={() => onDelete(w.id)}
             className="text-[#4a3a35] hover:text-[#8a3a3a] text-[0.65rem] text-center transition-colors"
@@ -122,7 +122,7 @@ function WeaponList({
       <div className="flex gap-1 mt-2 items-center">
         <button
           onClick={submit}
-          className="text-[0.85rem] text-[#6a5a50] hover:text-[#c9a84c] bg-transparent border-none transition-colors flex-shrink-0"
+          className="text-[0.85rem] text-[#6a5a50] hover:text-[var(--color-gold)] bg-transparent border-none transition-colors flex-shrink-0"
         >
           +
         </button>
@@ -131,21 +131,21 @@ function WeaponList({
           onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
           placeholder="Weapon name…"
-          className="flex-1 min-w-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
+          className="flex-1 min-w-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5"
         />
         <input
           value={atk}
           onChange={e => setAtk(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
           placeholder="+0"
-          className="w-10 text-center flex-shrink-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
+          className="w-10 text-center flex-shrink-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5"
         />
         <input
           value={dmg}
           onChange={e => setDmg(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
           placeholder="1d8+0"
-          className="w-14 text-center flex-shrink-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5"
+          className="w-14 text-center flex-shrink-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5"
         />
       </div>
     </div>
@@ -169,11 +169,11 @@ function ItemList({
     <div>
       {items.map((item, i) => (
         <div key={item.id}>
-          {i > 0 && <div className="h-px bg-[#2a2420] my-1.5" />}
+          {i > 0 && <div className="h-px bg-[var(--color-surface-raised)] my-1.5" />}
           <div className="flex items-baseline gap-1.5 min-w-0">
-            <span className="text-[0.88rem] text-[#c8bfb5] font-serif flex-1 min-w-0 truncate">{item.name}</span>
+            <span className="text-[0.88rem] text-[var(--color-text-body)] font-serif flex-1 min-w-0 truncate">{item.name}</span>
             {effect(item) && (
-              <span className="text-[0.88rem] text-[#c9a84c] font-serif w-24 flex-shrink-0 text-right">{effect(item)}</span>
+              <span className="text-[0.88rem] text-[var(--color-gold)] font-serif w-24 flex-shrink-0 text-right">{effect(item)}</span>
             )}
             <button
               onClick={() => onDelete(item.id)}
@@ -217,7 +217,7 @@ function SpellList({
     setShowForm(false);
   }
 
-  const inputCls = 'flex-1 min-w-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5';
+  const inputCls = 'flex-1 min-w-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5';
 
   return (
     <div>
@@ -225,10 +225,10 @@ function SpellList({
         const ri = 'bg-transparent border-none outline-none font-serif';
         return (
           <div key={spell.id}>
-            {i > 0 && <div className="h-px bg-[#2a2420] my-1.5" />}
+            {i > 0 && <div className="h-px bg-[var(--color-surface-raised)] my-1.5" />}
             <div className="flex items-baseline gap-1.5 min-w-0">
-              <input value={spell.name}   onChange={e => onUpdate(spell.id, 'name', e.target.value)}   className={`${ri} text-[0.88rem] text-[#c8bfb5] flex-1 min-w-0`} placeholder="Spell name…" />
-              <input value={spell.effect} onChange={e => onUpdate(spell.id, 'effect', e.target.value)} className={`${ri} text-[0.88rem] text-[#c9a84c] w-24 flex-shrink-0 text-right`} placeholder="effect…" />
+              <input value={spell.name}   onChange={e => onUpdate(spell.id, 'name', e.target.value)}   className={`${ri} text-[0.88rem] text-[var(--color-text-body)] flex-1 min-w-0`} placeholder="Spell name…" />
+              <input value={spell.effect} onChange={e => onUpdate(spell.id, 'effect', e.target.value)} className={`${ri} text-[0.88rem] text-[var(--color-gold)] w-24 flex-shrink-0 text-right`} placeholder="effect…" />
               <button
                 onClick={() => onDelete(spell.id)}
                 className="text-[#4a3a35] hover:text-[#8a3a3a] text-[0.65rem] flex-shrink-0 transition-colors"
@@ -238,11 +238,11 @@ function SpellList({
             </div>
             <div className="flex gap-1 pl-2.5 mt-0.5 min-w-0">
               <input value={spell.action_type} onChange={e => onUpdate(spell.id, 'action_type', e.target.value)} className={`${ri} text-[0.78rem] text-[#ddd8d2] w-16 flex-shrink-0`} placeholder="action…" />
-              <span className="text-[#3d3530] text-[0.78rem]">·</span>
+              <span className="text-[var(--color-border)] text-[0.78rem]">·</span>
               <input value={spell.range}       onChange={e => onUpdate(spell.id, 'range', e.target.value)}       className={`${ri} text-[0.78rem] text-[#ddd8d2] w-14 flex-shrink-0`} placeholder="range…" />
-              <span className="text-[#3d3530] text-[0.78rem]">·</span>
+              <span className="text-[var(--color-border)] text-[0.78rem]">·</span>
               <input value={spell.components}  onChange={e => onUpdate(spell.id, 'components', e.target.value)}  className={`${ri} text-[0.78rem] text-[#ddd8d2] w-14 flex-shrink-0`} placeholder="V,S,M…" />
-              <span className="text-[#3d3530] text-[0.78rem]">·</span>
+              <span className="text-[var(--color-border)] text-[0.78rem]">·</span>
               <input value={spell.duration}    onChange={e => onUpdate(spell.id, 'duration', e.target.value)}    className={`${ri} text-[0.78rem] text-[#ddd8d2] flex-1 min-w-0`} placeholder="duration…" />
             </div>
           </div>
@@ -250,10 +250,10 @@ function SpellList({
       })}
 
       {showForm ? (
-        <div className="mt-2 pt-2 border-t border-[#2a2420] flex flex-col gap-1.5">
+        <div className="mt-2 pt-2 border-t border-[var(--color-surface-raised)] flex flex-col gap-1.5">
           <div className="flex gap-2">
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Name…" className={inputCls} />
-            <input value={effect} onChange={e => setEffect(e.target.value)} placeholder="Damage / Effect" className="w-24 flex-shrink-0 bg-transparent border-b border-[#2a2420] text-[#c8bfb5] font-serif text-[0.82rem] outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5" />
+            <input value={effect} onChange={e => setEffect(e.target.value)} placeholder="Damage / Effect" className="w-24 flex-shrink-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5" />
           </div>
           <div className="flex gap-2">
             <input value={actionType}  onChange={e => setActionType(e.target.value)}  placeholder="action / bonus…" className={inputCls} />
@@ -262,14 +262,14 @@ function SpellList({
             <input value={duration}    onChange={e => setDuration(e.target.value)}    onKeyDown={e => e.key === 'Enter' && submit()} placeholder="duration" className={inputCls} />
           </div>
           <div className="flex gap-1">
-            <button onClick={() => setShowForm(false)} className="text-[0.72rem] text-[#8a7d6e] border border-[#3d3530] rounded px-2 py-0.5 hover:border-[#8a7d6e] transition-colors">Cancel</button>
-            <button onClick={submit} className="text-[0.72rem] text-[#8a7d6e] border border-[#4a3a35] rounded px-2 py-0.5 hover:border-[#c9a84c] hover:text-[#c9a84c] transition-colors">Add</button>
+            <button onClick={() => setShowForm(false)} className="text-[0.72rem] text-[var(--color-text-muted)] border border-[var(--color-border)] rounded px-2 py-0.5 hover:border-[var(--color-text-muted)] transition-colors">Cancel</button>
+            <button onClick={submit} className="text-[0.72rem] text-[var(--color-text-muted)] border border-[#4a3a35] rounded px-2 py-0.5 hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">Add</button>
           </div>
         </div>
       ) : (
         <button
           onClick={() => setShowForm(true)}
-          className="mt-2 text-[0.72rem] text-[#6a5a50] hover:text-[#c9a84c] bg-transparent border-none transition-colors"
+          className="mt-2 text-[0.72rem] text-[#6a5a50] hover:text-[var(--color-gold)] bg-transparent border-none transition-colors"
         >
           +
         </button>
@@ -294,7 +294,7 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
 
   return (
     <div className="flex flex-col items-center gap-0.5 flex-1 min-w-[60px]">
-      <div className="relative text-[0.68rem] uppercase tracking-[0.12em] text-[#8a7d6e]">
+      <div className="relative text-[0.68rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
         {icon}
         {label}
       </div>
@@ -303,14 +303,14 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
         value={value}
         placeholder="—"
         onChange={e => onChange(e.target.value)}
-        className="bg-transparent border-none border-b border-[#3d3530] text-[#e8ddd0] text-[0.95rem] text-center outline-none w-full focus:border-b-[#c9a84c] placeholder:text-[#8a7452] font-serif pb-0.5"
+        className="bg-transparent border-none border-b border-[var(--color-border)] text-[var(--color-text)] text-[0.95rem] text-center outline-none w-full focus:border-b-[var(--color-gold)] placeholder:text-[#8a7452] font-serif pb-0.5"
       />
       <div className="flex gap-0.5 mt-0.5">
         {[-1, 1].map(d => (
           <button
             key={d}
             onClick={() => adjust(d)}
-            className="w-[22px] h-5 bg-[#2a2420] border border-[#3d3530] text-[#8a7d6e] rounded-sm text-[0.85rem] leading-none hover:border-[#c9a84c] hover:text-[#c9a84c] active:bg-[#3a3020] transition-colors"
+            className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] active:bg-[#3a3020] transition-colors"
           >
             {d === -1 ? '−' : '+'}
           </button>
@@ -337,27 +337,7 @@ export function Sheet({
   data: PlayerSheetType;
 }) {
   const [values, setValues] = useState<PlayerSheetType>(data);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const autosave = useCallback((patch: Partial<PlayerSheetType>) => {
-    setSaveStatus('saving');
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/players/${playerId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(patch),
-        });
-        if (!res.ok) throw new Error();
-        setSaveStatus('saved');
-        setTimeout(() => setSaveStatus('idle'), 2000);
-      } catch {
-        setSaveStatus('failed');
-      }
-    }, 600);
-  }, [playerId]);
+  const { save: autosave, saveNow, status: saveStatus } = useAutosave(`/api/players/${playerId}`);
 
   function setField(key: keyof PlayerSheetType, value: PlayerSheetType[keyof PlayerSheetType]) {
     setValues(prev => ({ ...prev, [key]: value }));
@@ -392,26 +372,26 @@ export function Sheet({
   }
 
   const statusText  = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed — check connection' }[saveStatus];
-  const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[#8a7d6e]';
+  const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[var(--color-text-muted)]';
 
-  const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[#c9a84c] mb-2 pb-1.5 border-b border-[#3d3530] font-sans';
-  const ta = 'w-full bg-transparent border-none text-[#c8bfb5] font-serif text-[0.88rem] leading-[1.55] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452]';
-  const fi = 'bg-transparent border-none border-b border-[#3d3530] text-[#e8ddd0] font-serif text-lg font-bold outline-none focus:border-b-[#c9a84c] placeholder:text-[#8a7452] pb-0.5';
+  const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[var(--color-gold)] mb-2 pb-1.5 border-b border-[var(--color-border)] font-sans';
+  const ta = 'w-full bg-transparent border-none text-[var(--color-text-body)] font-serif text-[0.88rem] leading-[1.55] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452]';
+  const fi = 'bg-transparent border-none border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-lg font-bold outline-none focus:border-b-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5';
 
   return (
     <>
       {/* Save indicator */}
       {saveStatus !== 'idle' && (
-        <div className={`fixed bottom-4 right-4 text-xs px-3 py-1 rounded border border-[#3d3530] bg-[#231f1c] ${statusColor}`}>
+        <div className={`fixed bottom-4 right-4 text-xs px-3 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)] ${statusColor}`}>
           {statusText}
         </div>
       )}
 
       {/* Header — portrait + name/class fields */}
-      <div className="bg-[#231f1c] border border-[#3d3530] rounded-tl-md rounded-tr-md px-4 py-3 border-b-0 flex items-center gap-4">
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-tl-md rounded-tr-md px-4 py-3 border-b-0 flex items-center gap-4">
         {/* Portrait circle */}
         <div className="relative w-14 h-14 rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0">
-          <span className="text-[1.2rem] text-[#8a7d6e] select-none">{initial}</span>
+          <span className="text-[1.2rem] text-[var(--color-text-muted)] select-none">{initial}</span>
           {img && (
             <Image
               src={img}
@@ -425,10 +405,10 @@ export function Sheet({
 
         {/* Name / class fields — all same font, single line */}
         <div className="flex items-baseline gap-2 flex-1 min-w-0 overflow-hidden">
-          <span className="text-[#c9a84c] text-xl font-bold tracking-[0.06em] font-serif whitespace-nowrap">{playerName}</span>
-          <span className="text-[#3d3530]">/</span>
-          <span className="text-[#e8ddd0] text-xl font-bold font-serif whitespace-nowrap">{character}</span>
-          <span className="text-[#3d3530]">/</span>
+          <span className="text-[var(--color-gold)] text-xl font-bold tracking-[0.06em] font-serif whitespace-nowrap">{playerName}</span>
+          <span className="text-[var(--color-border)]">/</span>
+          <span className="text-[var(--color-text)] text-xl font-bold font-serif whitespace-nowrap">{character}</span>
+          <span className="text-[var(--color-border)]">/</span>
           <input
             value={values.species}
             placeholder="Species…"
@@ -436,7 +416,7 @@ export function Sheet({
             className={fi}
             style={{ minWidth: 60, width: 80 }}
           />
-          <span className="text-[#3d3530]">·</span>
+          <span className="text-[var(--color-border)]">·</span>
           <input
             value={values.class}
             placeholder="Class…"
@@ -444,7 +424,7 @@ export function Sheet({
             className={fi}
             style={{ minWidth: 60, width: 80 }}
           />
-          <span className="text-[#3d3530]">/</span>
+          <span className="text-[var(--color-border)]">/</span>
           <input
             value={values.discord}
             placeholder="Discord…"
@@ -456,48 +436,48 @@ export function Sheet({
       </div>
 
       {/* Stats row */}
-      <div className="flex gap-2 flex-wrap bg-[#1e1b18] border border-[#3d3530] border-t-0 border-b-0 px-4 py-2.5">
+      <div className="flex gap-2 flex-wrap bg-[#1e1b18] border border-[var(--color-border)] border-t-0 border-b-0 px-4 py-2.5">
         {(['level','hp','xp','speed','size','ac','gold'] as const).map(key => (
           <Stat key={key} label={key.toUpperCase()} value={values[key]} onChange={v => setField(key, v)} />
         ))}
       </div>
 
       {/* 2×3 content grid */}
-      <div className="grid grid-cols-2 border border-[#3d3530] border-t-0 rounded-bl-md rounded-br-md overflow-hidden">
+      <div className="grid grid-cols-2 border border-[var(--color-border)] border-t-0 rounded-bl-md rounded-br-md overflow-hidden">
 
         {/* Boons */}
-        <div className="bg-[#231f1c] border-r border-b border-[#3d3530] p-3" style={{ minWidth: 0, minHeight: 210 }}>
+        <div className="bg-[var(--color-surface)] border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, minHeight: 210 }}>
           <div className={sh}>Boons</div>
           <BoonList value={values.boons} onChange={v => setField('boons', v)} />
         </div>
 
         {/* Weapons */}
-        <div className="bg-[#231f1c] border-b border-[#3d3530] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210 }}>
+        <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210 }}>
           <div className={sh}>Weapons</div>
           <WeaponList weapons={values.gear} onAdd={addWeapon} onDelete={deleteWeapon} onUpdate={updateWeapon} />
         </div>
 
         {/* Magic Spells */}
-        <div className="bg-[#231f1c] border-r border-b border-[#3d3530] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 225 }}>
+        <div className="bg-[var(--color-surface)] border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 225 }}>
           <div className={sh}>Magic Spells</div>
           <SpellList spells={values.spells ?? []} onAdd={addSpell} onDelete={deleteSpell} onUpdate={updateSpell} />
         </div>
 
         {/* Magic Items */}
-        <div className="bg-[#231f1c] border-b border-[#3d3530] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 225 }}>
+        <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 225 }}>
           <div className={sh}>Magic Items</div>
           <ItemList items={values.items ?? []} onDelete={deleteItem} />
         </div>
 
         {/* Class and Species Abilities */}
-        <div className="bg-[#231f1c] border-r border-[#3d3530] p-3" style={{ minWidth: 0 }}>
+        <div className="bg-[var(--color-surface)] border-r border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
           <div className={sh}>Class and Species Abilities</div>
           <textarea rows={2} value={values.class_features} onChange={e => setField('class_features', e.target.value)} className={ta} placeholder="" />
           <textarea rows={2} value={values.player_notes} onChange={e => setField('player_notes', e.target.value)} className={`${ta} mt-2`} placeholder="" />
         </div>
 
         {/* Background */}
-        <div className="bg-[#231f1c] border-[#3d3530] p-3" style={{ minWidth: 0 }}>
+        <div className="bg-[var(--color-surface)] border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
           <div className={sh}>Background</div>
           <textarea rows={4} value={values.general_notes} onChange={e => setField('general_notes', e.target.value)} className={ta} placeholder="" />
         </div>
@@ -519,7 +499,7 @@ export default function PlayerSheets({ players, sheets }: { players: Player[]; s
     <div className="max-w-[780px] mx-auto px-4 pb-16">
 
       {/* Player selector */}
-      <div className="flex justify-center gap-4 flex-wrap py-5 bg-[#231f1c] border-b border-[#3d3530] -mx-4 px-4 mb-6">
+      <div className="flex justify-center gap-4 flex-wrap py-5 bg-[var(--color-surface)] border-b border-[var(--color-border)] -mx-4 px-4 mb-6">
         {players.map(p => {
           const status = sheets[p.id]?.status ?? 'active';
           if (status === 'removed') return null;
@@ -532,10 +512,10 @@ export default function PlayerSheets({ players, sheets }: { players: Player[]; s
             >
               <div className={`relative w-20 h-20 rounded-full overflow-hidden border-[3px] transition-all ${
                 activeId === p.id
-                  ? 'border-[#c9a84c]'
-                  : 'border-[#3d3530] hover:border-[#8a7d6e] hover:scale-105'
+                  ? 'border-[var(--color-gold)]'
+                  : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)] hover:scale-105'
               } bg-[#2e2825] flex items-center justify-center`}>
-                <span className="text-[1.6rem] text-[#8a7d6e] select-none">{p.initial}</span>
+                <span className="text-[1.6rem] text-[var(--color-text-muted)] select-none">{p.initial}</span>
                 <Image
                   src={p.img}
                   alt={p.playerName}
@@ -545,7 +525,7 @@ export default function PlayerSheets({ players, sheets }: { players: Player[]; s
                 />
               </div>
               <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
-                activeId === p.id ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'
+                activeId === p.id ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'
               }`}>
                 {p.playerName}{isAway ? ' · away' : ''}
               </span>

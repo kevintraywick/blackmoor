@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
+import { broadcast } from '@/lib/events';
 import type { MapRow } from '@/lib/types';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -39,6 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       [JSON.stringify(updated), id]
     );
 
+    broadcast('maps', id, 'patch');
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('PATCH /api/maps/[id]/reveal', err);

@@ -5,6 +5,7 @@ import MarketplaceClient from '@/components/MarketplaceClient';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import { getPlayers } from '@/lib/getPlayers';
+import { resolveImageUrl } from '@/lib/imageUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,10 +18,6 @@ interface Item {
   stat_value: number | null;
   image_path: string | null;
   marketplace_qty: number;
-}
-
-function itemImageSrc(path: string): string {
-  return path.startsWith('uploads/') ? `/api/${path}` : `/${path}`;
 }
 
 function statBadgeClass(type: Item['stat_type']): string {
@@ -52,14 +49,14 @@ export default async function MarketplacePage({ searchParams }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0]">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       {player ? (
-        <div className="sticky top-0 bg-[#231f1c] border-b border-[#3d3530] px-8 py-3 flex items-center gap-3 z-10 text-sm">
-          <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← Home</Link>
-          <span className="text-[#3d3530]">|</span>
-          <Link href={`/players/${player.id}`} className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">{player.character}</Link>
-          <span className="text-[#3d3530]">|</span>
-          <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">All Players</Link>
+        <div className="sticky top-0 bg-[var(--color-surface)] border-b border-[var(--color-border)] px-8 py-3 flex items-center gap-3 z-10 text-sm">
+          <Link href="/" className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] no-underline">← Home</Link>
+          <span className="text-[var(--color-border)]">|</span>
+          <Link href={`/players/${player.id}`} className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] no-underline">{player.character}</Link>
+          <span className="text-[var(--color-border)]">|</span>
+          <Link href="/" className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] no-underline">All Players</Link>
         </div>
       ) : (
         <DmNav current="marketplace" />
@@ -76,8 +73,8 @@ export default async function MarketplacePage({ searchParams }: Props) {
         />
       </div>
 
-      <div className="relative z-10 -mt-[84px] max-w-[780px] mx-auto px-4 pt-6 pb-16 bg-[#1a1614] rounded-t-2xl">
-        <div className="border border-[#3d3530] rounded bg-[#2e3a4a]">
+      <div className="relative z-10 -mt-[84px] max-w-[780px] mx-auto px-4 pt-6 pb-16 bg-[var(--color-bg)] rounded-t-2xl">
+        <div className="border border-[var(--color-border)] rounded bg-[#2e3a4a]">
 
           {player ? (
             /* Player shopping view — Shoppers pane + interactive items */
@@ -94,26 +91,26 @@ export default async function MarketplacePage({ searchParams }: Props) {
           ) : (
             /* DM view — static read-only items */
             <div className="px-6 pt-5 pb-6 min-h-[320px]">
-              <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Marketplace</h2>
-              <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Items for sale from the marketplace</p>
-              <div className="border-t border-[#3d3530] mb-6" />
+              <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none tracking-tight mb-1">Marketplace</h2>
+              <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)] mb-4">Items for sale from the marketplace</p>
+              <div className="border-t border-[var(--color-border)] mb-6" />
 
               {items.length === 0 ? (
-                <p className="text-[#5a4f46] text-sm italic">No items available.</p>
+                <p className="text-[var(--color-text-dim)] text-sm italic">No items available.</p>
               ) : (
                 <div className="flex flex-wrap gap-6">
                   {items.flatMap(item =>
                     Array.from({ length: item.marketplace_qty }, (_, i) => (
                     <div key={`${item.id}-${i}`} className="flex flex-col items-center">
                       <div className="relative w-24 h-24">
-                        <div className="absolute inset-0 rounded-full overflow-hidden border border-[#3d3530]">
+                        <div className="absolute inset-0 rounded-full overflow-hidden border border-[var(--color-border)]">
                           {item.image_path ? (
-                            <img src={itemImageSrc(item.image_path)} alt={item.title} className="w-full h-full object-cover" />
+                            <img src={resolveImageUrl(item.image_path)} alt={item.title} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full bg-[#2a2420]" />
+                            <div className="w-full h-full bg-[var(--color-surface-raised)]" />
                           )}
                         </div>
-                        <div className="absolute -bottom-1 -left-1 w-[26px] h-[26px] rounded-full overflow-hidden border border-[#1a1614] z-10 flex items-center justify-center">
+                        <div className="absolute -bottom-1 -left-1 w-[26px] h-[26px] rounded-full overflow-hidden border border-[var(--color-bg)] z-10 flex items-center justify-center">
                           <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
                           <span className="relative text-[9px] font-bold text-black drop-shadow-sm">{item.price}</span>
                         </div>
@@ -126,13 +123,13 @@ export default async function MarketplacePage({ searchParams }: Props) {
                               <span className="relative text-[9px] font-bold text-white z-10 leading-none">{item.stat_value}</span>
                             </div>
                           ) : (
-                            <div className={`absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full flex items-center justify-center text-[9px] font-bold border border-[#1a1614] z-10 ${statBadgeClass(item.stat_type)}`}>
+                            <div className={`absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full flex items-center justify-center text-[9px] font-bold border border-[var(--color-bg)] z-10 ${statBadgeClass(item.stat_type)}`}>
                               {item.stat_value}
                             </div>
                           )
                         )}
                       </div>
-                      <p className="text-[0.65rem] text-center text-[#e8ddd0] mt-1 w-24 leading-tight line-clamp-2">
+                      <p className="text-[0.65rem] text-center text-[var(--color-text)] mt-1 w-24 leading-tight line-clamp-2">
                         {item.title}
                       </p>
                     </div>
@@ -143,13 +140,13 @@ export default async function MarketplacePage({ searchParams }: Props) {
             </div>
           )}
 
-          <div className="border-t border-[#3d3530]" />
+          <div className="border-t border-[var(--color-border)]" />
 
           {/* Player Listings */}
           <div className="px-6 pt-5 pb-6 min-h-[320px]">
-            <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Player Listings</h2>
-            <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Items for sale by players</p>
-            <div className="border-t border-[#3d3530]" />
+            <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none tracking-tight mb-1">Player Listings</h2>
+            <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)] mb-4">Items for sale by players</p>
+            <div className="border-t border-[var(--color-border)]" />
           </div>
         </div>
       </div>

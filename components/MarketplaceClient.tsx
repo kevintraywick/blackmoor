@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { resolveImageUrl } from '@/lib/imageUrl';
 
 interface Item {
   id: number;
@@ -19,10 +20,6 @@ interface Shopper {
   initial: string;
   img: string;
   gold: number;
-}
-
-function itemImageSrc(path: string): string {
-  return path.startsWith('uploads/') ? `/api/${path}` : `/${path}`;
 }
 
 function statBadgeClass(type: Item['stat_type']): string {
@@ -79,20 +76,20 @@ export default function MarketplaceClient({
   return (
     <>
       {/* Shoppers bar */}
-      <div className="px-6 pt-4 pb-3 border-b border-[#3d3530] flex items-center gap-4">
-        <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[#8a7d6e]">Shoppers</div>
+      <div className="px-6 pt-4 pb-3 border-b border-[var(--color-border)] flex items-center gap-4">
+        <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">Shoppers</div>
 
         {/* Player circle */}
         <div className="flex flex-col items-center gap-0.5">
-          <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-[#c9a84c] bg-[#2e2825]">
+          <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-[var(--color-gold)] bg-[#2e2825]">
             <img src={initialShopper.img} alt={initialShopper.character}
               className="w-full h-full object-cover absolute inset-0"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-            <span className="absolute inset-0 flex items-center justify-center text-sm text-[#8a7d6e] select-none">
+            <span className="absolute inset-0 flex items-center justify-center text-sm text-[var(--color-text-muted)] select-none">
               {initialShopper.initial}
             </span>
           </div>
-          <span className="text-[0.6rem] uppercase tracking-[0.08em] text-[#c9a84c]">
+          <span className="text-[0.6rem] uppercase tracking-[0.08em] text-[var(--color-gold)]">
             {initialShopper.character}
           </span>
           <span className="text-[0.5rem] text-[#8a7452] leading-none">{gold} gp</span>
@@ -102,7 +99,7 @@ export default function MarketplaceClient({
 
         {/* Exit */}
         <Link href={`/players/${initialShopper.id}`}
-          className="text-[0.6rem] uppercase tracking-[0.1em] text-[#8a7d6e] hover:text-[#c9a84c] no-underline transition-colors">
+          className="text-[0.6rem] uppercase tracking-[0.1em] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] no-underline transition-colors">
           Exit →
         </Link>
       </div>
@@ -118,12 +115,12 @@ export default function MarketplaceClient({
 
       {/* Marketplace items — clickable */}
       <div className="px-6 pt-5 pb-6 min-h-[320px]">
-        <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Marketplace</h2>
-        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Click an item to buy</p>
-        <div className="border-t border-[#3d3530] mb-6" />
+        <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none tracking-tight mb-1">Marketplace</h2>
+        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)] mb-4">Click an item to buy</p>
+        <div className="border-t border-[var(--color-border)] mb-6" />
 
         {items.length === 0 ? (
-          <p className="text-[#5a4f46] text-sm italic">No items available.</p>
+          <p className="text-[var(--color-text-dim)] text-sm italic">No items available.</p>
         ) : (
           <div className="flex flex-wrap gap-6">
             {items.flatMap(item =>
@@ -132,15 +129,15 @@ export default function MarketplaceClient({
                   onClick={() => purchase(item)} disabled={buying}
                   className="flex flex-col items-center bg-transparent border-none cursor-pointer group p-0">
                   <div className="relative w-24 h-24 transition-transform group-hover:scale-105">
-                    <div className="absolute inset-0 rounded-full overflow-hidden border border-[#3d3530] group-hover:border-[#c9a84c] transition-colors">
+                    <div className="absolute inset-0 rounded-full overflow-hidden border border-[var(--color-border)] group-hover:border-[var(--color-gold)] transition-colors">
                       {item.image_path ? (
-                        <img src={itemImageSrc(item.image_path)} alt={item.title} className="w-full h-full object-cover" />
+                        <img src={resolveImageUrl(item.image_path)} alt={item.title} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full bg-[#2a2420]" />
+                        <div className="w-full h-full bg-[var(--color-surface-raised)]" />
                       )}
                     </div>
                     {/* Gold price badge */}
-                    <div className="absolute -bottom-1 -left-1 w-[26px] h-[26px] rounded-full overflow-hidden border border-[#1a1614] z-10 flex items-center justify-center">
+                    <div className="absolute -bottom-1 -left-1 w-[26px] h-[26px] rounded-full overflow-hidden border border-[var(--color-bg)] z-10 flex items-center justify-center">
                       <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
                       <span className="relative text-[9px] font-bold text-black drop-shadow-sm">{item.price}</span>
                     </div>
@@ -154,13 +151,13 @@ export default function MarketplaceClient({
                           <span className="relative text-[9px] font-bold text-white z-10 leading-none">{item.stat_value}</span>
                         </div>
                       ) : (
-                        <div className={`absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full flex items-center justify-center text-[9px] font-bold border border-[#1a1614] z-10 ${statBadgeClass(item.stat_type)}`}>
+                        <div className={`absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full flex items-center justify-center text-[9px] font-bold border border-[var(--color-bg)] z-10 ${statBadgeClass(item.stat_type)}`}>
                           {item.stat_value}
                         </div>
                       )
                     )}
                   </div>
-                  <p className="text-[0.65rem] text-center text-[#e8ddd0] mt-1 w-24 leading-tight line-clamp-2 group-hover:text-[#c9a84c] transition-colors">
+                  <p className="text-[0.65rem] text-center text-[var(--color-text)] mt-1 w-24 leading-tight line-clamp-2 group-hover:text-[var(--color-gold)] transition-colors">
                     {item.title}
                   </p>
                 </button>

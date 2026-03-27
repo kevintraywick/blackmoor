@@ -9,6 +9,7 @@ import type { PlayerSheet as PlayerSheetType } from '@/lib/types';
 import { Sheet } from '@/components/PlayerSheet';
 import PlayerMapPanel from '@/components/PlayerMapPanel';
 import PlayerBanner from '@/components/PlayerBanner';
+import WolfHowl from '@/components/WolfHowl';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -34,23 +35,24 @@ export default async function PlayerPage({ params }: Props) {
   const data = rows[0] ? { ...rows[0], gear: rows[0].gear ?? [], spells: rows[0].spells ?? [] } : empty;
 
   return (
-    <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0] font-serif">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-serif">
 
-      <div className="sticky top-0 bg-[#231f1c] border-b border-[#3d3530] px-8 py-3 flex items-center gap-3 z-10 text-sm">
-        <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">← Home</Link>
-        <span className="text-[#3d3530]">|</span>
-        <span className="text-[#c9a84c] font-bold">{player.playerName}</span>
-        <span className="text-[#3d3530]">/</span>
-        <span className="text-[#e8ddd0]">{player.character}</span>
-        <span className="text-[#3d3530]">|</span>
-        <Link href="/" className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">All Players</Link>
-        <span className="text-[#3d3530]">|</span>
-        <Link href={`/dm/marketplace?player=${player.id}`} className="text-[#8a7d6e] hover:text-[#c9a84c] no-underline">Marketplace</Link>
+      <div className="sticky top-0 bg-[var(--color-surface)] border-b border-[var(--color-border)] px-8 py-3 flex items-center gap-3 z-10 text-sm">
+        <Link href="/" className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] no-underline">← Home</Link>
+        <span className="text-[var(--color-border)]">|</span>
+        <span className="text-[var(--color-gold)] font-bold">{player.playerName}</span>
+        <span className="text-[var(--color-border)]">/</span>
+        <span className="text-[var(--color-text)]">{player.character}</span>
+        <span className="text-[var(--color-border)]">|</span>
+        <Link href="/" className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] no-underline">All Players</Link>
+        <span className="text-[var(--color-border)]">|</span>
+        <Link href={`/dm/marketplace?player=${player.id}`} className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] no-underline">Marketplace</Link>
       </div>
 
+      <WolfHowl playerId={player.id} />
       <PlayerBanner playerId={player.id} />
 
-      <div className="relative z-10 -mt-[169px] max-w-[780px] mx-auto px-4 pt-6 pb-16 bg-[#1a1614] rounded-t-2xl">
+      <div className="relative z-10 -mt-[169px] max-w-[780px] mx-auto px-4 pt-6 pb-16 bg-[var(--color-bg)] rounded-t-2xl">
         <Sheet
           playerId={player.id}
           playerName={player.playerName}

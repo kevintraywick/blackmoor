@@ -16,18 +16,18 @@ const LINKS: { key: NavSection; label: string; href: string }[] = [
 
 export default function DmNav({ current, sessionId }: { current: NavSection; sessionId?: string }) {
   return (
-    <nav className="sticky top-0 bg-[#1a1614]/95 backdrop-blur border-b border-[#3d3530] px-8 py-2.5 flex items-center gap-2 z-10 text-sm">
-      <Link href="/" className="text-[#8a7d6e] hover:text-[#e8ddd0] transition-colors no-underline">
+    <nav className="sticky top-0 bg-[var(--color-bg)]/95 backdrop-blur border-b border-[var(--color-border)] px-8 py-2.5 flex items-center gap-2 z-10 text-sm">
+      <Link href="/" className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors no-underline">
         ← Home
       </Link>
       {LINKS.map(link => {
         const href = link.key === 'maps' && sessionId ? `/dm/maps?session=${sessionId}` : link.href;
         return (
           <span key={link.key} className="contents">
-            <span className="text-[#3d3530] select-none">·</span>
+            <span className="text-[var(--color-border)] select-none">·</span>
             {link.key === current
-              ? <span className="text-[#c9a84c] font-semibold">{link.label}</span>
-              : <Link href={href} className="text-[#e8ddd0] hover:text-[#c9a84c] transition-colors no-underline">{link.label}</Link>
+              ? <span className="text-[var(--color-gold)] font-semibold">{link.label}</span>
+              : <Link href={href} className="text-[var(--color-text)] hover:text-[var(--color-gold)] transition-colors no-underline">{link.label}</Link>
             }
           </span>
         );

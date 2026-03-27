@@ -1,12 +1,9 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import type { Session, Npc } from '@/lib/types';
-
-function npcImageUrl(path: string | null | undefined): string | null {
-  if (!path) return null;
-  return path.startsWith('uploads/') ? `/api/${path}` : `/${path}`;
-}
+import { useAutosave } from '@/lib/useAutosave';
+import { resolveImageUrl } from '@/lib/imageUrl';
 
 // Fields to render in the detail panel — npcs replaced by NPC checkboxes
 const FIELDS = [
@@ -17,7 +14,6 @@ const FIELDS = [
 ] as const;
 
 type FieldKey = (typeof FIELDS)[number]['key'];
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 
 function emptyValues(session: Session): Record<string, string | number> {
   return {
@@ -44,44 +40,22 @@ export default function DmSessionsClient({
   const [npcIds, setNpcIds] = useState<string[]>(
     initial.length > 0 ? (Array.isArray(initial[0].npc_ids) ? initial[0].npc_ids : []) : []
   );
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { save: autosave, status: saveStatus } = useAutosave(() => `/api/sessions/${selectedId}`);
   const creating = useRef(false);
 
   const selected = sessions.find(s => s.id === selectedId) ?? null;
 
   function handleSelect(session: Session) {
-    if (timer.current) clearTimeout(timer.current);
     setSelectedId(session.id);
     setValues(emptyValues(session));
     setNpcIds(Array.isArray(session.npc_ids) ? session.npc_ids : []);
-    setSaveStatus('idle');
   }
-
-  const autosave = useCallback((id: string, patch: Record<string, unknown>) => {
-    setSaveStatus('saving');
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/sessions/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(patch),
-        });
-        if (!res.ok) throw new Error('Save failed');
-        setSaveStatus('saved');
-        setTimeout(() => setSaveStatus('idle'), 2000);
-      } catch {
-        setSaveStatus('failed');
-      }
-    }, 600);
-  }, []);
 
   function handleChange(key: string, value: string | number) {
     if (!selectedId) return;
     const updated = { ...values, [key]: value };
     setValues(updated);
-    autosave(selectedId, { [key]: value });
+    autosave({ [key]: value });
     if (key === 'title' || key === 'date') {
       setSessions(prev => prev.map(s =>
         s.id === selectedId ? { ...s, [key]: value as string } : s
@@ -95,7 +69,7 @@ export default function DmSessionsClient({
       ? npcIds.filter(id => id !== npcId)
       : [...npcIds, npcId];
     setNpcIds(next);
-    autosave(selectedId, { npc_ids: next });
+    autosave({ npc_ids: next });
     setSessions(prev => prev.map(s =>
       s.id === selectedId ? { ...s, npc_ids: next } : s
     ));
@@ -124,7 +98,7 @@ export default function DmSessionsClient({
   const statusText = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed' }[saveStatus];
   const statusColor = {
     idle: '',
-    saving: 'text-[#8a7d6e]',
+    saving: 'text-[var(--color-text-muted)]',
     saved: 'text-[#5a8a5a]',
     failed: 'text-[#c0392b]',
   }[saveStatus];
@@ -132,7 +106,7 @@ export default function DmSessionsClient({
   return (
     <div>
       {/* Session box row */}
-      <div className="border-b border-[#3d3530] bg-[#1e1b18] px-6 py-4">
+      <div className="border-b border-[var(--color-border)] bg-[#1e1b18] px-6 py-4">
         <div className="max-w-[860px] mx-auto flex gap-2.5 overflow-x-auto pb-1">
           {sessions.map(s => {
             const isSelected = s.id === selectedId;
@@ -142,18 +116,18 @@ export default function DmSessionsClient({
                 onClick={() => handleSelect(s)}
                 className={`flex-shrink-0 w-[96px] rounded px-2 py-2.5 flex flex-col items-center gap-1 text-left transition-colors border ${
                   isSelected
-                    ? 'border-[#c9a84c] bg-[#231f1c]'
-                    : 'border-[#3d3530] bg-[#1a1614] hover:border-[#5a4a44]'
+                    ? 'border-[var(--color-gold)] bg-[var(--color-surface)]'
+                    : 'border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[#5a4a44]'
                 }`}
               >
-                <span className="text-lg font-bold leading-none font-serif text-[#c9a84c]">
+                <span className="text-lg font-bold leading-none font-serif text-[var(--color-gold)]">
                   #{s.number}
                 </span>
-                <span className={`text-[13px] font-serif leading-tight line-clamp-2 text-center w-full ${isSelected ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'}`}>
+                <span className={`text-[13px] font-serif leading-tight line-clamp-2 text-center w-full ${isSelected ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'}`}>
                   {s.title || 'Untitled'}
                 </span>
                 {s.date && (
-                  <span className="text-[8px] text-[#3d3530]">{s.date}</span>
+                  <span className="text-[8px] text-[var(--color-border)]">{s.date}</span>
                 )}
               </button>
             );
@@ -162,7 +136,7 @@ export default function DmSessionsClient({
           {/* + box */}
           <button
             onClick={handleNew}
-            className="flex-shrink-0 w-[88px] rounded border border-dashed border-[#3d3530] bg-transparent flex items-center justify-center text-[#3d3530] text-2xl hover:border-[#5a4a44] hover:text-[#5a4a44] transition-colors"
+            className="flex-shrink-0 w-[88px] rounded border border-dashed border-[var(--color-border)] bg-transparent flex items-center justify-center text-[var(--color-border)] text-2xl hover:border-[#5a4a44] hover:text-[#5a4a44] transition-colors"
             title="New session"
           >
             +
@@ -179,15 +153,15 @@ export default function DmSessionsClient({
         ) : (
           <div>
             {/* Header: #N title / date */}
-            <div className="mb-8 pb-6 border-b border-[#3d3530]">
+            <div className="mb-8 pb-6 border-b border-[var(--color-border)]">
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-[#c9a84c] text-3xl font-serif">#{selected.number}</span>
+                <span className="text-[var(--color-gold)] text-3xl font-serif">#{selected.number}</span>
                 <input
                   type="text"
                   value={values.title as string}
                   placeholder="Session Title"
                   onChange={e => handleChange('title', e.target.value)}
-                  className="bg-transparent border-none text-[#e8ddd0] text-3xl flex-1 outline-none placeholder:text-[#8a7d6e] font-serif"
+                  className="bg-transparent border-none text-[var(--color-text)] text-3xl flex-1 outline-none placeholder:text-[var(--color-text-muted)] font-serif"
                 />
               </div>
               <input
@@ -195,20 +169,20 @@ export default function DmSessionsClient({
                 value={values.date as string}
                 placeholder="Date"
                 onChange={e => handleChange('date', e.target.value)}
-                className="bg-transparent border-none border-b border-transparent focus:border-[#3d3530] text-[#8a7d6e] text-sm italic outline-none placeholder:text-[#3d3530]"
+                className="bg-transparent border-none border-b border-transparent focus:border-[var(--color-border)] text-[var(--color-text-muted)] text-sm italic outline-none placeholder:text-[var(--color-border)]"
               />
             </div>
 
             {/* Full-width fields (cols: 1) */}
             {FIELDS.filter(f => f.cols === 1).map(f => (
               <div key={f.key} className="mb-7">
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-1">{f.label}</div>
+                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">{f.label}</div>
                 <textarea
                   rows={f.rows}
                   value={values[f.key as FieldKey] as string}
                   placeholder={f.placeholder}
                   onChange={e => handleChange(f.key, e.target.value)}
-                  className="w-full bg-[#231f1c] border border-[#3d3530] rounded text-[#e8ddd0] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[#c9a84c] placeholder:text-[#8a7d6e] font-serif"
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
                 />
               </div>
             ))}
@@ -217,7 +191,7 @@ export default function DmSessionsClient({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-start">
               {/* NPCs added from NPC page */}
               <div>
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-2">NPCs</div>
+                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPCs</div>
                 {(() => {
                   const counts: Record<string, number> = {};
                   npcIds.forEach(id => { counts[id] = (counts[id] ?? 0) + 1; });
@@ -230,19 +204,19 @@ export default function DmSessionsClient({
                       {entries.map(([npcId, count]) => {
                         const npc = allNpcs.find(n => n.id === npcId);
                         if (!npc) return null;
-                        const imgUrl = npcImageUrl(npc.image_path);
+                        const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
                         const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
                         return (
                           <div key={npcId} className="flex items-center gap-2.5 px-2 py-1">
-                            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-[#2e2825] border border-[#3d3530] flex items-center justify-center flex-shrink-0">
+                            <div className="relative w-7 h-7 rounded-full overflow-hidden bg-[#2e2825] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
                               {imgUrl
                                 ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
-                                : <span className="text-[0.7rem] text-[#8a7d6e] font-serif">{initial}</span>
+                                : <span className="text-[0.7rem] text-[var(--color-text-muted)] font-serif">{initial}</span>
                               }
                             </div>
-                            <span className="font-serif text-sm text-[#e8ddd0] truncate">{npc.name || 'Unnamed'}</span>
+                            <span className="font-serif text-sm text-[var(--color-text)] truncate">{npc.name || 'Unnamed'}</span>
                             {count > 1 && (
-                              <span className="text-[0.7rem] text-[#c9a84c] font-bold ml-auto flex-shrink-0">×{count}</span>
+                              <span className="text-[0.7rem] text-[var(--color-gold)] font-bold ml-auto flex-shrink-0">×{count}</span>
                             )}
                           </div>
                         );
@@ -255,23 +229,23 @@ export default function DmSessionsClient({
               {/* Right column: Locations + Notes stacked */}
               <div className="flex flex-col gap-4">
                 <div>
-                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-1">Locations</div>
+                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Locations</div>
                   <textarea
                     rows={5}
                     value={values.locations as string}
                     placeholder="Key locations and descriptions…"
                     onChange={e => handleChange('locations', e.target.value)}
-                    className="w-full bg-[#231f1c] border border-[#3d3530] rounded text-[#e8ddd0] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[#c9a84c] placeholder:text-[#8a7d6e] font-serif"
+                    className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
                   />
                 </div>
                 <div>
-                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7d6e] mb-1">Notes</div>
+                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Notes</div>
                   <textarea
                     rows={4}
                     value={values.notes as string}
                     placeholder="Music, atmosphere, misc reminders…"
                     onChange={e => handleChange('notes', e.target.value)}
-                    className="w-full bg-[#231f1c] border border-[#3d3530] rounded text-[#e8ddd0] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[#c9a84c] placeholder:text-[#8a7d6e] font-serif"
+                    className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
                   />
                 </div>
               </div>

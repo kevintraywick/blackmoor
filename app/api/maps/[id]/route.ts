@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
+import { broadcast } from '@/lib/events';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
 import type { MapRow } from '@/lib/types';
@@ -47,6 +48,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const setClauses = keys.map((k, i) => `${PATCH_FIELDS[k]} = $${i + 2}`).join(', ');
     const values = keys.map(k => body[k]);
     await query(`UPDATE maps SET ${setClauses} WHERE id = $1`, [id, ...values]);
+    broadcast('maps', id, 'patch');
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('PATCH /api/maps/[id]', err);

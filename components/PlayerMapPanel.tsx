@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { PlayerMapRow, Session } from '@/lib/types';
+import { useSSE } from '@/lib/useSSE';
 import MapCanvas from './MapCanvas';
 
 interface Props {
@@ -14,7 +15,7 @@ export default function PlayerMapPanel({ playerId: _playerId }: Props) {
   const [activeMapData, setActiveMapData] = useState<PlayerMapRow | null>(null);
   const [pollStatus, setPollStatus] = useState<'live' | 'offline'>('live');
   const failCount = useRef(0);
-  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // pollTimer removed — SSE replaces polling
   const prevTiles = useRef<string>('');
 
   // ── Resolve current session and fetch map list ─────────────────────────────
@@ -42,8 +43,8 @@ export default function PlayerMapPanel({ playerId: _playerId }: Props) {
     init();
   }, []);
 
-  // ── Polling ────────────────────────────────────────────────────────────────
-  const poll = useCallback(async (mapId: string) => {
+  // ── Fetch map data ────────────────────────────────────────────────────────
+  const fetchMap = useCallback(async (mapId: string) => {
     try {
       const res = await fetch(`/api/maps/${mapId}/player`);
       if (!res.ok) throw new Error();
@@ -71,45 +72,36 @@ export default function PlayerMapPanel({ playerId: _playerId }: Props) {
     }
   }, []);
 
+  // ── SSE: refetch when map changes are broadcast ──────────────────────────
+  useSSE('maps', () => {
+    if (activeMapId) fetchMap(activeMapId);
+  });
+
   useEffect(() => {
     if (!activeMapId) return;
     prevTiles.current = '';
     failCount.current = 0;
     setPollStatus('live');
 
-    // Immediate fetch + load initial data
-    const controller = new AbortController();
-    fetch(`/api/maps/${activeMapId}/player`, { signal: controller.signal })
-      .then(r => r.json())
-      .then((data: PlayerMapRow) => {
-        setActiveMapData(data);
-        prevTiles.current = JSON.stringify(data.revealed_tiles);
-      })
-      .catch(() => {});
-
-    if (pollTimer.current) clearInterval(pollTimer.current);
-    pollTimer.current = setInterval(() => poll(activeMapId), 2000);
-    return () => {
-      controller.abort();
-      if (pollTimer.current) clearInterval(pollTimer.current);
-    };
-  }, [activeMapId, poll]);
+    // Immediate fetch on tab switch
+    fetchMap(activeMapId);
+  }, [activeMapId, fetchMap]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (maps.length === 0) return null;
 
   return (
-    <div className="bg-[#231f1c] border border-[#3d3530] rounded-md overflow-hidden mt-3">
+    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md overflow-hidden mt-3">
       {/* Tab bar */}
-      <div className="flex border-b border-[#3d3530] bg-[#1e1b18]">
+      <div className="flex border-b border-[var(--color-border)] bg-[#1e1b18]">
         {maps.map(m => (
           <button
             key={m.id}
             onClick={() => setActiveMapId(m.id)}
-            className={`px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] border-r border-[#2a2420] transition-colors ${
+            className={`px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] border-r border-[var(--color-surface-raised)] transition-colors ${
               m.id === activeMapId
-                ? 'text-[#c9a84c] border-b-2 border-b-[#c9a84c] bg-[#231f1c]'
-                : 'text-[#6a5a50] hover:text-[#c8bfb5] hover:bg-[#1a1714]'
+                ? 'text-[var(--color-gold)] border-b-2 border-b-[var(--color-gold)] bg-[var(--color-surface)]'
+                : 'text-[#6a5a50] hover:text-[var(--color-text-body)] hover:bg-[#1a1714]'
             }`}
           >
             {m.name}
@@ -137,7 +129,7 @@ export default function PlayerMapPanel({ playerId: _playerId }: Props) {
           pollStatus === 'live' ? 'text-[#4a6a4a]' : 'text-[#8a6a20]'
         }`}>
           <span className={`w-1.5 h-1.5 rounded-full ${
-            pollStatus === 'live' ? 'bg-[#4a8a4a] animate-pulse' : 'bg-[#c9a84c]'
+            pollStatus === 'live' ? 'bg-[#4a8a4a] animate-pulse' : 'bg-[var(--color-gold)]'
           }`} />
           {pollStatus === 'live' ? 'Live' : '⚠ Offline'}
         </div>

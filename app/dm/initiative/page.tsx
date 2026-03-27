@@ -24,7 +24,7 @@ export default async function InitiativePage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0]">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       <DmNav current="initiative" />
 
       {/* Banner */}

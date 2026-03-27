@@ -11,7 +11,7 @@ export default async function NpcsPage() {
   const npcs = await query<Npc>('SELECT * FROM npcs ORDER BY created_at ASC');
 
   return (
-    <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0] font-serif">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-serif">
       <DmNav current="npcs" />
       <NpcPageClient initial={npcs} />
     </div>

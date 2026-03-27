@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import type { Item } from './InventoryItemGrid';
+import { resolveImageUrl } from '@/lib/imageUrl';
 
 interface Props {
   onCreated: () => void;
@@ -28,13 +29,13 @@ function StepCounter({
 }) {
   return (
     <div className="flex flex-col gap-0.5 flex-shrink-0">
-      <p className="text-[0.6rem] uppercase tracking-[0.15em] text-[#8a7d6e]">{label}</p>
+      <p className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">{label}</p>
       <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => onChange(Math.max(0, value - 1))}
-          className="w-7 h-7 rounded-full bg-[#231f1c] border border-[#3d3530] text-[#8a7d6e]
-                     flex items-center justify-center hover:border-[#c9a84c] hover:text-[#e8ddd0]
+          className="w-7 h-7 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]
+                     flex items-center justify-center hover:border-[var(--color-gold)] hover:text-[var(--color-text)]
                      transition-colors text-base leading-none"
         >
           −
@@ -48,15 +49,15 @@ function StepCounter({
             const n = parseInt(e.target.value, 10);
             onChange(isNaN(n) || n < 0 ? 0 : n);
           }}
-          className="w-14 bg-[#231f1c] border border-[#3d3530] rounded px-2 py-2
-                     text-[#e8ddd0] text-base focus:outline-none focus:border-[#c9a84c]
-                     text-center placeholder:text-[#5a4f46]"
+          className="w-14 bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-2 py-2
+                     text-[var(--color-text)] text-base focus:outline-none focus:border-[var(--color-gold)]
+                     text-center placeholder:text-[var(--color-text-dim)]"
         />
         <button
           type="button"
           onClick={() => onChange(value + 1)}
-          className="w-7 h-7 rounded-full bg-[#231f1c] border border-[#3d3530] text-[#8a7d6e]
-                     flex items-center justify-center hover:border-[#c9a84c] hover:text-[#e8ddd0]
+          className="w-7 h-7 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]
+                     flex items-center justify-center hover:border-[var(--color-gold)] hover:text-[var(--color-text)]
                      transition-colors text-base leading-none"
         >
           +
@@ -66,13 +67,8 @@ function StepCounter({
   );
 }
 
-function itemImageUrl(path: string | null): string | null {
-  if (!path) return null;
-  return path.startsWith('uploads/') ? `/api/${path}` : `/${path}`;
-}
-
 export default function InventoryCreateForm({ onCreated, editItem }: Props) {
-  const [preview, setPreview] = useState<string | null>(() => itemImageUrl(editItem?.image_path ?? null));
+  const [preview, setPreview] = useState<string | null>(() => editItem?.image_path ? resolveImageUrl(editItem.image_path) : null);
   const [statType, setStatType] = useState(editItem?.stat_type ?? '');
   const [price, setPrice] = useState(editItem?.price ?? 0);
   const [statValue, setStatValue] = useState(editItem?.stat_value ?? 0);
@@ -137,7 +133,7 @@ export default function InventoryCreateForm({ onCreated, editItem }: Props) {
       <button
         type="submit"
         disabled={saving}
-        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[#c9a84c] text-black text-xl
+        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[var(--color-gold)] text-black text-xl
                    font-bold flex items-center justify-center hover:bg-[#e0bc5a]
                    disabled:opacity-50 transition-colors"
       >
@@ -146,14 +142,14 @@ export default function InventoryCreateForm({ onCreated, editItem }: Props) {
 
       {/* Header */}
       <div className="flex items-baseline gap-3 mb-4 pr-12">
-        <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight">
+        <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none tracking-tight">
           Create Item
         </h2>
-        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e]">
+        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
           Add a new item to inventory
         </p>
       </div>
-      <div className="border-t border-[#3d3530] mb-4" />
+      <div className="border-t border-[var(--color-border)] mb-4" />
 
       <div className="flex gap-6 items-center flex-wrap">
         {/* Drop zone — gold border, vertically centered */}
@@ -161,14 +157,14 @@ export default function InventoryCreateForm({ onCreated, editItem }: Props) {
           onDragOver={e => e.preventDefault()}
           onDrop={handleDrop}
           onClick={() => fileRef.current?.click()}
-          className="w-24 h-24 rounded-full border-2 border-dashed border-[#c9a84c]
+          className="w-24 h-24 rounded-full border-2 border-dashed border-[var(--color-gold)]
                      flex items-center justify-center cursor-pointer overflow-hidden
                      hover:border-[#e0bc5a] transition-colors flex-shrink-0"
         >
           {preview ? (
             <img src={preview} alt="preview" className="w-full h-full object-cover" />
           ) : (
-            <span className="text-[#c9a84c] text-[0.6rem] text-center leading-tight px-2">
+            <span className="text-[var(--color-gold)] text-[0.6rem] text-center leading-tight px-2">
               Drop image
             </span>
           )}
@@ -195,9 +191,9 @@ export default function InventoryCreateForm({ onCreated, editItem }: Props) {
               required
               placeholder="Title"
               defaultValue={editItem?.title ?? ''}
-              className="flex-1 bg-[#231f1c] border border-[#3d3530] rounded px-3 py-2
-                         text-[#e8ddd0] text-sm placeholder:text-[#5a4f46] focus:outline-none
-                         focus:border-[#c9a84c]"
+              className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2
+                         text-[var(--color-text)] text-sm placeholder:text-[var(--color-text-dim)] focus:outline-none
+                         focus:border-[var(--color-gold)]"
             />
             <StepCounter label="Price (gold)" name="price" value={price} onChange={setPrice} />
           </div>
@@ -217,8 +213,8 @@ export default function InventoryCreateForm({ onCreated, editItem }: Props) {
                   />
                   <span className={`w-full flex items-center justify-center py-2 rounded text-xs border transition-colors
                     ${statType === opt.value
-                      ? 'bg-[#c9a84c] text-black border-[#c9a84c]'
-                      : 'bg-[#231f1c] text-[#8a7d6e] border-[#3d3530] hover:border-[#c9a84c] hover:text-[#e8ddd0]'}`}>
+                      ? 'bg-[var(--color-gold)] text-black border-[var(--color-gold)]'
+                      : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] border-[var(--color-border)] hover:border-[var(--color-gold)] hover:text-[var(--color-text)]'}`}>
                     {opt.label}
                   </span>
                 </label>
@@ -232,9 +228,9 @@ export default function InventoryCreateForm({ onCreated, editItem }: Props) {
             rows={2}
             placeholder="Description (shown on hover)"
             defaultValue={editItem?.description ?? ''}
-            className="bg-[#231f1c] border border-[#3d3530] rounded px-3 py-1.5
-                       text-[#e8ddd0] text-sm placeholder:text-[#5a4f46] focus:outline-none
-                       focus:border-[#c9a84c] resize-none"
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-1.5
+                       text-[var(--color-text)] text-sm placeholder:text-[var(--color-text-dim)] focus:outline-none
+                       focus:border-[var(--color-gold)] resize-none"
           />
         </div>
       </div>

@@ -198,9 +198,9 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
   const previewMap = activeMap ? { ...activeMap, ...gridDraft } : null;
 
   // ── Styles ─────────────────────────────────────────────────────────────────
-  const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[#c9a84c] mb-2 pb-1.5 border-b border-[#3d3530] font-sans';
-  const btn = 'w-full px-2.5 py-1.5 text-left text-[11px] bg-[#2a2420] border border-[#4a3a35] rounded text-[#c8bfb5] hover:border-[#c9a84c] hover:text-[#c9a84c] transition-colors';
-  const btnActive = 'w-full px-2.5 py-1.5 text-left text-[11px] bg-[#2a2518] border border-[#c9a84c] rounded text-[#c9a84c]';
+  const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[var(--color-gold)] mb-2 pb-1.5 border-b border-[var(--color-border)] font-sans';
+  const btn = 'w-full px-2.5 py-1.5 text-left text-[11px] bg-[var(--color-surface-raised)] border border-[#4a3a35] rounded text-[var(--color-text-body)] hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors';
+  const btnActive = 'w-full px-2.5 py-1.5 text-left text-[11px] bg-[#2a2518] border border-[var(--color-gold)] rounded text-[var(--color-gold)]';
 
   return (
     <div>
@@ -212,7 +212,7 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
             key={m.id}
             onClick={() => { setActiveId(m.id); setShowGridSetup(false); setSelectedNote(null); }}
             className={`flex-shrink-0 w-[150px] border-2 rounded overflow-hidden text-left transition-all ${
-              m.id === activeId ? 'border-[#c9a84c]' : 'border-[#3d3530] hover:border-[#6a5a50]'
+              m.id === activeId ? 'border-[var(--color-gold)]' : 'border-[var(--color-border)] hover:border-[#6a5a50]'
             }`}
           >
             {m.image_path ? (
@@ -223,12 +223,12 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
                 className="w-full h-[90px] object-cover"
               />
             ) : (
-              <div className="w-full h-[90px] bg-[#0d0b09] flex items-center justify-center text-[#3d3530] text-xs">
+              <div className="w-full h-[90px] bg-[#0d0b09] flex items-center justify-center text-[var(--color-border)] text-xs">
                 No image
               </div>
             )}
             <div className={`px-2 py-1 text-[10px] uppercase tracking-[0.1em] truncate font-sans ${
-              m.id === activeId ? 'bg-[#2a2518] text-[#c9a84c]' : 'bg-[#231f1c] text-[#c8bfb5]'
+              m.id === activeId ? 'bg-[#2a2518] text-[var(--color-gold)]' : 'bg-[var(--color-surface)] text-[var(--color-text-body)]'
             }`}>{m.name}</div>
           </button>
         ))}
@@ -237,36 +237,36 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
         {!addingMap ? (
           <button
             onClick={() => setAddingMap(true)}
-            className="flex-shrink-0 w-[150px] h-[118px] border-2 border-dashed border-[#3d3530] rounded flex flex-col items-center justify-center gap-1 text-[#4a3a35] hover:border-[#c9a84c] hover:text-[#c9a84c] transition-colors"
+            className="flex-shrink-0 w-[150px] h-[118px] border-2 border-dashed border-[var(--color-border)] rounded flex flex-col items-center justify-center gap-1 text-[#4a3a35] hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
           >
             <span className="text-2xl leading-none">+</span>
             <span className="text-[9px] uppercase tracking-[0.15em] font-sans">Add map</span>
           </button>
         ) : (
-          <div className="flex-shrink-0 w-[200px] border border-[#3d3530] rounded bg-[#231f1c] p-2 flex flex-col gap-1.5">
+          <div className="flex-shrink-0 w-[200px] border border-[var(--color-border)] rounded bg-[var(--color-surface)] p-2 flex flex-col gap-1.5">
             <input
               autoFocus
               value={newMapName}
               onChange={e => setNewMapName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddMap()}
               placeholder="Map name…"
-              className="bg-transparent border-b border-[#3d3530] text-[#e8ddd0] text-xs outline-none pb-0.5 placeholder:text-[#8a7452]"
+              className="bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] text-xs outline-none pb-0.5 placeholder:text-[#8a7452]"
             />
             <select
               value={newMapGridType}
               onChange={e => setNewMapGridType(e.target.value as 'square' | 'hex')}
-              className="bg-[#2a2420] border border-[#3d3530] text-[#c8bfb5] text-xs rounded px-1 py-0.5 outline-none"
+              className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-body)] text-xs rounded px-1 py-0.5 outline-none"
             >
               <option value="square">Square grid</option>
               <option value="hex">Hex grid</option>
             </select>
-            <label className="text-[10px] text-[#8a7d6e] cursor-pointer">
+            <label className="text-[10px] text-[var(--color-text-muted)] cursor-pointer">
               <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} />
-              {uploadFile ? <span className="text-[#c9a84c]">{uploadFile.name}</span> : '+ Choose image'}
+              {uploadFile ? <span className="text-[var(--color-gold)]">{uploadFile.name}</span> : '+ Choose image'}
             </label>
             <div className="flex gap-1 mt-0.5">
-              <button onClick={() => setAddingMap(false)} className="flex-1 text-[10px] border border-[#3d3530] rounded px-1 py-0.5 text-[#8a7d6e] hover:border-[#8a7d6e]">Cancel</button>
-              <button onClick={handleAddMap} className="flex-1 text-[10px] border border-[#4a3a35] rounded px-1 py-0.5 text-[#c9a84c] hover:border-[#c9a84c]">Add</button>
+              <button onClick={() => setAddingMap(false)} className="flex-1 text-[10px] border border-[var(--color-border)] rounded px-1 py-0.5 text-[var(--color-text-muted)] hover:border-[var(--color-text-muted)]">Cancel</button>
+              <button onClick={handleAddMap} className="flex-1 text-[10px] border border-[#4a3a35] rounded px-1 py-0.5 text-[var(--color-gold)] hover:border-[var(--color-gold)]">Add</button>
             </div>
           </div>
         )}
@@ -281,7 +281,7 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
 
           <div className="flex gap-3">
             {/* Canvas */}
-            <div className="flex-1 bg-[#0d0b09] border border-[#3d3530] rounded overflow-hidden" style={{ minHeight: 320 }}>
+            <div className="flex-1 bg-[#0d0b09] border border-[var(--color-border)] rounded overflow-hidden" style={{ minHeight: 320 }}>
               <MapCanvas
                 mapData={showGridSetup && previewMap ? previewMap : activeMap}
                 mode="dm"
@@ -293,7 +293,7 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
             </div>
 
             {/* Controls sidebar */}
-            <div className="w-[160px] flex-shrink-0 bg-[#231f1c] border border-[#3d3530] rounded p-3 flex flex-col gap-2">
+            <div className="w-[160px] flex-shrink-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3 flex flex-col gap-2">
               <div className={sh} style={{ marginBottom: 6 }}>Mode</div>
               <button className={mode === 'reveal' ? btnActive : btn} onClick={() => { setMode('reveal'); setSelectedNote(null); }}>
                 ☀ Reveal / Hide
@@ -305,7 +305,7 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
               {/* Note editor */}
               {selectedNote && mode === 'note' && (
                 <div className="mt-1 flex flex-col gap-1">
-                  <div className="text-[9px] text-[#8a7d6e] font-sans uppercase tracking-[0.1em]">
+                  <div className="text-[9px] text-[var(--color-text-muted)] font-sans uppercase tracking-[0.1em]">
                     Tile {selectedNote.col},{selectedNote.row}
                   </div>
                   <textarea
@@ -313,15 +313,15 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
                     onChange={e => setNoteText(e.target.value)}
                     placeholder="DM note…"
                     rows={3}
-                    className="w-full bg-[#1a1614] border border-[#3d3530] text-[#c8bfb5] text-[11px] font-serif p-1.5 rounded resize-none outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452]"
+                    className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-body)] text-[11px] font-serif p-1.5 rounded resize-none outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452]"
                   />
-                  <button onClick={saveNote} className="text-[10px] border border-[#4a3a35] rounded px-2 py-0.5 text-[#c9a84c] hover:border-[#c9a84c] w-full">
+                  <button onClick={saveNote} className="text-[10px] border border-[#4a3a35] rounded px-2 py-0.5 text-[var(--color-gold)] hover:border-[var(--color-gold)] w-full">
                     {noteText.trim() ? 'Save note' : 'Delete note'}
                   </button>
                 </div>
               )}
 
-              <div className="h-px bg-[#3d3530] my-1" />
+              <div className="h-px bg-[var(--color-border)] my-1" />
 
               <button
                 onClick={handleResetFog}
@@ -336,14 +336,14 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
                 {revealAllConfirm ? 'Are you sure?' : '✓ Reveal all'}
               </button>
 
-              <div className="h-px bg-[#3d3530] my-1" />
+              <div className="h-px bg-[var(--color-border)] my-1" />
               <button className={btn} onClick={openGridSetup}>⚙ Grid setup…</button>
             </div>
           </div>
 
           {/* ── Grid setup panel ─────────────────────────────────────────── */}
           {showGridSetup && (
-            <div className="mt-3 bg-[#231f1c] border border-[#3d3530] rounded p-4">
+            <div className="mt-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-4">
               <div className={sh}>Grid configuration (live preview on canvas above)</div>
               <div className="grid grid-cols-4 gap-3 text-xs">
                 {([
@@ -352,21 +352,21 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
                   ['tile_px', 'Tile size (px)'],
                 ] as [keyof MapRow, string][]).map(([key, label]) => (
                   <label key={key} className="flex flex-col gap-0.5">
-                    <span className="text-[#8a7d6e] text-[9px] uppercase tracking-[0.1em]">{label}</span>
+                    <span className="text-[var(--color-text-muted)] text-[9px] uppercase tracking-[0.1em]">{label}</span>
                     <input
                       type="number"
                       value={(gridDraft[key] as number) ?? 0}
                       onChange={e => setGridDraft(d => ({ ...d, [key]: parseFloat(e.target.value) || 0 }))}
-                      className="bg-[#1a1614] border border-[#3d3530] text-[#e8ddd0] rounded px-1.5 py-1 outline-none focus:border-[#c9a84c] w-full"
+                      className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] rounded px-1.5 py-1 outline-none focus:border-[var(--color-gold)] w-full"
                     />
                   </label>
                 ))}
                 <label className="flex flex-col gap-0.5">
-                  <span className="text-[#8a7d6e] text-[9px] uppercase tracking-[0.1em]">Grid type</span>
+                  <span className="text-[var(--color-text-muted)] text-[9px] uppercase tracking-[0.1em]">Grid type</span>
                   <select
                     value={gridDraft.grid_type ?? 'square'}
                     onChange={e => setGridDraft(d => ({ ...d, grid_type: e.target.value as 'square' | 'hex' }))}
-                    className="bg-[#1a1614] border border-[#3d3530] text-[#e8ddd0] rounded px-1.5 py-1 outline-none focus:border-[#c9a84c]"
+                    className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] rounded px-1.5 py-1 outline-none focus:border-[var(--color-gold)]"
                   >
                     <option value="square">Square</option>
                     <option value="hex">Hex</option>
@@ -374,11 +374,11 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
                 </label>
                 {gridDraft.grid_type === 'hex' && (
                   <label className="flex flex-col gap-0.5">
-                    <span className="text-[#8a7d6e] text-[9px] uppercase tracking-[0.1em]">Hex orientation</span>
+                    <span className="text-[var(--color-text-muted)] text-[9px] uppercase tracking-[0.1em]">Hex orientation</span>
                     <select
                       value={gridDraft.hex_orientation ?? 'flat'}
                       onChange={e => setGridDraft(d => ({ ...d, hex_orientation: e.target.value as 'flat' | 'pointy' }))}
-                      className="bg-[#1a1614] border border-[#3d3530] text-[#e8ddd0] rounded px-1.5 py-1 outline-none focus:border-[#c9a84c]"
+                      className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] rounded px-1.5 py-1 outline-none focus:border-[var(--color-gold)]"
                     >
                       <option value="flat">Flat-top</option>
                       <option value="pointy">Pointy-top</option>
@@ -388,7 +388,7 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
               </div>
               <div className="flex gap-2 mt-3">
                 <button onClick={() => { setShowGridSetup(false); setGridDraft({}); }} className={btn} style={{ width: 'auto', padding: '4px 12px' }}>Cancel</button>
-                <button onClick={saveGridSetup} className="text-[11px] border border-[#c9a84c] rounded px-3 py-1 text-[#c9a84c] hover:bg-[#2a2518] transition-colors">Save grid</button>
+                <button onClick={saveGridSetup} className="text-[11px] border border-[var(--color-gold)] rounded px-3 py-1 text-[var(--color-gold)] hover:bg-[#2a2518] transition-colors">Save grid</button>
               </div>
             </div>
           )}

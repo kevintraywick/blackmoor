@@ -13,8 +13,8 @@ async function getSheets(playerIds: string[]): Promise<Record<string, PlayerShee
 
   const empty: Omit<PlayerSheet, 'id'> = {
     discord: '', species: '', class: '', level: '', hp: '', xp: '',
-    speed: '', size: '', ac: '', boons: '', class_features: '',
-    species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [],
+    speed: '', size: '', ac: '', gold: '', boons: '', class_features: '',
+    species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [], items: [],
     dm_notes: '', status: 'active',
   };
 
@@ -32,18 +32,18 @@ export default async function PlayersPage() {
   const sheets = await getSheets(players.map(p => p.id));
 
   return (
-    <div className="min-h-screen bg-[#1a1614] text-[#e8ddd0] font-serif">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-serif">
 
       {/* Sticky nav */}
-      <nav className="sticky top-0 bg-[#1a1614]/95 backdrop-blur border-b border-[#3d3530] px-8 py-2.5 flex items-center gap-2 z-10 text-sm">
-        <Link href="/" className="text-[#8a7d6e] hover:text-[#e8ddd0] transition-colors no-underline">← Home</Link>
-        <span className="text-[#3d3530] select-none">·</span>
-        <span className="text-[#c9a84c] font-semibold">Players</span>
-        <span className="text-[#3d3530] select-none">·</span>
+      <nav className="sticky top-0 bg-[var(--color-bg)]/95 backdrop-blur border-b border-[var(--color-border)] px-8 py-2.5 flex items-center gap-2 z-10 text-sm">
+        <Link href="/" className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors no-underline">← Home</Link>
+        <span className="text-[var(--color-border)] select-none">·</span>
+        <span className="text-[var(--color-gold)] font-semibold">Players</span>
+        <span className="text-[var(--color-border)] select-none">·</span>
         <span title="Coming soon" className="text-[#4a3c35] cursor-not-allowed select-none">NPCs</span>
-        <span className="text-[#3d3530] select-none">·</span>
+        <span className="text-[var(--color-border)] select-none">·</span>
         <span title="Coming soon" className="text-[#4a3c35] cursor-not-allowed select-none">Maps</span>
-        <span className="text-[#3d3530] select-none">·</span>
+        <span className="text-[var(--color-border)] select-none">·</span>
         <span title="Coming soon" className="text-[#4a3c35] cursor-not-allowed select-none">Magic</span>
       </nav>
 

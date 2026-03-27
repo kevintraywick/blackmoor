@@ -11,8 +11,8 @@ function PlayerCircle({ player }: { player: Player }) {
       className="flex flex-col items-center gap-1 no-underline"
     >
       {/* Portrait circle with fallback initial */}
-      <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#3d3530] bg-[#2e2825] flex items-center justify-center">
-        <span className="text-[#8a7d6e] text-base">{player.initial}</span>
+      <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[var(--color-border)] bg-[#2e2825] flex items-center justify-center">
+        <span className="text-[var(--color-text-muted)] text-base">{player.initial}</span>
         <Image
           src={`/images/players/${player.id}.png`}
           alt={player.character}
@@ -21,7 +21,7 @@ function PlayerCircle({ player }: { player: Player }) {
           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
       </div>
-      <span className="text-[0.6rem] text-[#8a7d6e] uppercase tracking-wider">
+      <span className="text-[0.6rem] text-[var(--color-text-muted)] uppercase tracking-wider">
         {player.character}
       </span>
     </Link>

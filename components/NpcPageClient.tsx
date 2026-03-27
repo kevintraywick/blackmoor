@@ -1,32 +1,27 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import type { Npc } from '@/lib/types';
 import { rollDice } from '@/lib/dice';
-import { lookupHpRoll } from '@/lib/srd-hp';
-
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
+import { lookupSrd } from '@/lib/srd-hp';
+import { useAutosave } from '@/lib/useAutosave';
+import { resolveImageUrl } from '@/lib/imageUrl';
 
 const EMPTY_NPC: Omit<Npc, 'id'> = {
   name: '', species: '', cr: '', hp: '', hp_roll: '', ac: '', speed: '',
   attacks: '', traits: '', actions: '', notes: '', image_path: '',
 };
 
-function npcImageUrl(path: string | null | undefined): string | null {
-  if (!path) return null;
-  return path.startsWith('uploads/') ? `/api/${path}` : `/${path}`;
-}
-
 function StatField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[#c9a84c]">{label}</span>
+      <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">{label}</span>
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder="—"
-        className="w-14 bg-transparent border-b border-[#3d3530] text-[#e8ddd0] font-serif text-lg font-bold
-                   outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5 text-center"
+        className="w-14 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-lg font-bold
+                   outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5 text-center"
       />
     </div>
   );
@@ -38,10 +33,9 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
   const [values, setValues] = useState<Record<string, string>>(
     Object.fromEntries(Object.entries(EMPTY_NPC).map(([k, v]) => [k, v ?? '']))
   );
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const { save: autosave, status: saveStatus } = useAutosave(() => `/api/npcs/${activeId}`);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [addDragOver, setAddDragOver] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const creating = useRef(false);
   const portraitFileRef = useRef<HTMLInputElement>(null);
 
@@ -49,40 +43,18 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
 
   function handleOutsideClick() {
     setActiveId(null);
-    setSaveStatus('idle');
   }
 
   function handleSelect(npc: Npc) {
-    if (timer.current) clearTimeout(timer.current);
     setActiveId(npc.id);
     setValues(Object.fromEntries(Object.entries({ ...EMPTY_NPC, ...npc }).map(([k, v]) => [k, v ?? ''])));
-    setSaveStatus('idle');
   }
-
-  const autosave = useCallback((id: string, patch: Record<string, string>) => {
-    setSaveStatus('saving');
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/npcs/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(patch),
-        });
-        if (!res.ok) throw new Error();
-        setSaveStatus('saved');
-        setTimeout(() => setSaveStatus('idle'), 2000);
-      } catch {
-        setSaveStatus('failed');
-      }
-    }, 600);
-  }, []);
 
   function handleChange(key: string, value: string) {
     if (!activeId) return;
     const updated = { ...values, [key]: value };
     setValues(updated);
-    autosave(activeId, { [key]: value });
+    autosave({ [key]: value });
     // Keep npcs array in sync so clicking away and back doesn't lose changes
     setNpcs(prev => prev.map(n => n.id === activeId ? { ...n, [key]: value } : n));
   }
@@ -218,40 +190,42 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
     }
   }
 
-  // When an NPC name is first set (on creation), suggest HP roll from SRD
+  // When an NPC name is first set (on creation), auto-fill stats from SRD
   function handleNameChange(value: string) {
     handleChange('name', value);
     // Only suggest if hp_roll is currently empty (don't overwrite manual entries)
     if (!values.hp_roll && value.trim()) {
-      const suggestion = lookupHpRoll(value);
-      if (suggestion) {
-        const updated = { ...values, name: value, hp_roll: suggestion };
+      const match = lookupSrd(value);
+      if (match) {
+        const patch: Record<string, string> = { hp_roll: match.hp };
+        if (!values.ac) patch.ac = match.ac;
+        if (!values.speed) patch.speed = match.speed;
+        if (!values.cr) patch.cr = match.cr;
+        const updated = { ...values, name: value, ...patch };
         setValues(updated);
-        if (activeId) {
-          autosave(activeId, { hp_roll: suggestion });
-        }
+        autosave(patch);
       }
     }
   }
 
-  const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[#c9a84c] mb-2 pb-1.5 border-b border-[#3d3530] font-sans';
-  const ta = 'w-full bg-transparent border-none text-[#c8bfb5] font-serif text-[0.88rem] leading-[1.55] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452]';
-  const fi = 'bg-transparent border-none border-b border-[#3d3530] text-[#e8ddd0] font-serif text-3xl font-bold outline-none focus:border-b-[#c9a84c] placeholder:text-[#8a7452] pb-0.5 flex-1';
+  const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[var(--color-gold)] mb-2 pb-1.5 border-b border-[var(--color-border)] font-sans';
+  const ta = 'w-full bg-transparent border-none text-[var(--color-text-body)] font-serif text-[0.88rem] leading-[1.55] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452]';
+  const fi = 'bg-transparent border-none border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-3xl font-bold outline-none focus:border-b-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5 flex-1';
 
   const statusText  = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed' }[saveStatus];
-  const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[#8a7d6e]';
+  const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[var(--color-text-muted)]';
 
   return (
     <div className="max-w-[780px] mx-auto px-4 pb-16" onClick={handleOutsideClick}>
 
       {/* NPC selector row */}
       <div
-        className="flex justify-center gap-4 flex-wrap py-5 bg-[#231f1c] border-b border-[#3d3530] -mx-4 px-4 mb-6"
+        className="flex justify-center gap-4 flex-wrap py-5 bg-[var(--color-surface)] border-b border-[var(--color-border)] -mx-4 px-4 mb-6"
         onClick={e => e.stopPropagation()}
       >
         {npcs.map(npc => {
           const isActive = activeId === npc.id;
-          const imgUrl = npcImageUrl(npc.image_path);
+          const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
           const initial = npc.name.trim() ? npc.name.trim()[0].toUpperCase() : '?';
 
           return (
@@ -262,7 +236,7 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
             >
               <div
                 className={`relative w-20 h-20 rounded-full border-[3px] transition-all overflow-hidden
-                  bg-[#2e2825] ${isActive ? 'border-[#c9a84c]' : 'border-[#3d3530] hover:border-[#8a7d6e] hover:scale-105'}`}
+                  bg-[#2e2825] ${isActive ? 'border-[var(--color-gold)]' : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)] hover:scale-105'}`}
                 onDragOver={isActive ? (e => e.preventDefault()) : undefined}
                 onDrop={isActive ? (e => {
                   e.preventDefault();
@@ -274,13 +248,13 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
                 {imgUrl ? (
                   <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover absolute inset-0" />
                 ) : (
-                  <span className="text-[1.6rem] text-[#8a7d6e] select-none font-serif absolute inset-0 flex items-center justify-center">
+                  <span className="text-[1.6rem] text-[var(--color-text-muted)] select-none font-serif absolute inset-0 flex items-center justify-center">
                     {initial}
                   </span>
                 )}
               </div>
               <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
-                isActive ? 'text-[#c9a84c]' : 'text-[#8a7d6e]'
+                isActive ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'
               }`}>
                 {npc.name || 'Unnamed'}
               </span>
@@ -303,15 +277,15 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
             }}
             className={`w-20 h-20 rounded-full border-[3px] border-dashed transition-all flex items-center justify-center cursor-pointer
               ${addDragOver
-                ? 'border-[#c9a84c] bg-[#2e2825] scale-105'
-                : 'border-[#3d3530] hover:border-[#8a7d6e] bg-transparent'
+                ? 'border-[var(--color-gold)] bg-[#2e2825] scale-105'
+                : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)] bg-transparent'
               }`}
           >
-            <span className={`text-[1.8rem] leading-none select-none transition-colors ${addDragOver ? 'text-[#c9a84c]' : 'text-[#3d3530]'}`}>
+            <span className={`text-[1.8rem] leading-none select-none transition-colors ${addDragOver ? 'text-[var(--color-gold)]' : 'text-[var(--color-border)]'}`}>
               +
             </span>
           </div>
-          <span className="text-[0.72rem] uppercase tracking-[0.1em] text-[#3d3530]">New NPC</span>
+          <span className="text-[0.72rem] uppercase tracking-[0.1em] text-[var(--color-border)]">New NPC</span>
         </div>
       </div>
 
@@ -322,14 +296,14 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
       ) : (
         <>
           {saveStatus !== 'idle' && (
-            <div className={`fixed bottom-4 right-4 text-xs px-3 py-1 rounded border border-[#3d3530] bg-[#231f1c] ${statusColor}`}>
+            <div className={`fixed bottom-4 right-4 text-xs px-3 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)] ${statusColor}`}>
               {statusText}
             </div>
           )}
 
           <div className="-mx-4" onClick={e => e.stopPropagation()}>
           {/* Header */}
-          <div className="bg-[#231f1c] border border-[#3d3530] rounded-tl-md rounded-tr-md px-4 py-3 border-b-0 flex items-center gap-4">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-tl-md rounded-tr-md px-4 py-3 border-b-0 flex items-center gap-4">
             {/* Portrait circle — drop zone */}
             <div
               onClick={() => portraitFileRef.current?.click()}
@@ -343,10 +317,10 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
                          flex-shrink-0 cursor-pointer overflow-hidden group"
               title="Drop or click to change portrait"
             >
-              {npcImageUrl(active.image_path) ? (
-                <img src={npcImageUrl(active.image_path)!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              {active.image_path ? (
+                <img src={resolveImageUrl(active.image_path)} alt="" className="absolute inset-0 w-full h-full object-cover" />
               ) : (
-                <span className="text-[1.2rem] text-[#8a7d6e] select-none font-serif">
+                <span className="text-[1.2rem] text-[var(--color-text-muted)] select-none font-serif">
                   {values.name?.trim() ? values.name.trim()[0].toUpperCase() : '?'}
                 </span>
               )}
@@ -375,8 +349,8 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
                   onChange={e => handleChange('image_path', e.target.value)}
                   placeholder="images/NPCs/orc.png"
                   title="Path to a committed public image, e.g. images/NPCs/orc.png"
-                  className="bg-transparent border-b border-[#2a2420] text-[#5a4f46] font-sans text-[0.65rem]
-                             outline-none focus:border-[#c9a84c] focus:text-[#8a7d6e] placeholder:text-[#2a2420] pb-0.5 w-full"
+                  className="bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-dim)] font-sans text-[0.65rem]
+                             outline-none focus:border-[var(--color-gold)] focus:text-[var(--color-text-muted)] placeholder:text-[var(--color-surface-raised)] pb-0.5 w-full"
                 />
               </div>
               <input
@@ -399,7 +373,7 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
           </div>
 
           {/* Stats row */}
-          <div className="flex gap-6 flex-wrap items-end bg-[#1e1b18] border border-[#3d3530] border-t-0 border-b-0 px-6 py-3">
+          <div className="flex gap-6 flex-wrap items-end bg-[#1e1b18] border border-[var(--color-border)] border-t-0 border-b-0 px-6 py-3">
             {(['cr', 'ac', 'speed'] as const).map(key => (
               <StatField
                 key={key}
@@ -411,17 +385,17 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
 
             {/* HP Roll → 🎲 → HP */}
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[#c9a84c]">HP Roll</span>
+              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">HP Roll</span>
               <input
                 value={values.hp_roll}
                 onChange={e => handleChange('hp_roll', e.target.value)}
                 placeholder="3d6+3"
-                className="w-20 bg-transparent border-b border-[#3d3530] text-[#e8ddd0] font-serif text-lg font-bold
-                           outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5 text-center"
+                className="w-20 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-lg font-bold
+                           outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5 text-center"
               />
             </div>
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[#c9a84c]">&nbsp;</span>
+              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">&nbsp;</span>
               <button
                 onClick={handleRollHp}
                 type="button"
@@ -433,34 +407,34 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
               </button>
             </div>
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[#c9a84c]">HP</span>
+              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">HP</span>
               <input
                 type="number"
                 value={values.hp}
                 onChange={e => handleChange('hp', e.target.value)}
                 placeholder="—"
-                className="w-14 bg-transparent border-b border-[#3d3530] text-[#e8ddd0] font-serif text-lg font-bold
-                           outline-none focus:border-[#c9a84c] placeholder:text-[#8a7452] pb-0.5 text-center
+                className="w-14 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-lg font-bold
+                           outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5 text-center
                            [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
           </div>
 
           {/* 2-col content grid */}
-          <div className="grid grid-cols-2 border border-[#3d3530] border-t-0 rounded-bl-md rounded-br-md overflow-hidden">
-            <div className="bg-[#231f1c] border-r border-b border-[#3d3530] p-3" style={{ minWidth: 0 }}>
+          <div className="grid grid-cols-2 border border-[var(--color-border)] border-t-0 rounded-bl-md rounded-br-md overflow-hidden">
+            <div className="bg-[var(--color-surface)] border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
               <div className={sh}>Attacks</div>
               <textarea rows={5} value={values.attacks} onChange={e => handleChange('attacks', e.target.value)} className={ta} placeholder="Attack names, bonuses, damage…" />
             </div>
-            <div className="bg-[#231f1c] border-b border-[#3d3530] p-3" style={{ minWidth: 0 }}>
+            <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
               <div className={sh}>Traits & Abilities</div>
               <textarea rows={5} value={values.traits} onChange={e => handleChange('traits', e.target.value)} className={ta} placeholder="Passive traits, resistances, immunities…" />
             </div>
-            <div className="bg-[#231f1c] border-r border-[#3d3530] p-3" style={{ minWidth: 0 }}>
+            <div className="bg-[var(--color-surface)] border-r border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
               <div className={sh}>Actions</div>
               <textarea rows={5} value={values.actions} onChange={e => handleChange('actions', e.target.value)} className={ta} placeholder="Bonus actions, reactions, legendary actions…" />
             </div>
-            <div className="bg-[#231f1c] border-[#3d3530] p-3" style={{ minWidth: 0 }}>
+            <div className="bg-[var(--color-surface)] border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
               <div className={sh}>Notes</div>
               <textarea rows={5} value={values.notes} onChange={e => handleChange('notes', e.target.value)} className={ta} placeholder="Tactics, lore, encounter notes…" />
             </div>
@@ -472,15 +446,15 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
       {/* Delete confirmation */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={e => e.stopPropagation()}>
-          <div className="bg-[#1a1614] border border-[#3d3530] rounded px-8 py-6 max-w-sm w-full mx-4 shadow-xl">
-            <p className="font-serif text-[1.1rem] italic text-[#e8ddd0] mb-6 text-center">
+          <div className="bg-[var(--color-bg)] border border-[var(--color-border)] rounded px-8 py-6 max-w-sm w-full mx-4 shadow-xl">
+            <p className="font-serif text-[1.1rem] italic text-[var(--color-text)] mb-6 text-center">
               Delete {active?.name || 'this NPC'}?
             </p>
             <div className="flex gap-3 justify-center">
               <button onClick={handleDeleteConfirmed} className="px-6 py-2 rounded bg-red-700 text-white text-sm font-bold hover:bg-red-600 transition-colors">
                 Delete
               </button>
-              <button onClick={() => setConfirmDelete(false)} className="px-6 py-2 rounded border border-[#3d3530] text-[#8a7d6e] text-sm hover:text-[#e8ddd0] hover:border-[#5a4f46] transition-colors">
+              <button onClick={() => setConfirmDelete(false)} className="px-6 py-2 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] text-sm hover:text-[var(--color-text)] hover:border-[var(--color-text-dim)] transition-colors">
                 Cancel
               </button>
             </div>

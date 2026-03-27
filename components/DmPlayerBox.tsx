@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState } from 'react';
+import { useAutosave } from '@/lib/useAutosave';
 
 type PlayerStatus = 'active' | 'away' | 'removed';
 
@@ -22,18 +23,8 @@ export default function DmPlayerBox({
   const [notes, setNotes]             = useState(initialNotes);
   const [status, setStatus]           = useState<PlayerStatus>(initialStatus);
   const [confirmRemove, setConfirm]   = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const save = useCallback((patch: Record<string, unknown>) => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      fetch(`/api/players/${playerId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
-      });
-    }, 600);
-  }, [playerId]);
+  const { save } = useAutosave(`/api/players/${playerId}`);
 
   function handleNotesChange(v: string) {
     setNotes(v);
@@ -61,7 +52,7 @@ export default function DmPlayerBox({
   };
   const labelColor: Record<PlayerStatus, string> = {
     active:  'text-[#5ab87a]',
-    away:    'text-[#c9a84c]',
+    away:    'text-[var(--color-gold)]',
     removed: 'text-[#c05050]',
   };
 
@@ -76,7 +67,7 @@ export default function DmPlayerBox({
           value={notes}
           onChange={e => handleNotesChange(e.target.value)}
           placeholder="Upcoming absences, hooks, reminders…"
-          className="w-full bg-transparent border border-[#243a2c] rounded text-[#c8bfb5] text-[0.88rem] leading-relaxed px-2 py-1.5 resize-none outline-none focus:border-[#4a7a5a] placeholder:text-[#374a3e] font-serif"
+          className="w-full bg-transparent border border-[#243a2c] rounded text-[var(--color-text-body)] text-[0.88rem] leading-relaxed px-2 py-1.5 resize-none outline-none focus:border-[#4a7a5a] placeholder:text-[#374a3e] font-serif"
         />
       </div>
 
@@ -93,7 +84,7 @@ export default function DmPlayerBox({
               <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                 active ? dotColor[s.key] : 'border-[#2a4a35] bg-transparent'
               }`}>
-                {active && <div className="w-1.5 h-1.5 rounded-full bg-[#1a1614]" />}
+                {active && <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-bg)]" />}
               </div>
               <span className={`font-serif text-sm transition-colors ${active ? labelColor[s.key] : 'text-[#4a6a55]'}`}>
                 {s.label}
