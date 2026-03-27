@@ -219,6 +219,11 @@ async function _initSchema() {
     }
   }
 
+  // Backfill img for players with empty img — auto-link to /images/players/{id}.png
+  await pool.query(
+    `UPDATE players SET img = '/images/players/' || id || '.png' WHERE img = '' OR img IS NULL`
+  );
+
   // Backfill image_path for existing NPCs that match a known image file.
   // Idempotent — only updates rows with empty image_path.
   // Uses the same lookupNpcImage() with partial matching so "Flameskull_2" → flameskull.png.

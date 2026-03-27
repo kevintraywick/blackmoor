@@ -26,7 +26,7 @@ function AddPlayerModal({ onClose }: { onClose: () => void }) {
       const res = await fetch('/api/players', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, playerName: playerName.trim().toUpperCase(), character: character.trim(), initial, img: '' }),
+        body: JSON.stringify({ id, playerName: playerName.trim().toUpperCase(), character: character.trim(), initial, img: `/images/players/${id}.png` }),
       });
       if (!res.ok) {
         const data = await res.json();
