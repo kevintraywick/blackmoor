@@ -78,9 +78,13 @@ export default function InitiativePageClient({
     return s !== 'away' && s !== 'removed';
   });
 
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
-    sessions[sessions.length - 1]?.id ?? null
-  );
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(() => {
+    try {
+      const lastId = localStorage.getItem('blackmoor-last-session');
+      if (lastId && sessions.some(s => s.id === lastId)) return lastId;
+    } catch { /* silent */ }
+    return sessions[sessions.length - 1]?.id ?? null;
+  });
   const [playerInits, setPlayerInits] = useState<Record<string, number>>(
     Object.fromEntries(players.map(p => [p.id, 0]))
   );
@@ -387,9 +391,7 @@ export default function InitiativePageClient({
   }
 
   // ── SETUP VIEW ───────────────────────────────────────────────────────────────
-  const visibleNpcs = sessionNpcIds.length > 0
-    ? npcs.filter(n => sessionNpcIds.includes(n.id))
-    : npcs;
+  const visibleNpcs = npcs.filter(n => sessionNpcIds.includes(n.id));
   const allIncluded = visibleNpcs.length > 0 && visibleNpcs.every(n => npcIncluded[n.id]);
 
   return (
@@ -465,58 +467,61 @@ export default function InitiativePageClient({
           </div>
 
           {/* NPCs */}
-          {visibleNpcs.length > 0 && (
-            <>
-              <div className="border-t border-[var(--color-border)]" />
-              <div className="px-6 pt-4 pb-5">
-                <div className="flex items-center justify-end mb-3">
-                  <button
-                    onClick={() => setNpcIncluded(Object.fromEntries(visibleNpcs.map(n => [n.id, !allIncluded])))}
-                    className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors"
-                  >
-                    {allIncluded ? 'Deselect all' : 'Select all'}
-                  </button>
-                </div>
-                <div className="flex flex-col gap-3">
-                  {visibleNpcs.map(n => {
-                    const included = npcIncluded[n.id] ?? false;
-                    const imgUrl = n.image_path ? resolveImageUrl(n.image_path) : null;
-                    const initial = n.name?.trim()?.[0]?.toUpperCase() ?? '?';
-                    return (
-                      <div
-                        key={n.id}
-                        className={`flex items-center gap-3 cursor-pointer transition-opacity ${included ? '' : 'opacity-40'}`}
-                        onClick={() => setNpcIncluded(prev => ({ ...prev, [n.id]: !prev[n.id] }))}
-                      >
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-[#2e2825] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
-                          {imgUrl ? (
-                            <img src={imgUrl} alt={n.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-[1rem] text-[var(--color-text-muted)] font-serif">{initial}</span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-serif text-sm text-[var(--color-text)] truncate">{n.name || 'Unnamed'}</div>
-                        </div>
-                        <div className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-                          included ? 'border-[var(--color-gold)] bg-[var(--color-gold)]' : 'border-[var(--color-border)] bg-transparent'
-                        }`}>
-                          {included && <span className="text-black text-[10px] font-bold leading-none">✓</span>}
-                        </div>
-                        <span className="text-[0.6rem] uppercase tracking-[0.1em] text-[#5a4a44] flex-shrink-0">d20+</span>
-                        <div onClick={e => e.stopPropagation()}>
-                          <InitCounter
-                            value={npcBonuses[n.id] ?? 0}
-                            onChange={v => setNpcBonuses(prev => ({ ...prev, [n.id]: v }))}
-                          />
-                        </div>
+          <div className="border-t border-[var(--color-border)]" />
+          <div className="px-6 pt-4 pb-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-serif text-[1.1rem] italic text-[var(--color-text)] leading-none tracking-tight">NPCs</h2>
+              {visibleNpcs.length > 0 && (
+                <button
+                  onClick={() => setNpcIncluded(Object.fromEntries(visibleNpcs.map(n => [n.id, !allIncluded])))}
+                  className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors"
+                >
+                  {allIncluded ? 'Deselect all' : 'Select all'}
+                </button>
+              )}
+            </div>
+            {visibleNpcs.length === 0 ? (
+              <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs assigned to this session.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {visibleNpcs.map(n => {
+                  const included = npcIncluded[n.id] ?? false;
+                  const imgUrl = n.image_path ? resolveImageUrl(n.image_path) : null;
+                  const initial = n.name?.trim()?.[0]?.toUpperCase() ?? '?';
+                  return (
+                    <div
+                      key={n.id}
+                      className={`flex items-center gap-3 cursor-pointer transition-opacity ${included ? '' : 'opacity-40'}`}
+                      onClick={() => setNpcIncluded(prev => ({ ...prev, [n.id]: !prev[n.id] }))}
+                    >
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-[#2e2825] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
+                        {imgUrl ? (
+                          <img src={imgUrl} alt={n.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-[1rem] text-[var(--color-text-muted)] font-serif">{initial}</span>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-serif text-sm text-[var(--color-text)] truncate">{n.name || 'Unnamed'}</div>
+                      </div>
+                      <div className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                        included ? 'border-[var(--color-gold)] bg-[var(--color-gold)]' : 'border-[var(--color-border)] bg-transparent'
+                      }`}>
+                        {included && <span className="text-black text-[10px] font-bold leading-none">✓</span>}
+                      </div>
+                      <span className="text-[0.6rem] uppercase tracking-[0.1em] text-[#5a4a44] flex-shrink-0">d20+</span>
+                      <div onClick={e => e.stopPropagation()}>
+                        <InitCounter
+                          value={npcBonuses[n.id] ?? 0}
+                          onChange={v => setNpcBonuses(prev => ({ ...prev, [n.id]: v }))}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </div>
 

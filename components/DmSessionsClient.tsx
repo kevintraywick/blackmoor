@@ -187,6 +187,7 @@ export default function DmSessionsClient({
     setSelectedId(session.id);
     setValues(emptyValues(session));
     setNpcIds(Array.isArray(session.npc_ids) ? session.npc_ids : []);
+    try { localStorage.setItem('blackmoor-last-session', session.id); } catch { /* silent */ }
   }
 
   function handleChange(key: string, value: string | number) {
