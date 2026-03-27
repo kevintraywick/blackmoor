@@ -6,6 +6,7 @@ import { rollDice } from '@/lib/dice';
 import { lookupSrd } from '@/lib/srd-hp';
 import { useAutosave } from '@/lib/useAutosave';
 import { resolveImageUrl } from '@/lib/imageUrl';
+import { lookupNpcImage } from '@/lib/npc-images';
 
 const EMPTY_NPC: Omit<Npc, 'id'> = {
   name: '', species: '', cr: '', hp: '', hp_roll: '', ac: '', speed: '',
@@ -131,7 +132,9 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
       if (!res.ok) return;
       let npc: Npc = await res.json();
 
-      // Copy all fields from source, with incremented name and blank HP
+      // Copy all fields from source, with incremented name and blank HP.
+      // If source has no image, try to auto-link from the base creature name.
+      const imagePath = source.image_path || lookupNpcImage(source.name) || '';
       const patch: Record<string, string> = {
         name: newName,
         species: source.species ?? '',
@@ -144,7 +147,7 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
         traits: source.traits ?? '',
         actions: source.actions ?? '',
         notes: source.notes ?? '',
-        image_path: source.image_path ?? '',
+        image_path: imagePath,
       };
 
       const patchRes = await fetch(`/api/npcs/${id}`, {
@@ -193,18 +196,33 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
   // When an NPC name is first set (on creation), auto-fill stats from SRD
   function handleNameChange(value: string) {
     handleChange('name', value);
-    // Only suggest if hp_roll is currently empty (don't overwrite manual entries)
-    if (!values.hp_roll && value.trim()) {
+
+    const trimmed = value.trim();
+    if (!trimmed) return;
+
+    const patch: Record<string, string> = {};
+
+    // Auto-fill stats from SRD (only when hp_roll is empty)
+    if (!values.hp_roll) {
       const match = lookupSrd(value);
       if (match) {
-        const patch: Record<string, string> = { hp_roll: match.hp };
+        patch.hp_roll = match.hp;
         if (!values.ac) patch.ac = match.ac;
         if (!values.speed) patch.speed = match.speed;
         if (!values.cr) patch.cr = match.cr;
-        const updated = { ...values, name: value, ...patch };
-        setValues(updated);
-        autosave(patch);
       }
+    }
+
+    // Auto-link image if no image is currently set
+    if (!values.image_path) {
+      const img = lookupNpcImage(value);
+      if (img) patch.image_path = img;
+    }
+
+    if (Object.keys(patch).length > 0) {
+      const updated = { ...values, name: value, ...patch };
+      setValues(updated);
+      autosave(patch);
     }
   }
 
@@ -278,14 +296,14 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
             className={`w-20 h-20 rounded-full border-[3px] border-dashed transition-all flex items-center justify-center cursor-pointer
               ${addDragOver
                 ? 'border-[var(--color-gold)] bg-[#2e2825] scale-105'
-                : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)] bg-transparent'
+                : 'border-[var(--color-gold)]/40 hover:border-[var(--color-gold)] bg-transparent'
               }`}
           >
-            <span className={`text-[1.8rem] leading-none select-none transition-colors ${addDragOver ? 'text-[var(--color-gold)]' : 'text-[var(--color-border)]'}`}>
+            <span className={`text-[1.8rem] leading-none select-none transition-colors ${addDragOver ? 'text-[var(--color-gold)]' : 'text-[var(--color-gold)]/60'}`}>
               +
             </span>
           </div>
-          <span className="text-[0.72rem] uppercase tracking-[0.1em] text-[var(--color-border)]">New NPC</span>
+          <span className="text-[0.72rem] uppercase tracking-[0.1em] text-[var(--color-gold)]/60">New NPC</span>
         </div>
       </div>
 

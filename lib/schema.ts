@@ -2,6 +2,7 @@
 // Called automatically on first API request if tables don't exist.
 import { pool } from './db';
 import { PLAYERS } from './players';
+import { lookupNpcImage } from './npc-images';
 
 // Memoize across the process lifetime — avoids DDL round-trip on every request
 let schemaReady: Promise<void> | null = null;
@@ -215,6 +216,19 @@ async function _initSchema() {
         `INSERT INTO players (id, player_name, character, initial, img, sort_order) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO NOTHING`,
         [p.id, p.playerName, p.character, p.initial, p.img, i]
       );
+    }
+  }
+
+  // Backfill image_path for existing NPCs that match a known image file.
+  // Idempotent — only updates rows with empty image_path.
+  // Uses the same lookupNpcImage() with partial matching so "Flameskull_2" → flameskull.png.
+  const npcsToFill = await pool.query(
+    `SELECT id, name FROM npcs WHERE image_path IS NULL OR image_path = ''`
+  );
+  for (const row of npcsToFill.rows) {
+    const match = lookupNpcImage(row.name as string);
+    if (match) {
+      await pool.query(`UPDATE npcs SET image_path = $1 WHERE id = $2`, [match, row.id]);
     }
   }
 }
