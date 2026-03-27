@@ -1,0 +1,174 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+
+interface Item {
+  id: number;
+  title: string;
+  price: number;
+  stat_type: 'heal' | 'magic' | 'attack' | 'damage' | null;
+  stat_value: number | null;
+  image_path: string | null;
+  marketplace_qty: number;
+}
+
+interface Shopper {
+  id: string;
+  character: string;
+  initial: string;
+  img: string;
+  gold: number;
+}
+
+function itemImageSrc(path: string): string {
+  return path.startsWith('uploads/') ? `/api/${path}` : `/${path}`;
+}
+
+function statBadgeClass(type: Item['stat_type']): string {
+  if (type === 'magic')  return 'bg-blue-700 text-green-300';
+  if (type === 'attack') return 'bg-neutral-800 text-red-400';
+  if (type === 'damage') return 'bg-orange-800 text-orange-200';
+  return '';
+}
+
+export default function MarketplaceClient({
+  items: initialItems, shopper: initialShopper,
+}: {
+  items: Item[]; shopper: Shopper;
+}) {
+  const [items, setItems] = useState(initialItems);
+  const [gold, setGold] = useState(initialShopper.gold);
+  const [buying, setBuying] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
+
+  async function purchase(item: Item) {
+    if (buying) return;
+    if (gold < item.price) {
+      setFlash('Not enough gold!');
+      setTimeout(() => setFlash(null), 2000);
+      return;
+    }
+    if (!confirm(`Buy ${item.title} for ${item.price} GP?`)) return;
+
+    setBuying(true);
+    try {
+      const res = await fetch('/api/marketplace/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: item.id, player_id: initialShopper.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setFlash(data.error || 'Purchase failed');
+        setTimeout(() => setFlash(null), 2500);
+        return;
+      }
+      const data = await res.json();
+      setGold(parseInt(data.gold));
+      setItems(prev => prev.map(i =>
+        i.id === item.id ? { ...i, marketplace_qty: i.marketplace_qty - 1 } : i
+      ).filter(i => i.marketplace_qty > 0));
+      setFlash(`Bought ${item.title}!`);
+      setTimeout(() => setFlash(null), 2500);
+    } finally {
+      setBuying(false);
+    }
+  }
+
+  return (
+    <>
+      {/* Shoppers bar */}
+      <div className="px-6 pt-4 pb-3 border-b border-[#3d3530] flex items-center gap-4">
+        <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[#8a7d6e]">Shoppers</div>
+
+        {/* Player circle */}
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-[#c9a84c] bg-[#2e2825]">
+            <img src={initialShopper.img} alt={initialShopper.character}
+              className="w-full h-full object-cover absolute inset-0"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <span className="absolute inset-0 flex items-center justify-center text-sm text-[#8a7d6e] select-none">
+              {initialShopper.initial}
+            </span>
+          </div>
+          <span className="text-[0.6rem] uppercase tracking-[0.08em] text-[#c9a84c]">
+            {initialShopper.character}
+          </span>
+          <span className="text-[0.5rem] text-[#8a7452] leading-none">{gold} gp</span>
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Exit */}
+        <Link href={`/players/${initialShopper.id}`}
+          className="text-[0.6rem] uppercase tracking-[0.1em] text-[#8a7d6e] hover:text-[#c9a84c] no-underline transition-colors">
+          Exit →
+        </Link>
+      </div>
+
+      {/* Flash message */}
+      {flash && (
+        <div className={`px-6 py-1.5 text-xs font-serif ${
+          flash.includes('Bought') ? 'text-[#5a8a5a]' : 'text-[#c0392b]'
+        }`}>
+          {flash}
+        </div>
+      )}
+
+      {/* Marketplace items — clickable */}
+      <div className="px-6 pt-5 pb-6 min-h-[320px]">
+        <h2 className="font-serif text-[1.3rem] italic text-[#e8ddd0] leading-none tracking-tight mb-1">Marketplace</h2>
+        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[#8a7d6e] mb-4">Click an item to buy</p>
+        <div className="border-t border-[#3d3530] mb-6" />
+
+        {items.length === 0 ? (
+          <p className="text-[#5a4f46] text-sm italic">No items available.</p>
+        ) : (
+          <div className="flex flex-wrap gap-6">
+            {items.flatMap(item =>
+              Array.from({ length: item.marketplace_qty }, (_, i) => (
+                <button key={`${item.id}-${i}`} type="button"
+                  onClick={() => purchase(item)} disabled={buying}
+                  className="flex flex-col items-center bg-transparent border-none cursor-pointer group p-0">
+                  <div className="relative w-24 h-24 transition-transform group-hover:scale-105">
+                    <div className="absolute inset-0 rounded-full overflow-hidden border border-[#3d3530] group-hover:border-[#c9a84c] transition-colors">
+                      {item.image_path ? (
+                        <img src={itemImageSrc(item.image_path)} alt={item.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-[#2a2420]" />
+                      )}
+                    </div>
+                    {/* Gold price badge */}
+                    <div className="absolute -bottom-1 -left-1 w-[26px] h-[26px] rounded-full overflow-hidden border border-[#1a1614] z-10 flex items-center justify-center">
+                      <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      <span className="relative text-[9px] font-bold text-black drop-shadow-sm">{item.price}</span>
+                    </div>
+                    {/* Stat badge */}
+                    {item.stat_type && item.stat_value !== null && (
+                      item.stat_type === 'heal' ? (
+                        <div className="absolute -bottom-1 -right-1 w-[26px] h-[26px] flex items-center justify-center z-10">
+                          <svg viewBox="0 0 24 24" className="absolute inset-0 w-full h-full drop-shadow-sm" fill="#b91c1c">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                          </svg>
+                          <span className="relative text-[9px] font-bold text-white z-10 leading-none">{item.stat_value}</span>
+                        </div>
+                      ) : (
+                        <div className={`absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full flex items-center justify-center text-[9px] font-bold border border-[#1a1614] z-10 ${statBadgeClass(item.stat_type)}`}>
+                          {item.stat_value}
+                        </div>
+                      )
+                    )}
+                  </div>
+                  <p className="text-[0.65rem] text-center text-[#e8ddd0] mt-1 w-24 leading-tight line-clamp-2 group-hover:text-[#c9a84c] transition-colors">
+                    {item.title}
+                  </p>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

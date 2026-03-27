@@ -25,6 +25,17 @@ export interface SpellItem {
   duration: string;
 }
 
+export interface MarketplaceItem {
+  id: string;                    // unique instance ID
+  source_item_id: number;        // FK back to items table
+  name: string;
+  price: number;                 // purchase price (for resale/refund)
+  image_path: string | null;
+  stat_type: string | null;
+  stat_value: number | null;
+  purchased_at: string;          // ISO timestamp
+}
+
 // A player character sheet row in the DB
 export interface PlayerSheet {
   id: string;              // e.g. 'levi'
@@ -45,7 +56,7 @@ export interface PlayerSheet {
   general_notes: string;   // "Background" in UI
   gear: WeaponItem[];      // "Weapons" in UI — stored as JSONB
   spells: SpellItem[];     // "Magic Spells or Items" — stored as JSONB
-  items: SpellItem[];      // Purchased marketplace items — stored as JSONB, transferable
+  items: MarketplaceItem[]; // Purchased marketplace items — stored as JSONB, transferable
   dm_notes: string;        // DM-only notes (not shown to player)
   status: string;          // 'active' | 'away' | 'removed'
 }

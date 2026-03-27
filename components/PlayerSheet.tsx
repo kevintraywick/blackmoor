@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, Player } from '@/lib/types';
+import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, MarketplaceItem, Player } from '@/lib/types';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 
@@ -153,6 +153,44 @@ function WeaponList({
 }
 
 // ── Spell / magic item list ───────────────────────────────────────────────────
+// ── Marketplace item list — purchased items (read-only except delete) ────────
+function ItemList({
+  items, onDelete,
+}: {
+  items: MarketplaceItem[];
+  onDelete: (id: string) => void;
+}) {
+  if (items.length === 0) return null;
+  const effect = (item: MarketplaceItem) => {
+    if (!item.stat_type || item.stat_value == null) return '';
+    return `${item.stat_type.charAt(0).toUpperCase() + item.stat_type.slice(1)} ${item.stat_value}`;
+  };
+  return (
+    <div>
+      {items.map((item, i) => (
+        <div key={item.id}>
+          {i > 0 && <div className="h-px bg-[#2a2420] my-1.5" />}
+          <div className="flex items-baseline gap-1.5 min-w-0">
+            <span className="text-[0.88rem] text-[#c8bfb5] font-serif flex-1 min-w-0 truncate">{item.name}</span>
+            {effect(item) && (
+              <span className="text-[0.88rem] text-[#c9a84c] font-serif w-24 flex-shrink-0 text-right">{effect(item)}</span>
+            )}
+            <button
+              onClick={() => onDelete(item.id)}
+              className="text-[#4a3a35] hover:text-[#8a3a3a] text-[0.65rem] flex-shrink-0 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="text-[0.7rem] text-[#6a5a50] pl-1 mt-0.5">
+            {item.price} gp
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SpellList({
   spells,
   onAdd,
@@ -247,9 +285,9 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
     onChange(String(n + delta));
   }
   const icon = label === 'GOLD'
-    ? <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute top-1/2 -translate-y-1/2 w-[22px] h-[22px] rounded-full opacity-25 pointer-events-none" style={{ right: '100%', marginRight: '4px', marginTop: '-2px' }} />
+    ? <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute top-1/2 -translate-y-1/2 w-[22px] h-[22px] rounded-full opacity-40 pointer-events-none" style={{ right: '100%', marginRight: '4px', marginTop: '-2px' }} />
     : label === 'HP'
-    ? <svg viewBox="0 0 24 24" fill="#b91c1c" className="absolute top-1/2 -translate-y-1/2 w-[26px] h-[26px] opacity-25 pointer-events-none" style={{ right: '100%', marginRight: '5px', marginTop: '-1px' }}>
+    ? <svg viewBox="0 0 24 24" fill="#b91c1c" className="absolute top-1/2 -translate-y-1/2 w-[26px] h-[26px] opacity-40 pointer-events-none" style={{ right: '100%', marginRight: '5px', marginTop: '-1px' }}>
         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
       </svg>
     : null;
@@ -348,12 +386,9 @@ export function Sheet({
     setField('spells', (values.spells ?? []).map(s => s.id === id ? { ...s, [field]: value } : s));
   }
 
-  // Item helpers (purchased marketplace items — same shape as spells)
+  // Item helpers (purchased marketplace items)
   function deleteItem(id: string) {
     setField('items', (values.items ?? []).filter(i => i.id !== id));
-  }
-  function updateItem(id: string, field: keyof SpellItem, value: string) {
-    setField('items', (values.items ?? []).map(i => i.id === id ? { ...i, [field]: value } : i));
   }
 
   const statusText  = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed — check connection' }[saveStatus];
@@ -451,7 +486,7 @@ export function Sheet({
         {/* Magic Items */}
         <div className="bg-[#231f1c] border-b border-[#3d3530] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 225 }}>
           <div className={sh}>Magic Items</div>
-          <SpellList spells={values.items ?? []} onAdd={(item) => setField('items', [...(values.items ?? []), { ...item, id: Date.now().toString(36) }])} onDelete={deleteItem} onUpdate={updateItem} />
+          <ItemList items={values.items ?? []} onDelete={deleteItem} />
         </div>
 
         {/* Class and Species Abilities */}
