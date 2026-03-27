@@ -8,6 +8,9 @@ const SESSION_COLUMNS: Record<string, string> = {
   npc_ids: 'npc_ids', menagerie: 'menagerie',
 };
 
+// JSONB columns need JSON.stringify before passing to pg
+const JSONB_COLUMNS = new Set(['npc_ids', 'menagerie']);
+
 // DELETE /api/sessions/:id — remove a session
 export async function DELETE(
   _req: Request,
@@ -35,7 +38,7 @@ export async function PATCH(
     // Only update fields that exist in the static column map
     const updates = Object.entries(body)
       .filter(([k]) => SESSION_COLUMNS[k] !== undefined)
-      .map(([k, v]) => [SESSION_COLUMNS[k], v] as [string, unknown]);
+      .map(([k, v]) => [SESSION_COLUMNS[k], JSONB_COLUMNS.has(k) ? JSON.stringify(v) : v] as [string, unknown]);
     if (!updates.length) return NextResponse.json({ ok: true });
 
     const setClause = updates.map(([col], i) => `${col} = $${i + 1}`).join(', ');
