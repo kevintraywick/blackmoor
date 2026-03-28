@@ -206,17 +206,6 @@ export default function InitiativePageClient({
     persistCombat(updated, currentTurn, round, turnDone);
   }
 
-  function advanceTurn() {
-    if (!results) return;
-    const nextTurn = (currentTurn + 1) % results.length;
-    const nextRound = nextTurn === 0 ? round + 1 : round;
-    // Reset checkboxes at the start of a new round
-    const nextDone = nextTurn === 0 ? new Array(results.length).fill(false) : turnDone;
-    setCurrentTurn(nextTurn);
-    setRound(nextRound);
-    if (nextTurn === 0) setTurnDone(nextDone);
-    persistCombat(results, nextTurn, nextRound, nextDone);
-  }
 
   // ── RESULTS VIEW ─────────────────────────────────────────────────────────────
   if (results) {
@@ -252,7 +241,7 @@ export default function InitiativePageClient({
                     isDead ? 'opacity-40' : ''
                   } ${
                     isActive
-                      ? 'border-[var(--color-gold)] bg-[var(--color-surface)]'
+                      ? 'border-[var(--color-gold)] bg-[#1a2535]'
                       : 'border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[#5a4a44] opacity-70'
                   } ${isExpanded ? 'rounded-t border-b-0' : 'rounded'}`}
                 >
@@ -315,12 +304,7 @@ export default function InitiativePageClient({
                         className="w-6 h-6 rounded-full bg-[#3a1a1a] border border-[#6a1a1a] text-[#a05050]
                                    flex items-center justify-center hover:bg-[#4a2020] transition-colors text-sm leading-none"
                       >−</button>
-                      <span className={`w-14 text-center font-serif text-sm tabular-nums ${
-                        c.hp <= 0 ? 'text-[#e06060]'
-                          : c.hp <= (c.maxHp ?? 0) * 0.25 ? 'text-[#e09050]'
-                          : c.hp <= (c.maxHp ?? 0) * 0.5 ? 'text-[#e0c060]'
-                          : 'text-[#70c090]'
-                      }`}>
+                      <span className="w-14 text-center font-serif text-sm tabular-nums text-white">
                         {c.hp}/{c.maxHp}
                       </span>
                       <button
@@ -335,7 +319,7 @@ export default function InitiativePageClient({
                   {hasStats && (
                     <button
                       onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : `${c.id}-${i}`); }}
-                      className="w-6 h-6 flex items-center justify-center text-[#5a4a44] hover:text-[var(--color-gold)] transition-colors flex-shrink-0 text-xs"
+                      className="w-6 h-6 flex items-center justify-center text-[#5a4a44] hover:text-[var(--color-gold)] transition-colors flex-shrink-0 text-sm"
                       title="Show stat block"
                     >
                       {isExpanded ? '▾' : '▸'}
@@ -351,14 +335,42 @@ export default function InitiativePageClient({
                     {c.type === 'player' ? 'PC' : 'NPC'}
                   </span>
 
-                  {/* Turn done checkbox */}
+                  {/* Turn done checkbox — marks done and advances turn */}
                   <button
                     onClick={e => {
                       e.stopPropagation();
-                      const next = [...turnDone];
-                      next[i] = !next[i];
-                      setTurnDone(next);
-                      persistCombat(results, currentTurn, round, next);
+                      if (turnDone[i]) {
+                        // Uncheck — just toggle off, don't advance
+                        const next = [...turnDone];
+                        next[i] = false;
+                        setTurnDone(next);
+                        persistCombat(results, currentTurn, round, next);
+                      } else {
+                        // Check — mark done and advance to next
+                        const next = [...turnDone];
+                        next[i] = true;
+                        // Find next unchecked combatant
+                        let nextTurn = currentTurn;
+                        let nextRound = round;
+                        let nextDone = next;
+                        const allDone = next.every(Boolean);
+                        if (allDone) {
+                          // New round — reset all checkboxes
+                          nextTurn = 0;
+                          nextRound = round + 1;
+                          nextDone = new Array(results.length).fill(false);
+                        } else {
+                          // Advance to next unchecked
+                          for (let step = 1; step <= results.length; step++) {
+                            const candidate = (currentTurn + step) % results.length;
+                            if (!next[candidate]) { nextTurn = candidate; break; }
+                          }
+                        }
+                        setTurnDone(nextDone);
+                        setCurrentTurn(nextTurn);
+                        setRound(nextRound);
+                        persistCombat(results, nextTurn, nextRound, nextDone);
+                      }
                     }}
                     className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
                       turnDone[i]
@@ -403,13 +415,6 @@ export default function InitiativePageClient({
           })}
         </div>
 
-        <button
-          onClick={advanceTurn}
-          className="mt-6 w-full py-4 rounded bg-[var(--color-gold)] text-black font-serif font-bold text-xl
-                     hover:bg-[#e0bc5a] transition-colors"
-        >
-          Next Turn →
-        </button>
       </div>
     );
   }
