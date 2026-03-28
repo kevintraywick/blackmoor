@@ -238,6 +238,63 @@ async function _initSchema() {
     }
   }
 
+  // Magic catalog — DM's persistent reference library of spells, scrolls, magic items, and custom entries
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS magic_catalog (
+      id          TEXT PRIMARY KEY,
+      category    TEXT NOT NULL CHECK (category IN ('spell', 'scroll', 'magic_item', 'other')),
+      name        TEXT NOT NULL,
+      api_key     TEXT,
+      description TEXT NOT NULL DEFAULT '',
+      metadata    JSONB NOT NULL DEFAULT '{}',
+      created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `);
+
+  // Seed Instruments of the Bards into magic_catalog if not already present
+  const [{ bard_count }] = await pool.query(
+    `SELECT COUNT(*)::int as bard_count FROM magic_catalog WHERE category = 'other' AND api_key = 'seed:bard-instrument'`
+  ).then(r => r.rows);
+  if (bard_count === 0) {
+    const bardInstruments = [
+      {
+        name: 'Fochlucan Bandore',
+        description: 'An instrument of the bards, this bandore is an uncommon magic item requiring attunement by a bard. A creature that attempts to play the instrument without being attuned to it must succeed on a DC 15 Wisdom saving throw or take 2d4 psychic damage.\n\nYou can use an action to play the instrument and cast one of its spells: Fly, Invisibility, Levitate, Protection from Evil and Good, Entangle, Faerie Fire, Shillelagh, Speak with Animals.\n\nOnce the instrument has been used to cast a spell, it can\'t be used to cast that spell again until the next dawn.',
+      },
+      {
+        name: 'Mac-Fuirmidh Cittern',
+        description: 'An instrument of the bards, this cittern is an uncommon magic item requiring attunement by a bard. A creature that attempts to play the instrument without being attuned to it must succeed on a DC 15 Wisdom saving throw or take 2d4 psychic damage.\n\nYou can use an action to play the instrument and cast one of its spells: Fly, Invisibility, Levitate, Protection from Evil and Good, Barkskin, Cure Wounds, Fog Cloud.\n\nOnce the instrument has been used to cast a spell, it can\'t be used to cast that spell again until the next dawn.',
+      },
+      {
+        name: 'Doss Lute',
+        description: 'An instrument of the bards, this lute is an uncommon magic item requiring attunement by a bard. A creature that attempts to play the instrument without being attuned to it must succeed on a DC 15 Wisdom saving throw or take 2d4 psychic damage.\n\nYou can use an action to play the instrument and cast one of its spells: Fly, Invisibility, Levitate, Protection from Evil and Good, Animal Friendship, Protection from Energy (fire only), Protection from Poison.\n\nOnce the instrument has been used to cast a spell, it can\'t be used to cast that spell again until the next dawn.',
+      },
+      {
+        name: 'Canaith Mandolin',
+        description: 'An instrument of the bards, this mandolin is a rare magic item requiring attunement by a bard. A creature that attempts to play the instrument without being attuned to it must succeed on a DC 15 Wisdom saving throw or take 2d4 psychic damage.\n\nYou can use an action to play the instrument and cast one of its spells: Fly, Invisibility, Levitate, Protection from Evil and Good, Cure Wounds (3rd level), Dispel Magic, Protection from Energy (lightning only).\n\nOnce the instrument has been used to cast a spell, it can\'t be used to cast that spell again until the next dawn.',
+      },
+      {
+        name: 'Cli Lyre',
+        description: 'An instrument of the bards, this lyre is a rare magic item requiring attunement by a bard. A creature that attempts to play the instrument without being attuned to it must succeed on a DC 15 Wisdom saving throw or take 2d4 psychic damage.\n\nYou can use an action to play the instrument and cast one of its spells: Fly, Invisibility, Levitate, Protection from Evil and Good, Stone Shape, Wall of Fire, Wind Wall.\n\nOnce the instrument has been used to cast a spell, it can\'t be used to cast that spell again until the next dawn.',
+      },
+      {
+        name: 'Anstruth Harp',
+        description: 'An instrument of the bards, this harp is a very rare magic item requiring attunement by a bard. A creature that attempts to play the instrument without being attuned to it must succeed on a DC 15 Wisdom saving throw or take 2d4 psychic damage.\n\nYou can use an action to play the instrument and cast one of its spells: Fly, Invisibility, Levitate, Protection from Evil and Good, Control Weather, Cure Wounds (5th level), Wall of Thorns.\n\nOnce the instrument has been used to cast a spell, it can\'t be used to cast that spell again until the next dawn.',
+      },
+      {
+        name: 'Ollamh Harp',
+        description: 'An instrument of the bards, this harp is a legendary magic item requiring attunement by a bard. A creature that attempts to play the instrument without being attuned to it must succeed on a DC 15 Wisdom saving throw or take 2d4 psychic damage.\n\nYou can use an action to play the instrument and cast one of its spells: Fly, Invisibility, Levitate, Protection from Evil and Good, Confusion, Control Weather, Fire Storm.\n\nOnce the instrument has been used to cast a spell, it can\'t be used to cast that spell again until the next dawn.',
+      },
+    ];
+    for (const inst of bardInstruments) {
+      await pool.query(
+        `INSERT INTO magic_catalog (id, category, name, api_key, description, metadata)
+         VALUES (gen_random_uuid()::text, 'other', $1, 'seed:bard-instrument', $2, '{}')`,
+        [inst.name, inst.description]
+      );
+    }
+  }
+
   // Backfill hp_roll (and empty stat fields) for existing NPCs from SRD.
   // Idempotent — only updates rows with empty hp_roll.
   // Strips _N suffixes and uses partial matching so "Ettercap_4" → "8d8+8".

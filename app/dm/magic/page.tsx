@@ -1,18 +1,21 @@
-import DmNav from '@/components/DmNav';
+export const dynamic = 'force-dynamic';
 
-export default function MagicPage() {
+import DmNav from '@/components/DmNav';
+import MagicPageClient from '@/components/MagicPageClient';
+import { query } from '@/lib/db';
+import { ensureSchema } from '@/lib/schema';
+import type { MagicCatalogEntry } from '@/lib/types';
+
+export default async function MagicPage() {
+  await ensureSchema();
+  const catalog = await query<MagicCatalogEntry>(
+    'SELECT * FROM magic_catalog ORDER BY created_at DESC'
+  );
+
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       <DmNav current="magic" />
-      <div className="max-w-[640px] mx-auto px-8 py-12">
-        <h1 className="font-serif text-[2rem] italic text-[var(--color-text)] leading-none tracking-tight">Magic</h1>
-        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)] mt-1.5 mb-6">
-          Spells · Scrolls · Arcane Items
-        </p>
-        <div className="border-t border-[var(--color-border)] pt-6 text-[#5a4a44] text-sm font-serif italic">
-          Track discovered spells, copied scrolls, and magic items. Coming soon.
-        </div>
-      </div>
+      <MagicPageClient initial={catalog} />
     </div>
   );
 }
