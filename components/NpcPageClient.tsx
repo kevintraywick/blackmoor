@@ -63,8 +63,14 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
   function handleRollHp(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    const formula = values.hp_roll;
-    if (!formula.trim()) return;
+    let formula = values.hp_roll;
+    // Fallback: if hp_roll is empty, try SRD lookup by name
+    if (!formula.trim()) {
+      const match = lookupSrd(values.name);
+      if (!match) return;
+      formula = match.hp;
+      handleChange('hp_roll', formula);
+    }
     const result = rollDice(formula);
     if (result !== null) {
       handleChange('hp', String(result));

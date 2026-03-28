@@ -342,14 +342,27 @@ export const SRD_CREATURES: Record<string, SrdCreature> = {
 
 /** Look up a creature by name and return its SRD stats, or undefined if unknown. */
 export function lookupSrd(name: string): SrdCreature | undefined {
-  const key = name.trim().toLowerCase();
+  // Strip _N duplication suffix (e.g. "Ettercap_4" → "ettercap")
+  const key = name.trim().toLowerCase().replace(/_\d+$/, '');
   if (SRD_CREATURES[key]) return SRD_CREATURES[key];
 
-  // Try partial match — e.g. "Goblin Archer" → "goblin"
+  // Partial match — collect all candidates and pick the longest (most specific).
+  // Prefer endsWith over startsWith at equal length so "Wolf Skeleton" → "skeleton" not "wolf".
+  let best: { data: SrdCreature; len: number; isEnd: boolean } | null = null;
   for (const [creature, data] of Object.entries(SRD_CREATURES)) {
-    if (key.startsWith(creature) || key.endsWith(creature)) return data;
+    const ends = key.endsWith(creature);
+    const starts = key.startsWith(creature);
+    if (!ends && !starts) continue;
+    const len = creature.length;
+    if (
+      !best ||
+      len > best.len ||
+      (len === best.len && ends && !best.isEnd)
+    ) {
+      best = { data, len, isEnd: ends };
+    }
   }
-  return undefined;
+  return best?.data;
 }
 
 /** @deprecated Use lookupSrd instead */

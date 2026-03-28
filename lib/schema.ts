@@ -3,6 +3,7 @@
 import { pool } from './db';
 import { PLAYERS } from './players';
 import { lookupNpcImage } from './npc-images';
+import { lookupSrd } from './srd-hp';
 
 // Memoize across the process lifetime — avoids DDL round-trip on every request
 let schemaReady: Promise<void> | null = null;
@@ -234,6 +235,26 @@ async function _initSchema() {
     const match = lookupNpcImage(row.name as string);
     if (match) {
       await pool.query(`UPDATE npcs SET image_path = $1 WHERE id = $2`, [match, row.id]);
+    }
+  }
+
+  // Backfill hp_roll (and empty stat fields) for existing NPCs from SRD.
+  // Idempotent — only updates rows with empty hp_roll.
+  // Strips _N suffixes and uses partial matching so "Ettercap_4" → "8d8+8".
+  const npcsNeedingHpRoll = await pool.query(
+    `SELECT id, name, ac, speed, cr FROM npcs WHERE hp_roll IS NULL OR hp_roll = ''`
+  );
+  for (const row of npcsNeedingHpRoll.rows) {
+    const match = lookupSrd(row.name as string);
+    if (match) {
+      const sets: string[] = ['hp_roll = $1'];
+      const vals: unknown[] = [match.hp];
+      let i = 2;
+      if (!row.ac) { sets.push(`ac = $${i}`); vals.push(match.ac); i++; }
+      if (!row.speed) { sets.push(`speed = $${i}`); vals.push(match.speed); i++; }
+      if (!row.cr) { sets.push(`cr = $${i}`); vals.push(match.cr); i++; }
+      vals.push(row.id);
+      await pool.query(`UPDATE npcs SET ${sets.join(', ')} WHERE id = $${i}`, vals);
     }
   }
 }
