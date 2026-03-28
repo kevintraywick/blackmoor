@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
-import type { Session, Npc } from '@/lib/types';
+import type { Session, Npc, MenagerieEntry } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import { resolveImageUrl } from '@/lib/imageUrl';
 
@@ -178,6 +178,9 @@ export default function DmSessionsClient({
   const [npcIds, setNpcIds] = useState<string[]>(
     initial.length > 0 ? (Array.isArray(initial[0].npc_ids) ? initial[0].npc_ids : []) : []
   );
+  const [menagerie, setMenagerie] = useState<MenagerieEntry[]>(
+    initial.length > 0 ? (Array.isArray(initial[0].menagerie) ? initial[0].menagerie : []) : []
+  );
   const { save: autosave, status: saveStatus } = useAutosave(() => `/api/sessions/${selectedId}`);
   const creating = useRef(false);
 
@@ -187,6 +190,7 @@ export default function DmSessionsClient({
     setSelectedId(session.id);
     setValues(emptyValues(session));
     setNpcIds(Array.isArray(session.npc_ids) ? session.npc_ids : []);
+    setMenagerie(Array.isArray(session.menagerie) ? session.menagerie : []);
     try { localStorage.setItem('blackmoor-last-session', session.id); } catch { /* silent */ }
   }
 
@@ -211,6 +215,17 @@ export default function DmSessionsClient({
     autosave({ npc_ids: next });
     setSessions(prev => prev.map(s =>
       s.id === selectedId ? { ...s, npc_ids: next } : s
+    ));
+  }
+
+  function handleLongRest() {
+    if (!selectedId || menagerie.length === 0) return;
+    if (!confirm('Grant a Long Rest? This will restore all NPCs to full HP.')) return;
+    const restored = menagerie.map(e => ({ ...e, hp: e.maxHp ?? e.hp }));
+    setMenagerie(restored);
+    autosave({ menagerie: restored });
+    setSessions(prev => prev.map(s =>
+      s.id === selectedId ? { ...s, menagerie: restored } : s
     ));
   }
 
@@ -356,6 +371,43 @@ export default function DmSessionsClient({
               npcIds={npcIds}
               onToggle={handleNpcToggle}
             />
+
+            {/* Menagerie HP summary + Long Rest */}
+            {menagerie.length > 0 && menagerie.some(e => e.maxHp !== undefined) && (
+              <div className="mb-7">
+                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPC Hit Points</div>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {menagerie.map((entry, idx) => {
+                    const isDamaged = entry.maxHp !== undefined && entry.hp < entry.maxHp;
+                    const isDead = entry.hp <= 0;
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex items-center gap-2 px-2.5 py-1 rounded-full border text-xs font-serif ${
+                          isDead
+                            ? 'border-[#6a1a1a]/40 bg-[#241414] opacity-50'
+                            : isDamaged
+                              ? 'border-[#6a1a1a]/40 bg-[#2e1a1a]'
+                              : 'border-[#2d5a3f]/40 bg-[#1a2520]'
+                        }`}
+                      >
+                        <span className="text-[var(--color-text)]">{entry.label || 'NPC'}</span>
+                        <span className={`tabular-nums ${isDead ? 'text-[#a05050]' : isDamaged ? 'text-[#c07050]' : 'text-[#4a8a65]'}`}>
+                          {entry.hp}/{entry.maxHp}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={handleLongRest}
+                  className="text-[0.7rem] uppercase tracking-[0.15em] text-[#4a8a65] border border-[#2d5a3f]
+                             rounded px-4 py-2 hover:bg-[#1a2a1a] hover:border-[#4a8a65] transition-colors font-serif"
+                >
+                  Long Rest
+                </button>
+              </div>
+            )}
 
             {/* Save status */}
             <div className={`text-xs text-right mt-2 h-4 transition-opacity duration-200 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} ${statusColor}`}>

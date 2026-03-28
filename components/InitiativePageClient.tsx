@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import type { Npc, Player } from '@/lib/types';
+import type { Npc, Player, MenagerieEntry } from '@/lib/types';
 import { resolveImageUrl } from '@/lib/imageUrl';
 import { rollDice } from '@/lib/dice';
 
-interface SessionMeta { id: string; number: number; title: string; npc_ids: string[]; }
+interface SessionMeta { id: string; number: number; title: string; npc_ids: string[]; menagerie: MenagerieEntry[]; }
 
 interface Combatant {
   id: string;
@@ -99,6 +99,22 @@ export default function InitiativePageClient({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [turnDone, setTurnDone] = useState<boolean[]>([]);
 
+  // Menagerie — persistent NPC HP tracking across combats
+  const menagerieRef = useRef<MenagerieEntry[]>([]);
+  const combatSessionIdRef = useRef<string | null>(null);
+  const menagerieSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function saveMenagerie(sessionId: string, menagerie: MenagerieEntry[]) {
+    if (menagerieSaveTimer.current) clearTimeout(menagerieSaveTimer.current);
+    menagerieSaveTimer.current = setTimeout(() => {
+      fetch(`/api/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ menagerie }),
+      }).catch(() => {});
+    }, 500);
+  }
+
   const STORAGE_KEY = 'blackmoor-combat-state';
 
   // Persist combat state to localStorage
@@ -128,6 +144,7 @@ export default function InitiativePageClient({
   const sessionNpcIds = Array.isArray(selectedSession?.npc_ids) ? selectedSession.npc_ids : [];
 
   function handleGo() {
+    if (!selectedSession) return;
     const combatants: Combatant[] = [];
 
     activePlayers.forEach(p => {
@@ -143,10 +160,23 @@ export default function InitiativePageClient({
       });
     });
 
+    // ── Sync menagerie with npc_ids ──────────────────────────────────────────
+    // Existing menagerie entries carry HP from previous combats.
+    // New entries get a fresh roll. Removed NPCs are pruned.
+    const existingMenagerie = Array.isArray(selectedSession.menagerie) ? selectedSession.menagerie : [];
+
+    // Group existing entries by npc_id so we can consume them in order for duplicates
+    const pool: Record<string, MenagerieEntry[]> = {};
+    for (const entry of existingMenagerie) {
+      (pool[entry.npc_id] ??= []).push(entry);
+    }
+    const consumed: Record<string, number> = {};
+
     // Count occurrences per NPC type to know if we need numbering
     const npcCounts: Record<string, number> = {};
     sessionNpcIds.forEach(id => { npcCounts[id] = (npcCounts[id] ?? 0) + 1; });
     const npcInstanceNum: Record<string, number> = {};
+    const newMenagerie: MenagerieEntry[] = [];
 
     sessionNpcIds.forEach(npcId => {
       const n = npcs.find(x => x.id === npcId);
@@ -154,21 +184,52 @@ export default function InitiativePageClient({
       npcInstanceNum[npcId] = (npcInstanceNum[npcId] ?? 0) + 1;
       const count = npcCounts[npcId] ?? 1;
       const instanceNum = npcInstanceNum[npcId];
-      const rolledHp = n.hp_roll ? rollDice(n.hp_roll) : (n.hp ? parseInt(n.hp, 10) : undefined);
-      const hpVal = rolledHp && !isNaN(rolledHp) ? rolledHp : undefined;
+      const label = count > 1 ? `${n.name || 'Unnamed'} ${instanceNum}` : (n.name || 'Unnamed NPC');
+
+      // Try to reuse an existing menagerie entry for this npc_id
+      const idx = consumed[npcId] ?? 0;
+      const existing = pool[npcId]?.[idx];
+      consumed[npcId] = idx + 1;
+
+      let hp: number | undefined;
+      let maxHp: number | undefined;
+
+      if (existing && existing.maxHp !== undefined) {
+        // Returning NPC — use persisted HP
+        hp = existing.hp;
+        maxHp = existing.maxHp;
+      } else {
+        // New NPC or first combat — roll fresh HP
+        const rolledHp = n.hp_roll ? rollDice(n.hp_roll) : (n.hp ? parseInt(n.hp, 10) : undefined);
+        const hpVal = rolledHp && !isNaN(rolledHp) ? rolledHp : undefined;
+        hp = hpVal;
+        maxHp = hpVal;
+      }
+
+      newMenagerie.push({ npc_id: npcId, hp: hp ?? 0, maxHp: maxHp ?? 0, label });
+
       combatants.push({
         id: `${n.id}-${instanceNum}`,
-        name: count > 1 ? `${n.name || 'Unnamed'} ${instanceNum}` : (n.name || 'Unnamed NPC'),
+        name: label,
         type: 'npc',
         initiative: Math.floor(Math.random() * 20) + 1 + (npcBonuses[n.id] ?? 0),
         rolled: true,
         initial: n.name?.trim()?.[0]?.toUpperCase() ?? '?',
         imagePath: n.image_path,
-        hp: hpVal,
-        maxHp: hpVal,
+        hp,
+        maxHp,
         npcData: { ac: n.ac, speed: n.speed, cr: n.cr, attacks: n.attacks, traits: n.traits, actions: n.actions },
       });
     });
+
+    // Save menagerie to DB immediately (not debounced — this is the initial population)
+    menagerieRef.current = newMenagerie;
+    combatSessionIdRef.current = selectedSession.id;
+    fetch(`/api/sessions/${selectedSession.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ menagerie: newMenagerie }),
+    }).catch(() => {});
 
     combatants.sort((a, b) => {
       if (b.initiative !== a.initiative) return b.initiative - a.initiative;
@@ -204,6 +265,28 @@ export default function InitiativePageClient({
     });
     setResults(updated);
     persistCombat(updated, currentTurn, round, turnDone);
+
+    // Write back NPC HP changes to menagerie in DB
+    const c = updated[idx];
+    if (c.type === 'npc' && c.hp !== undefined && combatSessionIdRef.current) {
+      // Parse combatant id "npcId-instanceNum" to find menagerie entry
+      const dashIdx = c.id.lastIndexOf('-');
+      const npcId = c.id.slice(0, dashIdx);
+      const instanceNum = parseInt(c.id.slice(dashIdx + 1), 10);
+
+      // Find the matching menagerie entry (nth occurrence of this npc_id)
+      let count = 0;
+      for (let i = 0; i < menagerieRef.current.length; i++) {
+        if (menagerieRef.current[i].npc_id === npcId) {
+          count++;
+          if (count === instanceNum) {
+            menagerieRef.current[i] = { ...menagerieRef.current[i], hp: c.hp };
+            break;
+          }
+        }
+      }
+      saveMenagerie(combatSessionIdRef.current, [...menagerieRef.current]);
+    }
   }
 
 

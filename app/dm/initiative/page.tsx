@@ -8,12 +8,12 @@ import { ensureSchema } from '@/lib/schema';
 import { getPlayers } from '@/lib/getPlayers';
 import type { Session, Npc, PlayerSheet } from '@/lib/types';
 
-type SessionMeta = Pick<Session, 'id' | 'number' | 'title' | 'npc_ids'>;
+type SessionMeta = Pick<Session, 'id' | 'number' | 'title' | 'npc_ids' | 'menagerie'>;
 
 export default async function InitiativePage() {
   await ensureSchema();
   const [sessions, npcs, playerRows, players] = await Promise.all([
-    query<SessionMeta>('SELECT id, number, title, npc_ids FROM sessions ORDER BY number ASC'),
+    query<SessionMeta>('SELECT id, number, title, npc_ids, menagerie FROM sessions ORDER BY number ASC'),
     query<Npc>('SELECT * FROM npcs ORDER BY name ASC'),
     query<Pick<PlayerSheet, 'id' | 'status'>>('SELECT id, status FROM player_sheets'),
     getPlayers(),

@@ -64,6 +64,8 @@ export interface PlayerSheet {
 export interface MenagerieEntry {
   npc_id: string;
   hp: number;
+  maxHp?: number;
+  label?: string;
 }
 
 export interface Session {
