@@ -88,9 +88,6 @@ export default function InitiativePageClient({
   const [playerInits, setPlayerInits] = useState<Record<string, number>>(
     Object.fromEntries(players.map(p => [p.id, 0]))
   );
-  const [npcIncluded, setNpcIncluded] = useState<Record<string, boolean>>(
-    Object.fromEntries(npcs.map(n => [n.id, true]))
-  );
   const [npcBonuses, setNpcBonuses] = useState<Record<string, number>>(
     Object.fromEntries(npcs.map(n => [n.id, 0]))
   );
@@ -148,10 +145,9 @@ export default function InitiativePageClient({
     sessionNpcIds.forEach(id => { npcCounts[id] = (npcCounts[id] ?? 0) + 1; });
     const npcInstanceNum: Record<string, number> = {};
 
-    const idsToRoll = sessionNpcIds.length > 0 ? sessionNpcIds : npcs.map(n => n.id);
-    idsToRoll.forEach(npcId => {
+    sessionNpcIds.forEach(npcId => {
       const n = npcs.find(x => x.id === npcId);
-      if (!n || !npcIncluded[n.id]) return;
+      if (!n) return;
       npcInstanceNum[npcId] = (npcInstanceNum[npcId] ?? 0) + 1;
       const count = npcCounts[npcId] ?? 1;
       const instanceNum = npcInstanceNum[npcId];
@@ -392,7 +388,6 @@ export default function InitiativePageClient({
 
   // ── SETUP VIEW ───────────────────────────────────────────────────────────────
   const visibleNpcs = npcs.filter(n => sessionNpcIds.includes(n.id));
-  const allIncluded = visibleNpcs.length > 0 && visibleNpcs.every(n => npcIncluded[n.id]);
 
   return (
     <div className="relative z-10 -mt-[84px] max-w-[780px] mx-auto px-4 pb-16 flex gap-4 items-start">
@@ -429,13 +424,12 @@ export default function InitiativePageClient({
 
           {/* Players */}
           <div className="relative px-6 pt-5 pb-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-serif text-[1.1rem] italic text-[var(--color-text)] leading-none tracking-tight">Players</h2>
-              {/* Arrow positioned above the counter column */}
+            <div className="flex items-center mb-4">
+              <h2 className="font-serif text-[1.1rem] italic text-[var(--color-text)] leading-none tracking-tight flex-1">Players</h2>
               <button
                 onClick={handleGo}
                 className="w-10 h-10 rounded-full bg-[var(--color-gold)] text-black font-bold text-xl
-                           flex items-center justify-center hover:bg-[#e0bc5a] transition-colors mr-[2px]"
+                           flex items-center justify-center hover:bg-[#e0bc5a] transition-colors"
                 title="Roll Initiative"
               >
                 🎲
@@ -471,29 +465,16 @@ export default function InitiativePageClient({
           <div className="px-6 pt-4 pb-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-serif text-[1.1rem] italic text-[var(--color-text)] leading-none tracking-tight">NPCs</h2>
-              {visibleNpcs.length > 0 && (
-                <button
-                  onClick={() => setNpcIncluded(Object.fromEntries(visibleNpcs.map(n => [n.id, !allIncluded])))}
-                  className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors"
-                >
-                  {allIncluded ? 'Deselect all' : 'Select all'}
-                </button>
-              )}
             </div>
             {visibleNpcs.length === 0 ? (
               <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs assigned to this session.</p>
             ) : (
               <div className="flex flex-col gap-3">
                 {visibleNpcs.map(n => {
-                  const included = npcIncluded[n.id] ?? false;
                   const imgUrl = n.image_path ? resolveImageUrl(n.image_path) : null;
                   const initial = n.name?.trim()?.[0]?.toUpperCase() ?? '?';
                   return (
-                    <div
-                      key={n.id}
-                      className={`flex items-center gap-3 cursor-pointer transition-opacity ${included ? '' : 'opacity-40'}`}
-                      onClick={() => setNpcIncluded(prev => ({ ...prev, [n.id]: !prev[n.id] }))}
-                    >
+                    <div key={n.id} className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full overflow-hidden bg-[#2e2825] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
                         {imgUrl ? (
                           <img src={imgUrl} alt={n.name} className="w-full h-full object-cover" />
@@ -504,18 +485,11 @@ export default function InitiativePageClient({
                       <div className="flex-1 min-w-0">
                         <div className="font-serif text-sm text-[var(--color-text)] truncate">{n.name || 'Unnamed'}</div>
                       </div>
-                      <div className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-                        included ? 'border-[var(--color-gold)] bg-[var(--color-gold)]' : 'border-[var(--color-border)] bg-transparent'
-                      }`}>
-                        {included && <span className="text-black text-[10px] font-bold leading-none">✓</span>}
-                      </div>
                       <span className="text-[0.6rem] uppercase tracking-[0.1em] text-[#5a4a44] flex-shrink-0">d20+</span>
-                      <div onClick={e => e.stopPropagation()}>
-                        <InitCounter
-                          value={npcBonuses[n.id] ?? 0}
-                          onChange={v => setNpcBonuses(prev => ({ ...prev, [n.id]: v }))}
-                        />
-                      </div>
+                      <InitCounter
+                        value={npcBonuses[n.id] ?? 0}
+                        onChange={v => setNpcBonuses(prev => ({ ...prev, [n.id]: v }))}
+                      />
                     </div>
                   );
                 })}
