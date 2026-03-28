@@ -83,7 +83,7 @@ export default function InitiativePageClient({
       const lastId = localStorage.getItem('blackmoor-last-session');
       if (lastId && sessions.some(s => s.id === lastId)) return lastId;
     } catch { /* silent */ }
-    return sessions[sessions.length - 1]?.id ?? null;
+    return sessions[0]?.id ?? null;
   });
   const [playerInits, setPlayerInits] = useState<Record<string, number>>(
     Object.fromEntries(players.map(p => [p.id, 0]))
@@ -426,14 +426,19 @@ export default function InitiativePageClient({
           <div className="relative px-6 pt-5 pb-5">
             <div className="flex items-center mb-4">
               <h2 className="font-serif text-[1.1rem] italic text-[var(--color-text)] leading-none tracking-tight flex-1">Players</h2>
-              <button
-                onClick={handleGo}
-                className="w-10 h-10 rounded-full bg-[var(--color-gold)] text-black font-bold text-xl
-                           flex items-center justify-center hover:bg-[#e0bc5a] transition-colors"
-                title="Roll Initiative"
-              >
-                🎲
-              </button>
+              {/* Wrapper matches InitCounter width so dice centers over the column */}
+              <div className="flex items-center gap-1 flex-shrink-0" style={{ width: 'calc(1.75rem + 3rem + 1.75rem + 0.5rem)' }}>
+                <div className="flex-1 flex justify-center">
+                  <button
+                    onClick={handleGo}
+                    className="w-10 h-10 rounded-full bg-[var(--color-gold)] text-black font-bold text-xl
+                               flex items-center justify-center hover:bg-[#e0bc5a] transition-colors"
+                    title="Roll Initiative"
+                  >
+                    🎲
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="flex flex-col gap-4">
               {activePlayers.map(p => (
