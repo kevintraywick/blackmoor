@@ -115,6 +115,18 @@ export interface MapRow {
 // Player version — dm_notes omitted (never sent to client)
 export type PlayerMapRow = Omit<MapRow, 'dm_notes'>;
 
+export type MagicCategory = 'spell' | 'scroll' | 'magic_item' | 'other';
+
+export interface MagicCatalogEntry {
+  id: string;
+  category: MagicCategory;
+  name: string;
+  api_key: string | null;
+  description: string;
+  metadata: Record<string, unknown>;
+  created_at: number;
+}
+
 export interface Npc {
   id: string;
   name: string;
