@@ -27,6 +27,7 @@ interface CombatState {
   results: Combatant[];
   currentTurn: number;
   round: number;
+  turnDone?: boolean[];
 }
 
 function InitCounter({ value, onChange }: { value: number; onChange: (n: number) => void }) {
@@ -96,13 +97,14 @@ export default function InitiativePageClient({
   const [currentTurn, setCurrentTurn] = useState(0);
   const [round, setRound] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [turnDone, setTurnDone] = useState<boolean[]>([]);
 
   const STORAGE_KEY = 'blackmoor-combat-state';
 
   // Persist combat state to localStorage
-  const persistCombat = useCallback((r: Combatant[], turn: number, rnd: number) => {
+  const persistCombat = useCallback((r: Combatant[], turn: number, rnd: number, done?: boolean[]) => {
     try {
-      const state: CombatState = { results: r, currentTurn: turn, round: rnd };
+      const state: CombatState = { results: r, currentTurn: turn, round: rnd, turnDone: done };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch { /* silent */ }
   }, []);
@@ -117,6 +119,7 @@ export default function InitiativePageClient({
         setResults(state.results);
         setCurrentTurn(state.currentTurn ?? 0);
         setRound(state.round ?? 1);
+        setTurnDone(state.turnDone ?? new Array(state.results.length).fill(false));
       }
     } catch { /* silent */ }
   }, []);
@@ -175,10 +178,12 @@ export default function InitiativePageClient({
       return 0;
     });
 
+    const initialDone = new Array(combatants.length).fill(false);
     setResults(combatants);
     setCurrentTurn(0);
     setRound(1);
-    persistCombat(combatants, 0, 1);
+    setTurnDone(initialDone);
+    persistCombat(combatants, 0, 1, initialDone);
   }
 
   function handleReset() {
@@ -186,6 +191,7 @@ export default function InitiativePageClient({
     setCurrentTurn(0);
     setRound(1);
     setExpandedId(null);
+    setTurnDone([]);
     setPlayerInits(Object.fromEntries(players.map(p => [p.id, 0])));
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* silent */ }
   }
@@ -197,16 +203,19 @@ export default function InitiativePageClient({
       return { ...c, hp: Math.max(0, c.hp + delta) };
     });
     setResults(updated);
-    persistCombat(updated, currentTurn, round);
+    persistCombat(updated, currentTurn, round, turnDone);
   }
 
   function advanceTurn() {
     if (!results) return;
     const nextTurn = (currentTurn + 1) % results.length;
     const nextRound = nextTurn === 0 ? round + 1 : round;
+    // Reset checkboxes at the start of a new round
+    const nextDone = nextTurn === 0 ? new Array(results.length).fill(false) : turnDone;
     setCurrentTurn(nextTurn);
     setRound(nextRound);
-    persistCombat(results, nextTurn, nextRound);
+    if (nextTurn === 0) setTurnDone(nextDone);
+    persistCombat(results, nextTurn, nextRound, nextDone);
   }
 
   // ── RESULTS VIEW ─────────────────────────────────────────────────────────────
@@ -290,7 +299,7 @@ export default function InitiativePageClient({
                       <div className="text-[0.6rem] uppercase tracking-[0.1em] text-[var(--color-border)]">{c.subName}</div>
                     )}
                     {c.npcData && (
-                      <div className="text-[0.55rem] uppercase tracking-[0.1em] text-[#5a4a44] flex gap-2 mt-0.5">
+                      <div className="text-[0.55rem] uppercase tracking-[0.1em] text-[#d5cfc8] flex gap-2 mt-0.5">
                         {c.npcData.ac && <span>AC {c.npcData.ac}</span>}
                         {c.npcData.speed && <span>{c.npcData.speed}</span>}
                         {c.npcData.cr && <span>CR {c.npcData.cr}</span>}
@@ -307,10 +316,10 @@ export default function InitiativePageClient({
                                    flex items-center justify-center hover:bg-[#4a2020] transition-colors text-sm leading-none"
                       >−</button>
                       <span className={`w-14 text-center font-serif text-sm tabular-nums ${
-                        c.hp <= 0 ? 'text-[#a05050]'
-                          : c.hp <= (c.maxHp ?? 0) * 0.25 ? 'text-[#c07040]'
-                          : c.hp <= (c.maxHp ?? 0) * 0.5 ? 'text-[var(--color-gold)]'
-                          : 'text-[#4a8a65]'
+                        c.hp <= 0 ? 'text-[#e06060]'
+                          : c.hp <= (c.maxHp ?? 0) * 0.25 ? 'text-[#e09050]'
+                          : c.hp <= (c.maxHp ?? 0) * 0.5 ? 'text-[#e0c060]'
+                          : 'text-[#70c090]'
                       }`}>
                         {c.hp}/{c.maxHp}
                       </span>
@@ -341,6 +350,25 @@ export default function InitiativePageClient({
                   }`}>
                     {c.type === 'player' ? 'PC' : 'NPC'}
                   </span>
+
+                  {/* Turn done checkbox */}
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      const next = [...turnDone];
+                      next[i] = !next[i];
+                      setTurnDone(next);
+                      persistCombat(results, currentTurn, round, next);
+                    }}
+                    className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                      turnDone[i]
+                        ? 'border-[var(--color-gold)] bg-[var(--color-gold)]'
+                        : 'border-[var(--color-border)] bg-transparent hover:border-[#5a4a44]'
+                    }`}
+                    title={turnDone[i] ? 'Mark as not done' : 'Mark turn done'}
+                  >
+                    {turnDone[i] && <span className="text-black text-[10px] font-bold leading-none">✓</span>}
+                  </button>
                 </div>
 
                 {/* Expanded NPC stat block */}
