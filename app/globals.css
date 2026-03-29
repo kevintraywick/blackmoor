@@ -34,3 +34,10 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans);
 }
+
+.magic-cat-btn {
+  background: transparent;
+}
+.magic-cat-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cat-color) 13%, transparent);
+}

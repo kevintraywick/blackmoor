@@ -251,6 +251,15 @@ async function _initSchema() {
     )
   `);
 
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS magic_catalog_created_at_idx
+    ON magic_catalog (created_at DESC)
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS magic_catalog_category_api_key_idx
+    ON magic_catalog (category, api_key) WHERE api_key IS NOT NULL
+  `);
+
   // Seed Instruments of the Bards into magic_catalog if not already present
   const [{ bard_count }] = await pool.query(
     `SELECT COUNT(*)::int as bard_count FROM magic_catalog WHERE category = 'other' AND api_key = 'seed:bard-instrument'`

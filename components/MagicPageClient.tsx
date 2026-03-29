@@ -30,6 +30,10 @@ function formatSpellHeader(meta: Record<string, unknown>) {
   return parts;
 }
 
+function scrollName(name: string) {
+  return `Scroll of ${name}`;
+}
+
 function formatItemHeader(meta: Record<string, unknown>) {
   const parts: string[] = [];
   if (meta.category) parts.push(meta.category as string);
@@ -51,11 +55,14 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
   const [otherName, setOtherName] = useState('');
   const [otherDesc, setOtherDesc] = useState('');
   const [showOtherEditor, setShowOtherEditor] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   async function handleSearch(category: MagicCategory) {
     const q = searchQuery.trim();
     if (!q) return;
+
+    // Cancel any in-flight search
+    abortRef.current?.abort();
 
     // "Other" — open editor instead of API search
     if (category === 'other') {
@@ -64,25 +71,34 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
       setShowOtherEditor(true);
       setSearchResults([]);
       setSearchCategory(null);
+      setSearchError(null);
       return;
     }
 
-    const config = CATEGORY_CONFIG.find(c => c.key === category)!;
+    const config = CATEGORY_CONFIG.find(c => c.key === category);
+    if (!config) return;
     setSearching(true);
     setSearchError(null);
     setSearchResults([]);
     setSearchCategory(category);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
       const res = await fetch('/api/magic/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ q, category: config.apiCategory }),
+        signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
+      if (controller.signal.aborted) return;
       setSearchResults(data.results ?? []);
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       setSearchError('The arcane library is unreachable. Try again later.');
       setSearchResults([]);
     } finally {
@@ -91,7 +107,11 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
   }
 
   async function selectResult(result: SearchResult, category: MagicCategory) {
-    const displayName = category === 'scroll' ? `Scroll of ${result.name}` : result.name;
+    const displayName = category === 'scroll' ? scrollName(result.name) : result.name;
+
+    // Clear search results immediately to prevent double-click
+    setSearchResults([]);
+    setSearchCategory(null);
 
     // Load into pane
     setPaneContents(prev => ({
@@ -99,11 +119,7 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
       [category]: { name: displayName, description: result.description, metadata: result.metadata },
     }));
 
-    // Clear search results
-    setSearchResults([]);
-    setSearchCategory(null);
-
-    // Save to catalog
+    // Save to catalog (upsert — server deduplicates by category + api_key)
     try {
       const res = await fetch('/api/magic/catalog', {
         method: 'POST',
@@ -118,7 +134,11 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
       });
       if (res.ok) {
         const entry: MagicCatalogEntry = await res.json();
-        setCatalog(prev => [entry, ...prev]);
+        // Replace existing entry with same api_key or prepend new one
+        setCatalog(prev => {
+          const filtered = prev.filter(e => !(e.api_key && e.api_key === entry.api_key && e.category === entry.category));
+          return [entry, ...filtered];
+        });
       }
     } catch { /* catalog save failure is non-critical */ }
   }
@@ -155,15 +175,19 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
   function loadFromCatalog(entry: MagicCatalogEntry) {
     setPaneContents(prev => ({
       ...prev,
-      [entry.category]: { name: entry.name, description: entry.description, metadata: entry.metadata as Record<string, unknown> },
+      [entry.category]: { name: entry.name, description: entry.description, metadata: entry.metadata },
     }));
   }
 
   async function removeCatalogEntry(id: string) {
-    setCatalog(prev => prev.filter(e => e.id !== id));
+    const prev = catalog;
+    setCatalog(p => p.filter(e => e.id !== id));
     try {
-      await fetch(`/api/magic/catalog/${id}`, { method: 'DELETE' });
-    } catch { /* non-critical */ }
+      const res = await fetch(`/api/magic/catalog/${id}`, { method: 'DELETE' });
+      if (!res.ok) setCatalog(prev);
+    } catch {
+      setCatalog(prev);
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -184,7 +208,6 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
       {/* Search bar + category buttons */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <input
-          ref={searchInputRef}
           type="text"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
@@ -202,18 +225,12 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
               disabled={searching}
               className="px-3 py-1.5 text-[0.7rem] uppercase tracking-[0.15em] font-serif
                          border rounded transition-colors
-                         disabled:opacity-50 cursor-pointer"
+                         disabled:opacity-50 cursor-pointer magic-cat-btn"
               style={{
+                '--cat-color': cat.color,
                 borderColor: cat.color,
                 color: cat.color,
-                background: 'transparent',
-              }}
-              onMouseEnter={e => {
-                (e.target as HTMLElement).style.background = cat.color + '22';
-              }}
-              onMouseLeave={e => {
-                (e.target as HTMLElement).style.background = 'transparent';
-              }}
+              } as React.CSSProperties}
             >
               {cat.sigil} {cat.label}
             </button>
@@ -228,7 +245,7 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
         </div>
       )}
       {searchError && (
-        <div className="text-[#a05a4a] font-serif italic text-sm mb-4">
+        <div className="text-[var(--color-danger,#a05a4a)] font-serif italic text-sm mb-4">
           {searchError}
         </div>
       )}
@@ -243,7 +260,7 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
                          last:border-b-0 transition-colors cursor-pointer"
             >
               <span className="font-semibold">
-                {searchCategory === 'scroll' ? `Scroll of ${r.name}` : r.name}
+                {searchCategory === 'scroll' ? scrollName(r.name) : r.name}
               </span>
               {r.metadata.level !== undefined && (
                 <span className="ml-2 text-[var(--color-text-muted)] text-xs">
@@ -262,9 +279,11 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
       )}
 
       {/* "Other" editor */}
-      {showOtherEditor && (
-        <div className="border border-[#6a8a6a] rounded bg-[var(--color-surface)] p-4 mb-4">
-          <div className="text-[0.65rem] uppercase tracking-[0.18em] text-[#6a8a6a] mb-2">
+      {showOtherEditor && (() => {
+        const otherColor = CATEGORY_CONFIG.find(c => c.key === 'other')!.color;
+        return (
+        <div className="border rounded bg-[var(--color-surface)] p-4 mb-4" style={{ borderColor: otherColor }}>
+          <div className="text-[0.65rem] uppercase tracking-[0.18em] mb-2" style={{ color: otherColor }}>
             New Entry: {otherName}
           </div>
           <textarea
@@ -274,13 +293,15 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
             rows={4}
             className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded px-3 py-2
                        text-[var(--color-text)] font-serif text-sm placeholder:text-[var(--color-text-dim)]
-                       outline-none focus:border-[#6a8a6a] resize-y"
+                       outline-none resize-y"
+            style={{ '--focus-color': otherColor } as React.CSSProperties}
           />
           <div className="flex gap-2 mt-2">
             <button
               onClick={saveOtherEntry}
               className="px-4 py-1.5 text-[0.7rem] uppercase tracking-[0.15em] font-serif
-                         border border-[#6a8a6a] text-[#6a8a6a] rounded hover:bg-[#6a8a6a22] transition-colors cursor-pointer"
+                         border rounded transition-colors cursor-pointer magic-cat-btn"
+              style={{ '--cat-color': otherColor, borderColor: otherColor, color: otherColor } as React.CSSProperties}
             >
               Save
             </button>
@@ -294,7 +315,8 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
             </button>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Catalog strip */}
       {catalog.length > 0 && (
@@ -304,7 +326,8 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
           </div>
           <div className="flex flex-wrap gap-3">
             {catalog.map(entry => {
-              const config = CATEGORY_CONFIG.find(c => c.key === entry.category)!;
+              const config = CATEGORY_CONFIG.find(c => c.key === entry.category);
+              if (!config) return null;
               return (
                 <div key={entry.id} className="group relative">
                   <button
@@ -327,7 +350,7 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
                     onClick={() => removeCatalogEntry(entry.id)}
                     className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)]
                                text-[var(--color-text-dim)] text-[0.55rem] leading-none flex items-center justify-center
-                               opacity-0 group-hover:opacity-100 transition-opacity hover:text-[#a05a4a] cursor-pointer"
+                               opacity-0 group-hover:opacity-100 transition-opacity hover:text-[var(--color-danger,#a05a4a)] cursor-pointer"
                     title="Remove from catalog"
                   >
                     &times;
