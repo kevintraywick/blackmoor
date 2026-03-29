@@ -27,6 +27,18 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   const [tiles, setTiles] = useState<Map<number, TileState>>(new Map());
   const [saving, setSaving] = useState(false);
 
+  // Image overlay state
+  const [overlay, setOverlay] = useState<{
+    image_path: string;
+    base64: string;
+    media_type: string;
+    width_meters: number;
+    height_meters: number;
+    confidence: string;
+    analyzing: boolean;
+  } | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const { push: pushUndo, undo, redo } = useUndoRedo();
   const [editingLevelName, setEditingLevelName] = useState<string | null>(null);
@@ -225,6 +237,76 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     switchLevel(level.id);
   }
 
+  // ── Image drop handler ──────────────────────────────────────────────────────
+  async function handleImageDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    if (overlay) return; // one overlay at a time
+    if (!activeBuildId) return;
+
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    // Upload
+    const formData = new FormData();
+    formData.append('file', file);
+    const uploadRes = await fetch(`/api/map-builder/${activeBuildId}/image`, {
+      method: 'POST',
+      body: formData,
+    });
+    const uploadData = await uploadRes.json();
+    if (!uploadData.ok) return;
+
+    setOverlay({
+      image_path: uploadData.image_path,
+      base64: uploadData.base64,
+      media_type: uploadData.media_type,
+      width_meters: 30,
+      height_meters: 30,
+      confidence: '',
+      analyzing: true,
+    });
+
+    // Mappy analysis
+    const mappyRes = await fetch(`/api/map-builder/${activeBuildId}/mappy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64: uploadData.base64, media_type: uploadData.media_type }),
+    });
+    const mappyData = await mappyRes.json();
+
+    setOverlay(prev => prev ? {
+      ...prev,
+      width_meters: mappyData.width_meters ?? 30,
+      height_meters: mappyData.height_meters ?? 30,
+      confidence: mappyData.confidence ?? 'low',
+      analyzing: false,
+    } : null);
+  }
+
+  function commitOverlay() {
+    if (!overlay || !activeBuildId || !activeLevelId) return;
+    // For now, store the image reference in the level's images array
+    const newImage = {
+      id: crypto.randomUUID(),
+      image_path: overlay.image_path,
+      x: 0,
+      y: 0,
+      width: overlay.width_meters,
+      height: overlay.height_meters,
+    };
+    fetch(`/api/map-builder/${activeBuildId}/levels/${activeLevelId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ images: [...(activeLevel?.images ?? []), newImage] }),
+    });
+    setOverlay(null);
+  }
+
+  function cancelOverlay() {
+    setOverlay(null);
+  }
+
   const activeLevel = levels.find(l => l.id === activeLevelId);
 
   // ── No build selected: show build list ─────────────────────────────────────
@@ -344,18 +426,77 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
         </div>
       </div>
 
-      {/* Canvas area */}
-      <div className="flex-1 relative overflow-hidden bg-[#12100e]">
+      {/* Canvas area — also a drop zone */}
+      <div
+        className={`flex-1 relative overflow-hidden bg-[#12100e] ${dragOver ? 'ring-2 ring-inset ring-[var(--color-gold)]' : ''}`}
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleImageDrop}
+      >
         {activeLevel && (
           <BuilderCanvas
             cols={activeLevel.cols}
             rows={activeLevel.rows}
             hexSize={HEX_SIZE}
             tiles={tiles}
-            activeTool={tool}
-            onTileClick={tool === 'activate' ? handleTileClick : undefined}
+            activeTool={overlay ? 'pan' : tool}
+            onTileClick={!overlay && tool === 'activate' ? handleTileClick : undefined}
             onPointerUp={handlePointerUp}
           />
+        )}
+
+        {/* Drag-over hint */}
+        {dragOver && !overlay && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-gold)]/5 pointer-events-none">
+            <span className="font-serif text-lg text-[var(--color-gold)]">Drop map image here</span>
+          </div>
+        )}
+
+        {/* Image overlay controls */}
+        {overlay && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-4 py-3 flex items-center gap-4 shadow-lg">
+            {overlay.analyzing ? (
+              <span className="font-serif text-sm text-[var(--color-text-muted)]">Mappy is analyzing...</span>
+            ) : (
+              <>
+                <span className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">Size (m)</span>
+                <input
+                  type="number"
+                  value={overlay.width_meters}
+                  onChange={e => setOverlay(prev => prev ? { ...prev, width_meters: Number(e.target.value) || 1 } : null)}
+                  className="w-16 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-sm text-center outline-none focus:border-[var(--color-gold)]"
+                />
+                <span className="text-[var(--color-text-dim)]">x</span>
+                <input
+                  type="number"
+                  value={overlay.height_meters}
+                  onChange={e => setOverlay(prev => prev ? { ...prev, height_meters: Number(e.target.value) || 1 } : null)}
+                  className="w-16 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-sm text-center outline-none focus:border-[var(--color-gold)]"
+                />
+                {overlay.confidence && (
+                  <span className={`text-[0.6rem] uppercase tracking-wider ${
+                    overlay.confidence === 'high' ? 'text-[#5a8a5a]' :
+                    overlay.confidence === 'medium' ? 'text-[var(--color-gold)]' :
+                    'text-[#8a5a4a]'
+                  }`}>
+                    {overlay.confidence}
+                  </span>
+                )}
+                <button
+                  onClick={commitOverlay}
+                  className="px-3 py-1 text-[0.75rem] font-serif bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold)]/40 rounded hover:bg-[var(--color-gold)]/25 transition-colors"
+                >
+                  Commit
+                </button>
+                <button
+                  onClick={cancelOverlay}
+                  className="px-3 py-1 text-[0.75rem] font-serif text-[var(--color-text-muted)] border border-[var(--color-border)] rounded hover:border-[var(--color-text-muted)] transition-colors"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
