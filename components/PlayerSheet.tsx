@@ -27,6 +27,9 @@ function BoonList({ value, onChange }: { value: string; onChange: (v: string) =>
 
   return (
     <div>
+      {lines.length === 0 && (
+        <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">Use + to add a boon or quest reward</p>
+      )}
       {lines.map((line, i) => {
         if (!line.trim()) return null;
         const isChecked = line.startsWith('☑');
@@ -104,6 +107,9 @@ function WeaponList({
         <span></span>
       </div>
 
+      {weapons.length === 0 && (
+        <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">No weapons yet</p>
+      )}
       {weapons.map(w => (
         <div key={w.id} className="grid grid-cols-[1fr_50px_70px_16px] gap-1 items-center py-[3px]">
           <input value={w.name}         onChange={e => onUpdate(w.id, 'name', e.target.value)}         className={`${rowIn} text-[var(--color-text-body)] truncate`} />
@@ -160,7 +166,9 @@ function ItemList({
   items: MarketplaceItem[];
   onDelete: (id: string) => void;
 }) {
-  if (items.length === 0) return null;
+  if (items.length === 0) return (
+    <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">Visit the Marketplace to acquire items</p>
+  );
   const effect = (item: MarketplaceItem) => {
     if (!item.stat_type || item.stat_value == null) return '';
     return `${item.stat_type.charAt(0).toUpperCase() + item.stat_type.slice(1)} ${item.stat_value}`;
@@ -221,6 +229,9 @@ function SpellList({
 
   return (
     <div>
+      {spells.length === 0 && (
+        <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">No spells yet</p>
+      )}
       {spells.map((spell, i) => {
         const ri = 'bg-transparent border-none outline-none font-serif';
         return (

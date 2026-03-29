@@ -35,16 +35,12 @@ export default async function PlayersPage() {
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-serif">
 
       {/* Sticky nav */}
-      <nav className="sticky top-0 bg-[var(--color-bg)]/95 backdrop-blur border-b border-[var(--color-border)] px-8 py-2.5 flex items-center gap-2 z-10 text-sm">
-        <Link href="/" className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors no-underline">← Home</Link>
-        <span className="text-[var(--color-border)] select-none">·</span>
+      <nav className="sticky top-0 bg-[var(--color-bg)]/95 backdrop-blur border-b border-[var(--color-border)] px-8 py-2.5 flex items-center gap-4 z-10 text-sm">
+        <Link href="/" className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors no-underline flex items-center gap-1">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 inline-block -mt-px"><path d="M10 3L5 8l5 5" /></svg>
+          Home
+        </Link>
         <span className="text-[var(--color-gold)] font-semibold">Players</span>
-        <span className="text-[var(--color-border)] select-none">·</span>
-        <span title="Coming soon" className="text-[#4a3c35] cursor-not-allowed select-none">NPCs</span>
-        <span className="text-[var(--color-border)] select-none">·</span>
-        <span title="Coming soon" className="text-[#4a3c35] cursor-not-allowed select-none">Maps</span>
-        <span className="text-[var(--color-border)] select-none">·</span>
-        <span title="Coming soon" className="text-[#4a3c35] cursor-not-allowed select-none">Magic</span>
       </nav>
 
       {/* Client component handles selector + active sheet */}

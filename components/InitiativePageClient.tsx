@@ -304,7 +304,7 @@ export default function InitiativePageClient({
             className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] border border-[var(--color-border)]
                        rounded px-3 py-1.5 hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
           >
-            ← Reset
+            Reset
           </button>
         </div>
 
