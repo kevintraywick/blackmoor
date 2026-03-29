@@ -28,9 +28,9 @@ function ArrowLeft() {
 
 export default function DmNav({ current, sessionId }: { current: NavSection; sessionId?: string }) {
   return (
-    <nav className="sticky top-0 bg-[#4a7a5a] backdrop-blur border-b border-[#5a8a6a] px-8 py-2.5 flex items-center gap-4 z-10 text-sm font-serif">
-      <Link href="/" className="flex items-center gap-2 text-white/70 hover:text-white transition-colors no-underline flex-shrink-0">
-        <div className="relative w-6 h-6 rounded-full border border-white/30 overflow-hidden flex-shrink-0">
+    <nav className="sticky top-0 bg-[#161d18] backdrop-blur border-b border-[#4a7a5a]/40 px-8 py-2.5 flex items-center gap-4 z-10 text-sm font-serif">
+      <Link href="/" className="flex items-center gap-2 text-[#4a8a5a] hover:text-[#5ab87a] transition-colors no-underline flex-shrink-0">
+        <div className="relative w-6 h-6 rounded-full border border-[#4a7a5a] overflow-hidden flex-shrink-0">
           <Image src="/images/dm.png" alt="" fill className="object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
         </div>
         <ArrowLeft />
@@ -39,8 +39,8 @@ export default function DmNav({ current, sessionId }: { current: NavSection; ses
       {LINKS.map(link => {
         const href = link.key === 'maps' && sessionId ? `/dm/maps?session=${sessionId}` : link.href;
         return link.key === current
-          ? <span key={link.key} className="text-white font-semibold">{link.label}</span>
-          : <Link key={link.key} href={href} className="text-white/70 hover:text-white transition-colors no-underline">{link.label}</Link>;
+          ? <span key={link.key} className="text-[#5ab87a] font-semibold">{link.label}</span>
+          : <Link key={link.key} href={href} className="text-[#4a8a5a] hover:text-[#5ab87a] transition-colors no-underline">{link.label}</Link>;
       })}
     </nav>
   );
