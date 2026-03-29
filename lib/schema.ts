@@ -312,6 +312,78 @@ async function _initSchema() {
     }
   }
 
+  // ── Map Builder tables ──────────────────────────────────────────────────────
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS map_builds (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL DEFAULT '',
+      created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      updated_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS map_build_levels (
+      id          TEXT PRIMARY KEY,
+      build_id    TEXT NOT NULL REFERENCES map_builds(id) ON DELETE CASCADE,
+      name        TEXT NOT NULL DEFAULT 'Level 1',
+      sort_order  INTEGER NOT NULL DEFAULT 0,
+      cols        INTEGER NOT NULL DEFAULT 100,
+      rows        INTEGER NOT NULL DEFAULT 100,
+      tiles       JSONB NOT NULL DEFAULT '{}',
+      assets      JSONB NOT NULL DEFAULT '[]',
+      images      JSONB NOT NULL DEFAULT '[]'
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS map_build_levels_build_id_idx
+    ON map_build_levels (build_id, sort_order)
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS map_build_bookmarks (
+      id          TEXT PRIMARY KEY,
+      build_id    TEXT NOT NULL REFERENCES map_builds(id) ON DELETE CASCADE,
+      name        TEXT NOT NULL DEFAULT '',
+      snapshot    JSONB NOT NULL DEFAULT '{}',
+      created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS map_build_assets (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      category    TEXT NOT NULL CHECK (category IN ('wall', 'door', 'stairs', 'water', 'custom')),
+      image_path  TEXT,
+      is_builtin  BOOLEAN NOT NULL DEFAULT false,
+      created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `).catch(() => {});
+
+  // Seed built-in primitive assets
+  const [{ builtin_count }] = await pool.query(
+    `SELECT COUNT(*)::int as builtin_count FROM map_build_assets WHERE is_builtin = true`
+  ).then(r => r.rows).catch(() => [{ builtin_count: 0 }]);
+  if (builtin_count === 0) {
+    const builtins = [
+      { name: 'Wall', category: 'wall' },
+      { name: 'Door', category: 'door' },
+      { name: 'Stairs', category: 'stairs' },
+      { name: 'Water', category: 'water' },
+    ];
+    for (const b of builtins) {
+      await pool.query(
+        `INSERT INTO map_build_assets (id, name, category, is_builtin)
+         VALUES (gen_random_uuid()::text, $1, $2, true)
+         ON CONFLICT DO NOTHING`,
+        [b.name, b.category]
+      ).catch(() => {});
+    }
+  }
+
   // Backfill hp_roll (and empty stat fields) for existing NPCs from SRD.
   // Idempotent — only updates rows with empty hp_roll.
   // Strips _N suffixes and uses partial matching so "Ettercap_4" → "8d8+8".
