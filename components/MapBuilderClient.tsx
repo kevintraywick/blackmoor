@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import BuilderCanvas, { packKey } from '@/components/BuilderCanvas';
 import type { BuilderTool } from '@/components/BuilderCanvas';
-import type { MapBuild, MapBuildLevel, TileState } from '@/lib/types';
+import type { MapBuild, MapBuildLevel, MapBuildBookmark, TileState } from '@/lib/types';
 import { useUndoRedo } from '@/lib/useUndoRedo';
 
 interface Props {
@@ -39,6 +39,10 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   } | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
+  // Bookmarks
+  const [bookmarks, setBookmarks] = useState<MapBuildBookmark[]>([]);
+  const [bookmarkName, setBookmarkName] = useState('');
+
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const { push: pushUndo, undo, redo } = useUndoRedo();
   const [editingLevelName, setEditingLevelName] = useState<string | null>(null);
@@ -46,10 +50,15 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
 
   // ── Load a build ───────────────────────────────────────────────────────────
   async function loadBuild(buildId: string) {
-    const res = await fetch(`/api/map-builder/${buildId}`);
-    const data = await res.json();
+    const [buildRes, bookmarkRes] = await Promise.all([
+      fetch(`/api/map-builder/${buildId}`),
+      fetch(`/api/map-builder/${buildId}/bookmarks`),
+    ]);
+    const data = await buildRes.json();
+    const bookmarkData = await bookmarkRes.json();
     setActiveBuildId(buildId);
     setLevels(data.levels ?? []);
+    setBookmarks(Array.isArray(bookmarkData) ? bookmarkData : []);
     const firstLevel = data.levels?.[0];
     if (firstLevel) {
       setActiveLevelId(firstLevel.id);
@@ -307,6 +316,74 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     setOverlay(null);
   }
 
+  // ── Bookmarks ──────────────────────────────────────────────────────────────
+  async function saveBookmark() {
+    if (!activeBuildId || !bookmarkName.trim()) return;
+    // Snapshot: current levels with their tiles
+    const snapshot = levels.map(l => ({
+      id: l.id,
+      name: l.name,
+      tiles: l.id === activeLevelId ? Object.fromEntries(
+        Array.from(tiles.entries()).map(([k, v]) => {
+          const col = Math.floor(k / 10000);
+          const row = k % 10000;
+          return [`${col},${row}`, v];
+        })
+      ) : l.tiles,
+      assets: l.assets,
+      images: l.images,
+    }));
+
+    const res = await fetch(`/api/map-builder/${activeBuildId}/bookmarks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: bookmarkName.trim(), snapshot }),
+    });
+    const bookmark = await res.json();
+    setBookmarks(prev => [bookmark, ...prev]);
+    setBookmarkName('');
+  }
+
+  async function restoreBookmark(bookmark: MapBuildBookmark) {
+    if (!Array.isArray(bookmark.snapshot)) return;
+    // Push current state to undo
+    const prevLevels = [...levels];
+    const prevTiles = new Map(tiles);
+
+    const snap = bookmark.snapshot as Array<{ id: string; name: string; tiles: Record<string, TileState>; assets: unknown[]; images: unknown[] }>;
+    setLevels(prev => prev.map(l => {
+      const s = snap.find(s => s.id === l.id);
+      return s ? { ...l, name: s.name, tiles: s.tiles, assets: s.assets as MapBuildLevel['assets'], images: s.images as MapBuildLevel['images'] } : l;
+    }));
+
+    // Reload current level tiles
+    const currentSnap = snap.find(s => s.id === activeLevelId);
+    if (currentSnap) {
+      const map = new Map<number, TileState>();
+      for (const [key, val] of Object.entries(currentSnap.tiles)) {
+        const [c, r] = key.split(',').map(Number);
+        map.set(packKey(c, r), val);
+      }
+      setTiles(map);
+      saveTiles(map);
+    }
+
+    pushUndo({
+      apply: () => restoreBookmark(bookmark),
+      reverse: () => {
+        setLevels(prevLevels);
+        setTiles(prevTiles);
+        saveTiles(prevTiles);
+      },
+    });
+  }
+
+  async function deleteBookmark(bookmarkId: string) {
+    if (!activeBuildId) return;
+    await fetch(`/api/map-builder/${activeBuildId}/bookmarks/${bookmarkId}`, { method: 'DELETE' });
+    setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
+  }
+
   const activeLevel = levels.find(l => l.id === activeLevelId);
 
   // ── No build selected: show build list ─────────────────────────────────────
@@ -424,6 +501,40 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
             +
           </button>
         </div>
+      </div>
+
+      {/* Bookmark bar */}
+      <div className="flex items-center gap-2 px-4 py-1.5 border-b border-[var(--color-border)] bg-[var(--color-surface)] text-[0.7rem]">
+        <span className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">Bookmarks</span>
+        {bookmarks.map(b => (
+          <button
+            key={b.id}
+            onClick={() => restoreBookmark(b)}
+            className="px-2 py-0.5 text-[var(--color-text-muted)] border border-[var(--color-border)] rounded hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors font-serif group relative"
+          >
+            {b.name}
+            <span
+              onClick={e => { e.stopPropagation(); deleteBookmark(b.id); }}
+              className="ml-1.5 text-[0.55rem] text-[var(--color-text-dim)] hover:text-[#8a3a3a] cursor-pointer"
+            >
+              x
+            </span>
+          </button>
+        ))}
+        <input
+          value={bookmarkName}
+          onChange={e => setBookmarkName(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && saveBookmark()}
+          placeholder="Bookmark name..."
+          className="px-2 py-0.5 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-[0.7rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-dim)] w-32"
+        />
+        <button
+          onClick={saveBookmark}
+          disabled={!bookmarkName.trim()}
+          className="px-2 py-0.5 text-[var(--color-text-dim)] hover:text-[var(--color-gold)] transition-colors disabled:opacity-30"
+        >
+          Save
+        </button>
       </div>
 
       {/* Canvas area — also a drop zone */}
