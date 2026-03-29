@@ -255,10 +255,16 @@ async function _initSchema() {
     CREATE INDEX IF NOT EXISTS magic_catalog_created_at_idx
     ON magic_catalog (created_at DESC)
   `);
+  // Deduplicate existing rows before adding unique constraint (keep newest)
+  await pool.query(`
+    DELETE FROM magic_catalog a USING magic_catalog b
+    WHERE a.api_key IS NOT NULL AND a.api_key = b.api_key AND a.category = b.category
+      AND a.created_at < b.created_at
+  `).catch(() => {});
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS magic_catalog_category_api_key_idx
     ON magic_catalog (category, api_key) WHERE api_key IS NOT NULL
-  `);
+  `).catch(() => {});
 
   // Seed Instruments of the Bards into magic_catalog if not already present
   const [{ bard_count }] = await pool.query(
