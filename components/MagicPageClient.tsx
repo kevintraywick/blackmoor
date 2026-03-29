@@ -198,7 +198,7 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
   }
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 sm:px-8 py-8">
+    <div className="max-w-[1000px] mx-auto px-4 sm:px-8 py-8">
       {/* Page header */}
       <h1 className="font-serif text-[2rem] italic text-[var(--color-text)] leading-none tracking-tight">Magic</h1>
       <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)] mt-1.5 mb-6">

@@ -36,7 +36,7 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-12">
+    <div className="max-w-[1000px] mx-auto px-8 py-12">
       <h1 className="font-[var(--font-display)] text-3xl text-[var(--color-gold)] mb-8">Campaign</h1>
 
       <div className="space-y-6">

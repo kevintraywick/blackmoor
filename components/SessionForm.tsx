@@ -116,7 +116,7 @@ export default function SessionForm({ session, allNpcs: initialNpcs }: { session
   ] as const;
 
   return (
-    <div className="max-w-[860px] mx-auto px-8 py-8">
+    <div className="max-w-[1000px] mx-auto px-8 py-8">
 
       {/* Save status indicator */}
       <div className={`fixed bottom-4 right-4 text-xs px-3 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)] transition-opacity duration-200 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} ${statusColor}`}>

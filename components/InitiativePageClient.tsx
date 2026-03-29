@@ -293,7 +293,7 @@ export default function InitiativePageClient({
   // ── RESULTS VIEW ─────────────────────────────────────────────────────────────
   if (results) {
     return (
-      <div className="max-w-[640px] mx-auto px-4 py-8">
+      <div className="max-w-[1000px] mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none">Combat Order</h2>
@@ -506,7 +506,7 @@ export default function InitiativePageClient({
   const visibleNpcs = npcs.filter(n => sessionNpcIds.includes(n.id));
 
   return (
-    <div className="relative z-10 -mt-[84px] max-w-[780px] mx-auto px-4 pb-16 flex gap-4 items-start">
+    <div className="relative z-10 -mt-[84px] max-w-[1000px] mx-auto px-4 pb-16 flex gap-4 items-start">
 
       {/* Left: session boxes stacked vertically, start 50px below banner */}
       {sessions.length > 0 && (

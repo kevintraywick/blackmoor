@@ -1,4 +1,5 @@
 @AGENTS.md
+@DESIGN.md
 
 ## Design Context
 

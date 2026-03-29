@@ -113,7 +113,7 @@ export default function DmPlayersClient({
   const selectedSheet  = sheets[selectedId];
 
   return (
-    <div className="max-w-[780px] mx-auto px-4 pb-16">
+    <div className="max-w-[1000px] mx-auto px-4 pb-16">
 
       {showAddModal && <AddPlayerModal onClose={() => setShowAddModal(false)} />}
 

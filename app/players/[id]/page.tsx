@@ -52,7 +52,7 @@ export default async function PlayerPage({ params }: Props) {
       <WolfHowl playerId={player.id} />
       <PlayerBanner playerId={player.id} />
 
-      <div className="relative z-10 -mt-[169px] max-w-[780px] mx-auto px-4 pt-6 pb-16 bg-[var(--color-bg)] rounded-t-2xl">
+      <div className="relative z-10 -mt-[169px] max-w-[860px] mx-auto px-4 pt-6 pb-16 bg-[var(--color-bg)] rounded-t-2xl">
         <Sheet
           playerId={player.id}
           playerName={player.playerName}

@@ -240,7 +240,7 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
   const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[var(--color-text-muted)]';
 
   return (
-    <div className="max-w-[780px] mx-auto px-4 pb-16" onClick={handleOutsideClick}>
+    <div className="max-w-[1000px] mx-auto px-4 pb-16" onClick={handleOutsideClick}>
 
       {/* NPC selector row */}
       <div

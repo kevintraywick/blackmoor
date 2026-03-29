@@ -73,7 +73,7 @@ export default async function MarketplacePage({ searchParams }: Props) {
         />
       </div>
 
-      <div className="relative z-10 -mt-[84px] max-w-[780px] mx-auto px-4 pt-6 pb-16 bg-[var(--color-bg)] rounded-t-2xl">
+      <div className="relative z-10 -mt-[84px] max-w-[1000px] mx-auto px-4 pt-6 pb-16 bg-[var(--color-bg)] rounded-t-2xl">
         <div className="border border-[var(--color-border)] rounded bg-[#2e3a4a]">
 
           {player ? (

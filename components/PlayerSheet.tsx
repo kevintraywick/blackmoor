@@ -496,7 +496,7 @@ export default function PlayerSheets({ players, sheets }: { players: Player[]; s
   const activeData = sheets[activeId];
 
   return (
-    <div className="max-w-[780px] mx-auto px-4 pb-16">
+    <div className="max-w-[860px] mx-auto px-4 pb-16">
 
       {/* Player selector */}
       <div className="flex justify-center gap-4 flex-wrap py-5 bg-[var(--color-surface)] border-b border-[var(--color-border)] -mx-4 px-4 mb-6">
