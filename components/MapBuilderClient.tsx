@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react';
 import BuilderCanvas, { packKey } from '@/components/BuilderCanvas';
 import type { BuilderTool } from '@/components/BuilderCanvas';
 import type { MapBuild, MapBuildLevel, TileState } from '@/lib/types';
+import { useUndoRedo } from '@/lib/useUndoRedo';
 
 interface Props {
   initialBuilds: MapBuild[];
@@ -27,6 +28,9 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   const [saving, setSaving] = useState(false);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const { push: pushUndo, undo, redo } = useUndoRedo();
+  const [editingLevelName, setEditingLevelName] = useState<string | null>(null);
+  const [levelNameDraft, setLevelNameDraft] = useState('');
 
   // ── Load a build ───────────────────────────────────────────────────────────
   async function loadBuild(buildId: string) {
@@ -85,8 +89,9 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     }, 500);
   }, [activeBuildId, activeLevelId]);
 
-  // ── Tile click handler ─────────────────────────────────────────────────────
+  // ── Tile click handler with undo support ─────────────────────────────────
   const lastDragTile = useRef<number | null>(null);
+  const dragStroke = useRef<{ key: number; wasActive: boolean }[]>([]);
 
   function handleTileClick(col: number, row: number, isDrag: boolean) {
     const key = packKey(col, row);
@@ -97,25 +102,79 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
 
     setTiles(prev => {
       const next = new Map(prev);
+
       if (isDrag) {
-        // Drag always activates
+        const wasActive = next.get(key)?.active ?? false;
         next.set(key, { active: true });
+        dragStroke.current.push({ key, wasActive });
       } else {
-        // Click toggles
+        // New click = finalize any previous drag stroke and start fresh
+        finalizeDragStroke();
         const existing = next.get(key);
-        if (existing?.active) {
+        const wasActive = existing?.active ?? false;
+        if (wasActive) {
           next.delete(key);
         } else {
           next.set(key, { active: true });
         }
+        // Single-tile undo action
+        pushUndo({
+          apply: () => setTiles(p => {
+            const n = new Map(p);
+            if (wasActive) n.delete(key); else n.set(key, { active: true });
+            saveTiles(n);
+            return n;
+          }),
+          reverse: () => setTiles(p => {
+            const n = new Map(p);
+            if (wasActive) n.set(key, { active: true }); else n.delete(key);
+            saveTiles(n);
+            return n;
+          }),
+        });
       }
       saveTiles(next);
       return next;
     });
   }
 
+  function finalizeDragStroke() {
+    const stroke = dragStroke.current;
+    if (stroke.length === 0) return;
+    const copy = [...stroke];
+    dragStroke.current = [];
+    pushUndo({
+      apply: () => setTiles(p => {
+        const n = new Map(p);
+        for (const { key } of copy) n.set(key, { active: true });
+        saveTiles(n);
+        return n;
+      }),
+      reverse: () => setTiles(p => {
+        const n = new Map(p);
+        for (const { key, wasActive } of copy) {
+          if (wasActive) n.set(key, { active: true }); else n.delete(key);
+        }
+        saveTiles(n);
+        return n;
+      }),
+    });
+  }
+
+  function handlePointerUp() {
+    finalizeDragStroke();
+  }
+
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   function handleKeyDown(e: React.KeyboardEvent) {
+    // Don't capture shortcuts when editing level name
+    if (editingLevelName) return;
+
+    const mod = e.metaKey || e.ctrlKey;
+    if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+    if (mod && e.key === 'z' && e.shiftKey) { e.preventDefault(); redo(); return; }
+    if (mod && e.key === 'Z') { e.preventDefault(); redo(); return; }
+
     if (e.key === 'a' || e.key === 'A') setTool('activate');
     else if (e.key === 's' || e.key === 'S') setTool('select');
     else if (e.key === 'p' || e.key === 'P') setTool('pan');
@@ -128,6 +187,29 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     if (!level) return;
     setActiveLevelId(levelId);
     loadLevelTiles(level);
+  }
+
+  // ── Rename level ────────────────────────────────────────────────────────────
+  async function renameLevel(levelId: string, newName: string) {
+    if (!activeBuildId || !newName.trim()) return;
+    await fetch(`/api/map-builder/${activeBuildId}/levels/${levelId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName.trim() }),
+    });
+    setLevels(prev => prev.map(l => l.id === levelId ? { ...l, name: newName.trim() } : l));
+    setEditingLevelName(null);
+  }
+
+  // ── Delete level ───────────────────────────────────────────────────────────
+  async function deleteLevel(levelId: string) {
+    if (!activeBuildId || levels.length <= 1) return;
+    await fetch(`/api/map-builder/${activeBuildId}/levels/${levelId}`, { method: 'DELETE' });
+    const remaining = levels.filter(l => l.id !== levelId);
+    setLevels(remaining);
+    if (activeLevelId === levelId && remaining.length > 0) {
+      switchLevel(remaining[0].id);
+    }
   }
 
   // ── Add level ──────────────────────────────────────────────────────────────
@@ -224,20 +306,34 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
         {/* Save indicator */}
         {saving && <span className="text-[0.65rem] text-[var(--color-text-muted)]">Saving...</span>}
 
-        {/* Level tabs */}
+        {/* Level tabs — double-click to rename */}
         <div className="flex items-center gap-1.5">
           {levels.map(l => (
-            <button
-              key={l.id}
-              onClick={() => switchLevel(l.id)}
-              className={`px-2.5 py-1 text-[0.72rem] rounded font-serif transition-colors ${
-                l.id === activeLevelId
-                  ? 'bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold)]/40'
-                  : 'text-[var(--color-text-muted)] border border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
-              }`}
-            >
-              {l.name}
-            </button>
+            editingLevelName === l.id ? (
+              <input
+                key={l.id}
+                autoFocus
+                value={levelNameDraft}
+                onChange={e => setLevelNameDraft(e.target.value)}
+                onBlur={() => renameLevel(l.id, levelNameDraft)}
+                onKeyDown={e => { if (e.key === 'Enter') renameLevel(l.id, levelNameDraft); if (e.key === 'Escape') setEditingLevelName(null); }}
+                className="px-2.5 py-1 text-[0.72rem] rounded font-serif bg-[var(--color-surface-raised)] border border-[var(--color-gold)] text-[var(--color-text)] outline-none w-28"
+              />
+            ) : (
+              <button
+                key={l.id}
+                onClick={() => switchLevel(l.id)}
+                onDoubleClick={() => { setEditingLevelName(l.id); setLevelNameDraft(l.name); }}
+                className={`px-2.5 py-1 text-[0.72rem] rounded font-serif transition-colors ${
+                  l.id === activeLevelId
+                    ? 'bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold)]/40'
+                    : 'text-[var(--color-text-muted)] border border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
+                }`}
+                title="Double-click to rename"
+              >
+                {l.name}
+              </button>
+            )
           ))}
           <button
             onClick={addLevel}
@@ -258,6 +354,7 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
             tiles={tiles}
             activeTool={tool}
             onTileClick={tool === 'activate' ? handleTileClick : undefined}
+            onPointerUp={handlePointerUp}
           />
         )}
       </div>

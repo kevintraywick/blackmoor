@@ -14,6 +14,7 @@ interface BuilderCanvasProps {
   activeTool: BuilderTool;
   onTileClick?: (col: number, row: number, isDrag: boolean) => void;
   onCameraChange?: (camera: { x: number; y: number; zoom: number }) => void;
+  onPointerUp?: () => void;
 }
 
 /** Pack a col,row pair into a single number key for Map lookups. */
@@ -29,6 +30,7 @@ export default function BuilderCanvas({
   activeTool,
   onTileClick,
   onCameraChange,
+  onPointerUp: onPointerUpProp,
 }: BuilderCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
@@ -229,6 +231,7 @@ export default function BuilderCanvas({
   function handlePointerUp() {
     isDragging.current = false;
     isPanning.current = false;
+    onPointerUpProp?.();
   }
 
   // ── Scroll wheel zoom at cursor ────────────────────────────────────────────
