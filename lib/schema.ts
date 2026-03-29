@@ -238,6 +238,24 @@ async function _initSchema() {
     }
   }
 
+  // Campaign — single-row campaign settings
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS campaign (
+      id    TEXT PRIMARY KEY,
+      name  TEXT NOT NULL DEFAULT '',
+      world TEXT NOT NULL DEFAULT ''
+    )
+  `);
+  // Seed a single campaign row if table is empty
+  const [{ campaign_count }] = await pool.query(
+    `SELECT COUNT(*)::int as campaign_count FROM campaign`
+  ).then(r => r.rows);
+  if (campaign_count === 0) {
+    await pool.query(
+      `INSERT INTO campaign (id, name, world) VALUES ('default', '', '')`
+    );
+  }
+
   // Magic catalog — DM's persistent reference library of spells, scrolls, magic items, and custom entries
   await pool.query(`
     CREATE TABLE IF NOT EXISTS magic_catalog (

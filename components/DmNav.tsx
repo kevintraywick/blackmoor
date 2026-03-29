@@ -1,8 +1,9 @@
 import Link from 'next/link';
 
-export type NavSection = 'sessions' | 'players' | 'npcs' | 'initiative' | 'maps' | 'magic' | 'marketplace' | 'poisons' | 'inventory';
+export type NavSection = 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative' | 'maps' | 'magic' | 'marketplace' | 'poisons' | 'inventory';
 
 const LINKS: { key: NavSection; label: string; href: string }[] = [
+  { key: 'campaign',    label: 'Campaign',         href: '/dm/campaign' },
   { key: 'sessions',    label: 'Sessions',        href: '/dm' },
   { key: 'players',     label: 'Players',         href: '/dm/players' },
   { key: 'npcs',        label: 'NPCs',            href: '/dm/npcs' },
