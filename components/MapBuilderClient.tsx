@@ -10,7 +10,7 @@ interface Props {
   initialBuilds: MapBuild[];
 }
 
-const HEX_SIZE = 12; // world-space hex radius in px
+const HEX_SIZE = 120; // world-space hex radius in px
 
 const TOOLS: { key: BuilderTool; label: string; shortcut: string }[] = [
   { key: 'activate', label: 'Activate', shortcut: 'A' },
@@ -449,10 +449,10 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           <button
             key={t.key}
             onClick={() => setTool(t.key)}
-            className={`px-3 py-1 text-[0.75rem] rounded border transition-colors font-serif ${
+            className={`px-4 py-1.5 text-[1rem] rounded border transition-colors font-serif ${
               tool === t.key
-                ? 'border-[var(--color-gold)] text-[var(--color-gold)] bg-[var(--color-gold)]/10'
-                : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-text-muted)]'
+                ? 'border-[var(--color-gold)] text-white bg-[var(--color-gold)]/15'
+                : 'border-[var(--color-border)] text-white/70 hover:border-[var(--color-text-muted)] hover:text-white'
             }`}
             title={`${t.label} (${t.shortcut})`}
           >
@@ -476,17 +476,17 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
                 onChange={e => setLevelNameDraft(e.target.value)}
                 onBlur={() => renameLevel(l.id, levelNameDraft)}
                 onKeyDown={e => { if (e.key === 'Enter') renameLevel(l.id, levelNameDraft); if (e.key === 'Escape') setEditingLevelName(null); }}
-                className="px-2.5 py-1 text-[0.72rem] rounded font-serif bg-[var(--color-surface-raised)] border border-[var(--color-gold)] text-[var(--color-text)] outline-none w-28"
+                className="px-3 py-1.5 text-[0.92rem] rounded font-serif bg-[var(--color-surface-raised)] border border-[var(--color-gold)] text-white outline-none w-32"
               />
             ) : (
               <button
                 key={l.id}
                 onClick={() => switchLevel(l.id)}
                 onDoubleClick={() => { setEditingLevelName(l.id); setLevelNameDraft(l.name); }}
-                className={`px-2.5 py-1 text-[0.72rem] rounded font-serif transition-colors ${
+                className={`px-3 py-1.5 text-[0.92rem] rounded font-serif transition-colors ${
                   l.id === activeLevelId
-                    ? 'bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold)]/40'
-                    : 'text-[var(--color-text-muted)] border border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
+                    ? 'bg-[var(--color-gold)]/15 text-white border border-[var(--color-gold)]/40'
+                    : 'text-white/70 border border-[var(--color-border)] hover:border-[var(--color-text-muted)] hover:text-white'
                 }`}
                 title="Double-click to rename"
               >
@@ -496,7 +496,7 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           ))}
           <button
             onClick={addLevel}
-            className="px-2 py-1 text-[0.72rem] text-[var(--color-text-dim)] border border-dashed border-[var(--color-border)] rounded hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-muted)] transition-colors"
+            className="px-3 py-1.5 text-[0.92rem] text-white/40 border border-dashed border-[var(--color-border)] rounded hover:border-[var(--color-text-muted)] hover:text-white/70 transition-colors"
           >
             +
           </button>
@@ -505,12 +505,12 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
 
       {/* Bookmark bar */}
       <div className="flex items-center gap-2 px-4 py-1.5 border-b border-[var(--color-border)] bg-[var(--color-surface)] text-[0.7rem]">
-        <span className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">Bookmarks</span>
+        <span className="text-[0.6rem] uppercase tracking-[0.15em] text-white/50">Bookmarks</span>
         {bookmarks.map(b => (
           <button
             key={b.id}
             onClick={() => restoreBookmark(b)}
-            className="px-2 py-0.5 text-[var(--color-text-muted)] border border-[var(--color-border)] rounded hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors font-serif group relative"
+            className="px-2 py-0.5 text-white/70 border border-[var(--color-border)] rounded hover:border-[var(--color-gold)] hover:text-white transition-colors font-serif group relative"
           >
             {b.name}
             <span
@@ -526,12 +526,12 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           onChange={e => setBookmarkName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && saveBookmark()}
           placeholder="Bookmark name..."
-          className="px-2 py-0.5 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-[0.7rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-dim)] w-32"
+          className="px-2 py-0.5 bg-transparent border-b border-[var(--color-border)] text-white font-serif text-[0.7rem] outline-none focus:border-[var(--color-gold)] placeholder:text-white/30 w-32"
         />
         <button
           onClick={saveBookmark}
           disabled={!bookmarkName.trim()}
-          className="px-2 py-0.5 text-[var(--color-text-dim)] hover:text-[var(--color-gold)] transition-colors disabled:opacity-30"
+          className="px-2 py-0.5 text-white/40 hover:text-white transition-colors disabled:opacity-30"
         >
           Save
         </button>

@@ -145,16 +145,15 @@ export default function BuilderCanvas({
       canvas.height = rect.height * devicePixelRatio;
     }
 
-    // Center camera on grid
+    // Start zoomed in so hexes are clearly visible (~40px on screen per hex radius)
     if (canvas) {
       const bounds = gridBounds(cols, rows, hexSize);
       const cam = cameraRef.current;
-      cam.zoom = Math.min(
-        canvas.width / bounds.width,
-        canvas.height / bounds.height,
-      ) * 0.9;
-      cam.x = (canvas.width - bounds.width * cam.zoom) / 2;
-      cam.y = (canvas.height - bounds.height * cam.zoom) / 2;
+      // Target: each hex radius appears as ~40 screen pixels
+      cam.zoom = (40 * devicePixelRatio) / hexSize;
+      // Center on the middle of the grid
+      cam.x = canvas.width / 2 - (bounds.width / 2) * cam.zoom;
+      cam.y = canvas.height / 2 - (bounds.height / 2) * cam.zoom;
       dirtyRef.current = true;
     }
 
