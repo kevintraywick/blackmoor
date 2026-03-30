@@ -133,6 +133,68 @@ export interface MagicCatalogEntry {
   created_at: number;
 }
 
+// ── Map Builder types ─────────────────────────────────────────────────────────
+
+export interface TileState {
+  active: boolean;       // tile exists (placed during Build mode)
+  visible?: boolean;     // visible to players (set during Visible mode)
+  obscured?: boolean;    // assets show as muddy blob to players (set during Obscure mode)
+}
+
+export interface PlacedAsset {
+  id: string;
+  asset_id: string;
+  col: number;
+  row: number;
+}
+
+export interface ImageLayer {
+  id: string;
+  image_path: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface MapBuild {
+  id: string;
+  name: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface MapBuildLevel {
+  id: string;
+  build_id: string;
+  name: string;
+  sort_order: number;
+  cols: number;
+  rows: number;
+  tiles: Record<string, TileState>;   // "col,row" → state
+  assets: PlacedAsset[];
+  images: ImageLayer[];
+}
+
+export interface MapBuildBookmark {
+  id: string;
+  build_id: string;
+  name: string;
+  snapshot: unknown;
+  created_at: number;
+}
+
+export type BuilderAssetCategory = 'wall' | 'door' | 'stairs' | 'water' | 'custom';
+
+export interface BuilderAsset {
+  id: string;
+  name: string;
+  category: BuilderAssetCategory;
+  image_path: string | null;
+  is_builtin: boolean;
+  created_at: number;
+}
+
 export interface Npc {
   id: string;
   name: string;
