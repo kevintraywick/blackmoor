@@ -119,6 +119,13 @@ export interface Campaign {
   id: string;
   name: string;
   world: string;
+  quorum: number;
+}
+
+export interface Availability {
+  player_id: string;
+  saturday: string;
+  status: 'in' | 'out';
 }
 
 export type MagicCategory = 'spell' | 'scroll' | 'magic_item' | 'other';
