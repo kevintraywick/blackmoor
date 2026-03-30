@@ -19,7 +19,7 @@ export async function PATCH(req: Request) {
   try {
     await ensureSchema();
     const body = await req.json();
-    const { name, world } = body;
+    const { name, world, quorum } = body;
 
     if (typeof name !== 'string' || typeof world !== 'string') {
       return NextResponse.json({ error: 'name and world must be strings' }, { status: 400 });
@@ -28,9 +28,20 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Fields must be under 200 characters' }, { status: 400 });
     }
 
+    const sets = ['name = $1', 'world = $2'];
+    const vals: unknown[] = [name.trim(), world.trim()];
+
+    if (quorum !== undefined) {
+      const q = parseInt(quorum, 10);
+      if (Number.isFinite(q) && q >= 1 && q <= 10) {
+        sets.push(`quorum = $${vals.length + 1}`);
+        vals.push(q);
+      }
+    }
+
     await query(
-      `UPDATE campaign SET name = $1, world = $2 WHERE id = 'default'`,
-      [name.trim(), world.trim()]
+      `UPDATE campaign SET ${sets.join(', ')} WHERE id = 'default'`,
+      vals
     );
 
     const [row] = await query('SELECT * FROM campaign WHERE id = $1', ['default']);

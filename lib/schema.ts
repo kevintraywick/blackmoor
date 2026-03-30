@@ -312,6 +312,21 @@ async function _initSchema() {
     }
   }
 
+  // ── Availability (Can you play?) ───────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS availability (
+      player_id TEXT NOT NULL,
+      saturday  TEXT NOT NULL,
+      status    TEXT NOT NULL DEFAULT 'in',
+      PRIMARY KEY (player_id, saturday)
+    )
+  `).catch(() => {});
+
+  // Quorum threshold on campaign row
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS quorum INTEGER NOT NULL DEFAULT 5
+  `).catch(() => {});
+
   // Backfill hp_roll (and empty stat fields) for existing NPCs from SRD.
   // Idempotent — only updates rows with empty hp_roll.
   // Strips _N suffixes and uses partial matching so "Ettercap_4" → "8d8+8".
