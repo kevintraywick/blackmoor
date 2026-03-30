@@ -1,5 +1,6 @@
 @AGENTS.md
 @DESIGN.md
+@COMMS.md
 
 ## Design Context
 
