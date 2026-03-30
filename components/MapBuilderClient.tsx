@@ -3,14 +3,19 @@
 import { useState, useCallback, useRef } from 'react';
 import BuilderCanvas, { packKey } from '@/components/BuilderCanvas';
 import type { BuilderTool } from '@/components/BuilderCanvas';
-import type { MapBuild, MapBuildLevel, MapBuildBookmark, TileState } from '@/lib/types';
+import type { MapBuild, MapBuildLevel, MapBuildBookmark, TileState, Session, BuilderAsset, PlacedAsset } from '@/lib/types';
 import { useUndoRedo } from '@/lib/useUndoRedo';
+import { hexCenter, hexPath } from '@/lib/hex-math';
 
 interface Props {
   initialBuilds: MapBuild[];
 }
 
 const HEX_SIZE = 120; // world-space hex radius in px
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  wall: '🧱', door: '🚪', stairs: '🪜', water: '🌊', custom: '📦',
+};
 
 const MODES: { key: BuilderTool; label: string; shortcut: string; color: string; activeColor: string }[] = [
   { key: 'build',    label: 'Build',    shortcut: 'B', color: 'border-[#4a7aaa] text-[#6aafef]', activeColor: 'border-[#4a7aaa] text-white bg-[#4a7aaa]' },
@@ -45,6 +50,13 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   const [bookmarks, setBookmarks] = useState<MapBuildBookmark[]>([]);
   const [bookmarkName, setBookmarkName] = useState('');
 
+  // Session link panel
+  const [showSessionPanel, setShowSessionPanel] = useState(false);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [linkConfirmSession, setLinkConfirmSession] = useState<Session | null>(null);
+  const [linkStatus, setLinkStatus] = useState<'idle' | 'linking' | 'success' | 'error'>('idle');
+
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const { push: pushUndo, undo, redo } = useUndoRedo();
   const [editingLevelName, setEditingLevelName] = useState<string | null>(null);
@@ -58,21 +70,31 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   const [editingBuildName, setEditingBuildName] = useState<string | null>(null);
   const [buildNameDraft, setBuildNameDraft] = useState('');
 
+  // Asset palette
+  const [assetLibrary, setAssetLibrary] = useState<BuilderAsset[]>([]);
+  const [paletteAssetId, setPaletteAssetId] = useState<string | null>(null);     // which asset type to place
+  const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null); // which placed asset is selected
+  const [placedAssets, setPlacedAssets] = useState<PlacedAsset[]>([]);
+
   // ── Load a build ───────────────────────────────────────────────────────────
   async function loadBuild(buildId: string) {
-    const [buildRes, bookmarkRes] = await Promise.all([
+    const [buildRes, bookmarkRes, assetsRes] = await Promise.all([
       fetch(`/api/map-builder/${buildId}`),
       fetch(`/api/map-builder/${buildId}/bookmarks`),
+      fetch('/api/map-builder/assets'),
     ]);
     const data = await buildRes.json();
     const bookmarkData = await bookmarkRes.json();
+    const assetsData = await assetsRes.json();
     setActiveBuildId(buildId);
     setLevels(data.levels ?? []);
     setBookmarks(Array.isArray(bookmarkData) ? bookmarkData : []);
+    setAssetLibrary(Array.isArray(assetsData) ? assetsData : []);
     const firstLevel = data.levels?.[0];
     if (firstLevel) {
       setActiveLevelId(firstLevel.id);
       loadLevelTiles(firstLevel);
+      setPlacedAssets(Array.isArray(firstLevel.assets) ? firstLevel.assets : []);
     }
   }
 
@@ -138,6 +160,12 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
 
   function handleTileClick(col: number, row: number, isDrag: boolean) {
     const key = packKey(col, row);
+
+    // Asset placement: if an asset is selected in palette, place it on click (not drag)
+    if (tool === 'build' && paletteAssetId && !isDrag) {
+      placeAsset(col, row);
+      return;
+    }
 
     // Skip if drag hits same tile
     if (isDrag && lastDragTile.current === key) return;
@@ -231,11 +259,16 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     if (mod && e.key === 'z' && e.shiftKey) { e.preventDefault(); redo(); return; }
     if (mod && e.key === 'Z') { e.preventDefault(); redo(); return; }
 
-    if (e.key === 'b' || e.key === 'B') setTool('build');
-    else if (e.key === 's' || e.key === 'S') setTool('select');
-    else if (e.key === 'v' || e.key === 'V') setTool('visible');
-    else if (e.key === 'o' || e.key === 'O') setTool('obscure');
-    else if (e.key === 'Escape') setTool('build');
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (selectedPlacementId && tool === 'select') { removeAsset(selectedPlacementId); return; }
+    }
+
+    if (e.key === 'b' || e.key === 'B') { setTool('build'); setPaletteAssetId(null); setSelectedPlacementId(null); }
+    else if (e.key === 's' || e.key === 'S') { setTool('select'); setPaletteAssetId(null); setSelectedPlacementId(null); }
+    else if (e.key === 'v' || e.key === 'V') { setTool('visible'); setPaletteAssetId(null); setSelectedPlacementId(null); }
+    else if (e.key === 'o' || e.key === 'O') { setTool('obscure'); setPaletteAssetId(null); setSelectedPlacementId(null); }
+    else if (e.key === 'r' || e.key === 'R') handlePrint();
+    else if (e.key === 'Escape') { setTool('build'); setPaletteAssetId(null); setSelectedPlacementId(null); }
   }
 
   // ── Switch level ───────────────────────────────────────────────────────────
@@ -244,6 +277,9 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     if (!level) return;
     setActiveLevelId(levelId);
     loadLevelTiles(level);
+    setPlacedAssets(Array.isArray(level.assets) ? level.assets : []);
+    setPaletteAssetId(null);
+    setSelectedPlacementId(null);
   }
 
   // ── Rename level ────────────────────────────────────────────────────────────
@@ -410,6 +446,195 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
   }
 
+  // ─��� Asset placement ─────────────��──────────────────────────────────────────
+  const saveAssetsRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  function saveAssets(newAssets: PlacedAsset[]) {
+    if (!activeBuildId || !activeLevelId) return;
+    clearTimeout(saveAssetsRef.current);
+    saveAssetsRef.current = setTimeout(async () => {
+      await fetch(`/api/map-builder/${activeBuildId}/levels/${activeLevelId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assets: newAssets }),
+      });
+    }, 500);
+  }
+
+  function placeAsset(col: number, row: number) {
+    if (!paletteAssetId) return;
+    const newAsset: PlacedAsset = {
+      id: crypto.randomUUID(),
+      asset_id: paletteAssetId,
+      col,
+      row,
+    };
+    const updated = [...placedAssets, newAsset];
+    setPlacedAssets(updated);
+    saveAssets(updated);
+    pushUndo({
+      apply: () => { setPlacedAssets(p => [...p, newAsset]); saveAssets([...placedAssets, newAsset]); },
+      reverse: () => { setPlacedAssets(p => p.filter(a => a.id !== newAsset.id)); saveAssets(placedAssets.filter(a => a.id !== newAsset.id)); },
+    });
+  }
+
+  function removeAsset(placementId: string) {
+    const asset = placedAssets.find(a => a.id === placementId);
+    if (!asset) return;
+    const updated = placedAssets.filter(a => a.id !== placementId);
+    setPlacedAssets(updated);
+    saveAssets(updated);
+    setSelectedPlacementId(null);
+    pushUndo({
+      apply: () => { setPlacedAssets(p => p.filter(a => a.id !== placementId)); saveAssets(updated); },
+      reverse: () => { setPlacedAssets(p => [...p, asset]); saveAssets([...updated, asset]); },
+    });
+  }
+
+  // ── Session link ��─────────────────────────��──────────────────────────────���─
+  async function openSessionPanel() {
+    if (showSessionPanel) { setShowSessionPanel(false); setLinkConfirmSession(null); setLinkStatus('idle'); return; }
+    setShowSessionPanel(true);
+    setLinkConfirmSession(null);
+    setLinkStatus('idle');
+    setSessionsLoading(true);
+    try {
+      const res = await fetch('/api/sessions');
+      const data = await res.json();
+      setSessions(Array.isArray(data) ? data : []);
+    } catch { setSessions([]); }
+    setSessionsLoading(false);
+  }
+
+  async function confirmSessionLink() {
+    if (!linkConfirmSession || !activeBuildId || !activeLevelId) return;
+    setLinkStatus('linking');
+    try {
+      const res = await fetch(`/api/map-builder/${activeBuildId}/link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level_id: activeLevelId, session_id: linkConfirmSession.id }),
+      });
+      if (!res.ok) throw new Error('Link failed');
+      setLinkStatus('success');
+      setTimeout(() => { setShowSessionPanel(false); setLinkConfirmSession(null); setLinkStatus('idle'); }, 2000);
+    } catch {
+      setLinkStatus('error');
+      setTimeout(() => setLinkStatus('idle'), 2000);
+    }
+  }
+
+  // ── Print mode ─────────────────────────────────────────────────────────────
+  function handlePrint() {
+    const PRINT_HEX = 20; // px per hex radius for print output
+
+    // Collect active tiles and find bounding box
+    const activeTiles: { col: number; row: number; tile: TileState }[] = [];
+
+    tiles.forEach((tile, key) => {
+      if (!tile.active) return;
+      const col = Math.floor(key / 10000);
+      const row = key % 10000;
+      activeTiles.push({ col, row, tile });
+    });
+
+    if (activeTiles.length === 0) {
+      const emptyWin = window.open('', '_blank');
+      if (emptyWin) {
+        emptyWin.document.write('<html><body style="font-family:serif;padding:40px"><h2>Nothing to print</h2><p>No active tiles on this level.</p></body></html>');
+        emptyWin.document.close();
+      }
+      return;
+    }
+
+    // Compute pixel bounds with padding
+    const padding = PRINT_HEX * 2;
+    const h = PRINT_HEX * Math.sqrt(3);
+
+    // Find pixel extent of active tiles
+    let pxMinX = Infinity, pxMaxX = -Infinity, pxMinY = Infinity, pxMaxY = -Infinity;
+    for (const { col, row } of activeTiles) {
+      const { cx, cy } = hexCenter(col, row, PRINT_HEX);
+      pxMinX = Math.min(pxMinX, cx - PRINT_HEX);
+      pxMaxX = Math.max(pxMaxX, cx + PRINT_HEX);
+      pxMinY = Math.min(pxMinY, cy - h / 2);
+      pxMaxY = Math.max(pxMaxY, cy + h / 2);
+    }
+
+    const canvasW = Math.ceil(pxMaxX - pxMinX + padding * 2);
+    const canvasH = Math.ceil(pxMaxY - pxMinY + padding * 2);
+    const offsetX = -pxMinX + padding;
+    const offsetY = -pxMinY + padding;
+
+    // Create offscreen canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    const ctx = canvas.getContext('2d')!;
+
+    // White background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    // Draw active tiles — light blue fill
+    ctx.fillStyle = '#c8ddf0';
+    for (const { col, row } of activeTiles) {
+      const { cx, cy } = hexCenter(col, row, PRINT_HEX);
+      hexPath(ctx, cx + offsetX, cy + offsetY, PRINT_HEX);
+      ctx.fill();
+    }
+
+    // Draw visible tiles — slightly darker blue
+    ctx.fillStyle = '#a0c4e8';
+    for (const { col, row, tile } of activeTiles) {
+      if (!tile.visible) continue;
+      const { cx, cy } = hexCenter(col, row, PRINT_HEX);
+      hexPath(ctx, cx + offsetX, cy + offsetY, PRINT_HEX);
+      ctx.fill();
+    }
+
+    // Draw grid lines — black
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth = 0.75;
+    for (const { col, row } of activeTiles) {
+      const { cx, cy } = hexCenter(col, row, PRINT_HEX);
+      hexPath(ctx, cx + offsetX, cy + offsetY, PRINT_HEX);
+      ctx.stroke();
+    }
+
+    // Export as data URL
+    const dataUrl = canvas.toDataURL('image/png');
+    const levelName = activeLevel?.name || 'Map';
+    const buildName = builds.find(b => b.id === activeBuildId)?.name || '';
+
+    // Open print window
+    const printWin = window.open('', '_blank');
+    if (!printWin) return;
+
+    printWin.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<title>${levelName} — Print</title>
+<style>
+  body { margin: 0; padding: 24px; font-family: 'EB Garamond', Georgia, serif; text-align: center; }
+  h1 { font-size: 1.4rem; font-weight: normal; font-style: italic; margin: 0 0 4px; }
+  p { font-size: 0.75rem; color: #666; margin: 0 0 16px; }
+  img { max-width: 100%; height: auto; }
+  @media print {
+    body { padding: 0; }
+    img { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <h1>${levelName}</h1>
+  ${buildName ? `<p>${buildName}</p>` : ''}
+  <img src="${dataUrl}" onload="window.print()" />
+</body>
+</html>`);
+    printWin.document.close();
+  }
+
   const activeLevel = levels.find(l => l.id === activeLevelId);
 
   // ── No build selected: show build list ─────────────────────────────────────
@@ -542,12 +767,11 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
         {MODES.map(m => (
           <button
             key={m.key}
-            onClick={() => setTool(m.key)}
-            disabled={m.key === 'print'}
+            onClick={() => m.key === 'print' ? handlePrint() : setTool(m.key)}
             className={`px-4 py-1.5 text-[1rem] rounded border transition-colors font-serif ${
-              tool === m.key ? m.activeColor : `${m.color} hover:opacity-100 opacity-70`
-            } ${m.key === 'print' ? 'opacity-40 cursor-not-allowed' : ''}`}
-            title={`${m.label} (${m.shortcut})${m.key === 'print' ? ' — coming soon' : ''}`}
+              tool === m.key && m.key !== 'print' ? m.activeColor : `${m.color} hover:opacity-100 opacity-70`
+            }`}
+            title={`${m.label} (${m.shortcut})`}
           >
             {m.label}
           </button>
@@ -593,6 +817,20 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           >
             +
           </button>
+
+          <div className="w-px h-5 bg-[var(--color-border)] mx-1" />
+
+          <button
+            onClick={openSessionPanel}
+            className={`px-3 py-1.5 text-[0.92rem] rounded font-serif transition-colors ${
+              showSessionPanel
+                ? 'bg-[#4a7a5a]/15 text-white border border-[#4a7a5a]/40'
+                : 'text-white/70 border border-[var(--color-border)] hover:border-[#4a7a5a] hover:text-white'
+            }`}
+            title="Link this level to a session"
+          >
+            Link to Session
+          </button>
         </div>
       </div>
 
@@ -630,6 +868,58 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
         </button>
       </div>
 
+      {/* Session link panel */}
+      {showSessionPanel && (
+        <div className="flex items-center gap-3 px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+          <span className="text-[0.6rem] uppercase tracking-[0.15em] text-[#4a7a5a] font-sans shrink-0">Link to Session</span>
+
+          {sessionsLoading ? (
+            <span className="font-serif text-[0.8rem] text-[var(--color-text-muted)] italic">Loading sessions...</span>
+          ) : linkStatus === 'success' ? (
+            <span className="font-serif text-[0.8rem] text-[#5a8a5a]">
+              Linked {activeLevel?.name ?? 'level'} to Session {linkConfirmSession?.number}. Frozen copy created.
+            </span>
+          ) : linkStatus === 'error' ? (
+            <span className="font-serif text-[0.8rem] text-[#8a3a3a]">
+              Failed to link. Try again.
+            </span>
+          ) : linkConfirmSession ? (
+            <>
+              <span className="font-serif text-[0.8rem] text-[var(--color-text)]">
+                Link <strong>{activeLevel?.name ?? 'this level'}</strong> to <strong>Session {linkConfirmSession.number}{linkConfirmSession.title ? `: ${linkConfirmSession.title}` : ''}</strong>?
+              </span>
+              <button
+                onClick={confirmSessionLink}
+                disabled={linkStatus === 'linking'}
+                className="px-3 py-1 text-[0.75rem] font-serif bg-[#4a7a5a]/15 text-white border border-[#4a7a5a]/40 rounded hover:bg-[#4a7a5a]/25 transition-colors disabled:opacity-50"
+              >
+                {linkStatus === 'linking' ? 'Linking...' : 'Confirm'}
+              </button>
+              <button
+                onClick={() => { setLinkConfirmSession(null); setLinkStatus('idle'); }}
+                className="px-3 py-1 text-[0.75rem] font-serif text-[var(--color-text-muted)] border border-[var(--color-border)] rounded hover:border-[var(--color-text-muted)] transition-colors"
+              >
+                Cancel
+              </button>
+            </>
+          ) : sessions.length === 0 ? (
+            <span className="font-serif text-[0.8rem] text-[var(--color-text-dim)] italic">No sessions yet</span>
+          ) : (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {sessions.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setLinkConfirmSession(s)}
+                  className="px-2.5 py-1 text-[0.78rem] font-serif text-white/70 border border-[var(--color-border)] rounded hover:border-[#4a7a5a] hover:text-white transition-colors"
+                >
+                  {s.number}{s.title ? ` — ${s.title}` : ''}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Canvas + Asset panel */}
       <div className="flex-1 flex overflow-hidden">
         {/* Canvas area — also a drop zone */}
@@ -646,8 +936,12 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
               hexSize={HEX_SIZE}
               tiles={tiles}
               activeTool={overlay ? 'build' : tool}
+              placedAssets={placedAssets}
+              assetLibrary={assetLibrary}
+              selectedPlacementId={tool === 'select' ? selectedPlacementId : null}
               onTileClick={!overlay && (tool === 'build' || tool === 'visible' || tool === 'obscure') ? handleTileClick : undefined}
               onPointerUp={handlePointerUp}
+              onAssetSelect={(id) => setSelectedPlacementId(id)}
             />
           )}
 
@@ -708,35 +1002,53 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
 
         {/* Asset palette — right sidebar */}
         <div className="w-16 border-l border-[var(--color-border)] bg-[var(--color-surface)] flex flex-col items-center pt-3 gap-2">
-          {/* Drop zone for custom assets */}
+          {/* Drop zone for custom asset upload */}
           <div
             className="w-12 h-12 border-2 border-dashed border-[var(--color-border)] rounded flex items-center justify-center text-[var(--color-text-muted)] hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors cursor-pointer"
             title="Drop asset image here"
             onDragOver={e => e.preventDefault()}
+            onDrop={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const file = e.dataTransfer.files[0];
+              if (!file || !file.type.startsWith('image/')) return;
+              const name = file.name.replace(/\.[^.]+$/, '');
+              const res = await fetch('/api/map-builder/assets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, category: 'custom' }),
+              });
+              if (res.ok) {
+                const asset = await res.json();
+                setAssetLibrary(prev => [...prev, asset]);
+              }
+            }}
           >
             <span className="text-xl leading-none">+</span>
           </div>
-          {/* Tree */}
-          <div
-            className="w-12 h-12 border border-[var(--color-border)] rounded flex items-center justify-center text-2xl cursor-pointer hover:border-[var(--color-gold)] transition-colors"
-            title="Tree"
-          >
-            🌲
-          </div>
-          {/* Rock */}
-          <div
-            className="w-12 h-12 border border-[var(--color-border)] rounded flex items-center justify-center text-2xl cursor-pointer hover:border-[var(--color-gold)] transition-colors"
-            title="Rock"
-          >
-            🪨
-          </div>
-          {/* NPC — Goblin */}
-          <div
-            className="w-12 h-12 border border-[var(--color-border)] rounded flex items-center justify-center text-2xl cursor-pointer hover:border-[var(--color-gold)] transition-colors"
-            title="NPC"
-          >
-            👺
-          </div>
+          {/* Asset library buttons */}
+          {assetLibrary.map(asset => (
+            <button
+              key={asset.id}
+              onClick={() => {
+                if (paletteAssetId === asset.id) {
+                  setPaletteAssetId(null);
+                } else {
+                  setPaletteAssetId(asset.id);
+                  setSelectedPlacementId(null);
+                  if (tool !== 'build') setTool('build');
+                }
+              }}
+              className={`w-12 h-12 border rounded flex items-center justify-center text-2xl cursor-pointer transition-colors ${
+                paletteAssetId === asset.id
+                  ? 'border-[var(--color-gold)] bg-[var(--color-gold)]/15'
+                  : 'border-[var(--color-border)] hover:border-[var(--color-gold)]'
+              }`}
+              title={asset.name}
+            >
+              {CATEGORY_EMOJI[asset.category] || '📦'}
+            </button>
+          ))}
         </div>
       </div>
     </div>

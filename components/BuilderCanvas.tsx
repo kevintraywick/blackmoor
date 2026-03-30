@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { hexCenter, hexPath, pixelToHex, visibleHexRange, gridBounds } from '@/lib/hex-math';
-import type { TileState } from '@/lib/types';
+import type { TileState, PlacedAsset, BuilderAsset } from '@/lib/types';
 
 export type BuilderTool = 'build' | 'select' | 'visible' | 'obscure' | 'print';
 
@@ -12,9 +12,13 @@ interface BuilderCanvasProps {
   hexSize: number;         // world-space radius of a hex (px)
   tiles: Map<number, TileState>;
   activeTool: BuilderTool;
+  placedAssets?: PlacedAsset[];
+  assetLibrary?: BuilderAsset[];
+  selectedPlacementId?: string | null;
   onTileClick?: (col: number, row: number, isDrag: boolean) => void;
   onCameraChange?: (camera: { x: number; y: number; zoom: number }) => void;
   onPointerUp?: () => void;
+  onAssetSelect?: (placementId: string | null) => void;
 }
 
 /** Pack a col,row pair into a single number key for Map lookups. */
@@ -22,15 +26,23 @@ export function packKey(col: number, row: number): number {
   return col * 10000 + row;
 }
 
+const CATEGORY_EMOJI: Record<string, string> = {
+  wall: '🧱', door: '🚪', stairs: '🪜', water: '🌊', custom: '📦',
+};
+
 export default function BuilderCanvas({
   cols,
   rows,
   hexSize,
   tiles,
   activeTool,
+  placedAssets = [],
+  assetLibrary = [],
+  selectedPlacementId,
   onTileClick,
   onCameraChange,
   onPointerUp: onPointerUpProp,
+  onAssetSelect,
 }: BuilderCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
@@ -49,11 +61,17 @@ export default function BuilderCanvas({
   colsRef.current = cols;
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
+  const placedAssetsRef = useRef(placedAssets);
+  placedAssetsRef.current = placedAssets;
+  const assetLibraryRef = useRef(assetLibrary);
+  assetLibraryRef.current = assetLibrary;
+  const selectedPlacementRef = useRef(selectedPlacementId);
+  selectedPlacementRef.current = selectedPlacementId;
 
   const markDirty = useCallback(() => { dirtyRef.current = true; }, []);
 
   // Mark dirty when props change
-  useEffect(markDirty, [tiles, cols, rows, hexSize, markDirty]);
+  useEffect(markDirty, [tiles, cols, rows, hexSize, placedAssets, selectedPlacementId, markDirty]);
 
   // ── Screen pixel → world pixel ─────────────────────────────────────────────
   function screenToWorld(screenX: number, screenY: number) {
@@ -159,6 +177,33 @@ export default function BuilderCanvas({
       }
     }
 
+    // Placed assets — emoji at hex centers
+    const assets = placedAssetsRef.current;
+    const library = assetLibraryRef.current;
+    if (assets.length > 0) {
+      const fontSize = hexSize * 0.8;
+      ctx.font = `${fontSize}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (const a of assets) {
+        // Skip if outside visible range
+        if (a.col < range.minCol || a.col > range.maxCol || a.row < range.minRow || a.row > range.maxRow) continue;
+        const { cx, cy } = hexCenter(a.col, a.row, hexSize);
+        const def = library.find(d => d.id === a.asset_id);
+        const emoji = def ? (CATEGORY_EMOJI[def.category] || '📦') : '❓';
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillText(emoji, cx, cy);
+
+        // Selection highlight
+        if (selectedPlacementRef.current === a.id) {
+          ctx.strokeStyle = 'rgba(201,168,76,0.8)';
+          ctx.lineWidth = 2 / cam.zoom;
+          hexPath(ctx, cx, cy, hexSize);
+          ctx.stroke();
+        }
+      }
+    }
+
     rafRef.current = requestAnimationFrame(renderLoop);
   }, [hexSize]);
 
@@ -220,6 +265,19 @@ export default function BuilderCanvas({
       isPanning.current = true;
       lastPan.current = { x: sx, y: sy };
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      return;
+    }
+
+    // Select tool: check for asset hit
+    if (tool === 'select' && onAssetSelect) {
+      const { wx, wy } = screenToWorld(sx, sy);
+      const hex = pixelToHex(wx, wy, hexSize, colsRef.current, rowsRef.current);
+      if (hex) {
+        const hit = placedAssetsRef.current.find(a => a.col === hex[0] && a.row === hex[1]);
+        onAssetSelect(hit ? hit.id : null);
+      } else {
+        onAssetSelect(null);
+      }
       return;
     }
 
