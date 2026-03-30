@@ -43,13 +43,17 @@ export async function PUT(req: Request) {
       const [campaign] = await query<{
         quorum: number;
         dm_email: string;
-        quorum_notified: string[];
+        quorum_notified: string[] | null;
       }>('SELECT quorum, dm_email, quorum_notified FROM campaign LIMIT 1');
+
+      const notified = Array.isArray(campaign?.quorum_notified) ? campaign.quorum_notified : [];
+
+      console.log('Quorum check:', { saturday, status, count, quorum: campaign?.quorum, dm_email: campaign?.dm_email, notified, hasKey: !!process.env.RESEND_API_KEY });
 
       if (campaign && campaign.dm_email) {
         const d = new Date(saturday + 'T12:00:00');
         const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-        const wasNotified = campaign.quorum_notified.includes(saturday);
+        const wasNotified = notified.includes(saturday);
 
         // Quorum just reached — send celebration email
         if (status === 'in' && count >= campaign.quorum && !wasNotified) {
@@ -70,7 +74,7 @@ export async function PUT(req: Request) {
           });
 
           // Mark this Saturday as notified
-          const updated = [...campaign.quorum_notified, saturday];
+          const updated = [...notified, saturday];
           await query(
             `UPDATE campaign SET quorum_notified = $1::jsonb WHERE id = 'default'`,
             [JSON.stringify(updated)]
@@ -86,7 +90,7 @@ export async function PUT(req: Request) {
           });
 
           // Remove from notified so re-reaching quorum triggers a new email
-          const updated = campaign.quorum_notified.filter((s: string) => s !== saturday);
+          const updated = notified.filter((s: string) => s !== saturday);
           await query(
             `UPDATE campaign SET quorum_notified = $1::jsonb WHERE id = 'default'`,
             [JSON.stringify(updated)]
