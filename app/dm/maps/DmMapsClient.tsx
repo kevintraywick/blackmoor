@@ -211,7 +211,7 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
           <button
             key={m.id}
             onClick={() => { setActiveId(m.id); setShowGridSetup(false); setSelectedNote(null); }}
-            className={`flex-shrink-0 w-[150px] border-2 rounded overflow-hidden text-left transition-all ${
+            className={`flex-shrink-0 w-[300px] border-2 rounded overflow-hidden text-left transition-all ${
               m.id === activeId ? 'border-[var(--color-gold)]' : 'border-[var(--color-border)] hover:border-[#6a5a50]'
             }`}
           >
@@ -220,14 +220,14 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
               <img
                 src={`/api/maps/image/${m.image_path}`}
                 alt={m.name}
-                className="w-full h-[90px] object-cover"
+                className="w-[300px] h-[270px] object-cover"
               />
             ) : (
-              <div className="w-full h-[90px] bg-[#0d0b09] flex items-center justify-center text-[var(--color-border)] text-xs">
+              <div className="w-[300px] h-[270px] bg-[#0d0b09] flex items-center justify-center text-[var(--color-border)] text-xs">
                 No image
               </div>
             )}
-            <div className={`px-2 py-1 text-[10px] uppercase tracking-[0.1em] truncate font-sans ${
+            <div className={`px-2 py-1.5 text-[10px] uppercase tracking-[0.1em] truncate font-sans ${
               m.id === activeId ? 'bg-[#2a2518] text-[var(--color-gold)]' : 'bg-[var(--color-surface)] text-[var(--color-text-body)]'
             }`}>{m.name}</div>
           </button>
@@ -237,7 +237,7 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
         {!addingMap ? (
           <button
             onClick={() => setAddingMap(true)}
-            className="flex-shrink-0 w-[150px] h-[118px] border-2 border-dashed border-[var(--color-border)] rounded flex flex-col items-center justify-center gap-1 text-[#4a3a35] hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
+            className="flex-shrink-0 w-[300px] h-[300px] border-2 border-dashed border-[var(--color-border)] rounded flex flex-col items-center justify-center gap-1 text-[#4a3a35] hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
           >
             <span className="text-2xl leading-none">+</span>
             <span className="text-[9px] uppercase tracking-[0.15em] font-sans">Add map</span>

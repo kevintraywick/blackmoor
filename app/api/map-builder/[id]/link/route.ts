@@ -26,7 +26,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const activeTiles: [number, number][] = [];
     if (level.tiles && typeof level.tiles === 'object') {
       for (const [key, val] of Object.entries(level.tiles)) {
-        if ((val as { active: boolean }).active) {
+        if ((val as { visible?: boolean }).visible) {
           const [c, r] = key.split(',').map(Number);
           activeTiles.push([c, r]);
         }

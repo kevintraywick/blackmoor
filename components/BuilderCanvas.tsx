@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { hexCenter, hexPath, pixelToHex, visibleHexRange, gridBounds } from '@/lib/hex-math';
 import type { TileState } from '@/lib/types';
 
-export type BuilderTool = 'activate' | 'select' | 'pan';
+export type BuilderTool = 'build' | 'select' | 'visible' | 'obscure' | 'print';
 
 interface BuilderCanvasProps {
   cols: number;
@@ -110,7 +110,7 @@ export default function BuilderCanvas({
     }
 
     // Batch active hexes
-    ctx.fillStyle = 'rgba(201,168,76,0.25)';
+    ctx.fillStyle = 'rgba(74,122,170,0.35)';
     for (let c = range.minCol; c <= range.maxCol; c++) {
       for (let r = range.minRow; r <= range.maxRow; r++) {
         const key = packKey(c, r);
@@ -130,6 +130,32 @@ export default function BuilderCanvas({
         const { cx, cy } = hexCenter(c, r, hexSize);
         hexPath(ctx, cx, cy, hexSize);
         ctx.stroke();
+      }
+    }
+
+    // Obscured tiles — orange fill
+    ctx.fillStyle = 'rgba(210,140,50,0.35)';
+    for (let c = range.minCol; c <= range.maxCol; c++) {
+      for (let r = range.minRow; r <= range.maxRow; r++) {
+        const key = packKey(c, r);
+        const tile = tilesRef.current.get(key);
+        if (!tile?.obscured) continue;
+        const { cx, cy } = hexCenter(c, r, hexSize);
+        hexPath(ctx, cx, cy, hexSize);
+        ctx.fill();
+      }
+    }
+
+    // Visible tiles — lighter blue fill
+    ctx.fillStyle = 'rgba(130,190,255,0.30)';
+    for (let c = range.minCol; c <= range.maxCol; c++) {
+      for (let r = range.minRow; r <= range.maxRow; r++) {
+        const key = packKey(c, r);
+        const tile = tilesRef.current.get(key);
+        if (!tile?.visible) continue;
+        const { cx, cy } = hexCenter(c, r, hexSize);
+        hexPath(ctx, cx, cy, hexSize);
+        ctx.fill();
       }
     }
 
@@ -189,15 +215,15 @@ export default function BuilderCanvas({
     const { sx, sy } = canvasXY(e);
     const tool = toolRef.current;
 
-    // Middle-click or pan tool = pan
-    if (e.button === 1 || tool === 'pan') {
+    // Middle-click = always pan (no explicit pan tool anymore)
+    if (e.button === 1) {
       isPanning.current = true;
       lastPan.current = { x: sx, y: sy };
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
       return;
     }
 
-    if (tool === 'activate' && onTileClick) {
+    if ((tool === 'build' || tool === 'visible' || tool === 'obscure') && onTileClick) {
       isDragging.current = true;
       const { wx, wy } = screenToWorld(sx, sy);
       const tile = pixelToHex(wx, wy, hexSize, colsRef.current, rowsRef.current);
@@ -220,7 +246,7 @@ export default function BuilderCanvas({
       return;
     }
 
-    if (isDragging.current && toolRef.current === 'activate' && onTileClick) {
+    if (isDragging.current && (toolRef.current === 'build' || toolRef.current === 'visible' || toolRef.current === 'obscure') && onTileClick) {
       const { wx, wy } = screenToWorld(sx, sy);
       const tile = pixelToHex(wx, wy, hexSize, colsRef.current, rowsRef.current);
       if (tile) onTileClick(tile[0], tile[1], true);
@@ -257,7 +283,7 @@ export default function BuilderCanvas({
   return (
     <canvas
       ref={canvasRef}
-      style={{ display: 'block', width: '100%', height: '100%', cursor: activeTool === 'pan' ? 'grab' : 'crosshair' }}
+      style={{ display: 'block', width: '100%', height: '100%', cursor: activeTool === 'select' ? 'default' : 'crosshair' }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

@@ -12,10 +12,12 @@ interface Props {
 
 const HEX_SIZE = 120; // world-space hex radius in px
 
-const TOOLS: { key: BuilderTool; label: string; shortcut: string }[] = [
-  { key: 'activate', label: 'Activate', shortcut: 'A' },
-  { key: 'select',   label: 'Select',   shortcut: 'S' },
-  { key: 'pan',      label: 'Pan',      shortcut: 'P' },
+const MODES: { key: BuilderTool; label: string; shortcut: string; color: string; activeColor: string }[] = [
+  { key: 'build',    label: 'Build',    shortcut: 'B', color: 'border-[#4a7aaa] text-[#6aafef]', activeColor: 'border-[#4a7aaa] text-white bg-[#4a7aaa]' },
+  { key: 'select',   label: 'Select',   shortcut: 'S', color: 'border-white/30 text-white/70',   activeColor: 'border-white/60 text-white bg-white/10' },
+  { key: 'visible',  label: 'Visible',  shortcut: 'V', color: 'border-white/30 text-white/70',   activeColor: 'border-white/60 text-white bg-white/10' },
+  { key: 'obscure',  label: 'Obscure',  shortcut: 'O', color: 'border-[#b8a24a]/50 text-[#d4c25a]', activeColor: 'border-[#b8a24a] text-[#d4c25a] bg-[#b8a24a]/15' },
+  { key: 'print',    label: 'Print',    shortcut: 'R', color: 'border-[#c07a8a]/40 text-[#d08a9a]', activeColor: 'border-[#c07a8a] text-[#d08a9a] bg-[#c07a8a]/15' },
 ];
 
 export default function MapBuilderClient({ initialBuilds }: Props) {
@@ -23,7 +25,7 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   const [activeBuildId, setActiveBuildId] = useState<string | null>(null);
   const [levels, setLevels] = useState<MapBuildLevel[]>([]);
   const [activeLevelId, setActiveLevelId] = useState<string | null>(null);
-  const [tool, setTool] = useState<BuilderTool>('activate');
+  const [tool, setTool] = useState<BuilderTool>('build');
   const [tiles, setTiles] = useState<Map<number, TileState>>(new Map());
   const [saving, setSaving] = useState(false);
 
@@ -47,6 +49,14 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   const { push: pushUndo, undo, redo } = useUndoRedo();
   const [editingLevelName, setEditingLevelName] = useState<string | null>(null);
   const [levelNameDraft, setLevelNameDraft] = useState('');
+
+  // New map dialog
+  const [showNewMapDialog, setShowNewMapDialog] = useState(false);
+  const [newMapName, setNewMapName] = useState('');
+
+  // Rename build on home page
+  const [editingBuildName, setEditingBuildName] = useState<string | null>(null);
+  const [buildNameDraft, setBuildNameDraft] = useState('');
 
   // ── Load a build ───────────────────────────────────────────────────────────
   async function loadBuild(buildId: string) {
@@ -78,15 +88,27 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   }
 
   // ── Create a new build ─────────────────────────────────────────────────────
-  async function createBuild() {
+  async function createBuild(name: string) {
     const res = await fetch('/api/map-builder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Untitled Map' }),
+      body: JSON.stringify({ name }),
     });
     const data = await res.json();
     setBuilds(prev => [data, ...prev]);
     loadBuild(data.id);
+  }
+
+  async function renameBuild(buildId: string, name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) { setEditingBuildName(null); return; }
+    setBuilds(prev => prev.map(b => b.id === buildId ? { ...b, name: trimmed } : b));
+    setEditingBuildName(null);
+    await fetch(`/api/map-builder/${buildId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: trimmed }),
+    });
   }
 
   // ── Save tiles (debounced) ─────────────────────────────────────────────────
@@ -123,37 +145,50 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
 
     setTiles(prev => {
       const next = new Map(prev);
+      const existing = next.get(key);
 
-      if (isDrag) {
-        const wasActive = next.get(key)?.active ?? false;
-        next.set(key, { active: true });
-        dragStroke.current.push({ key, wasActive });
-      } else {
-        // New click = finalize any previous drag stroke and start fresh
-        finalizeDragStroke();
-        const existing = next.get(key);
-        const wasActive = existing?.active ?? false;
-        if (wasActive) {
-          next.delete(key);
+      if (tool === 'build') {
+        if (isDrag) {
+          const wasActive = existing?.active ?? false;
+          next.set(key, { ...existing, active: true });
+          dragStroke.current.push({ key, wasActive });
         } else {
-          next.set(key, { active: true });
+          finalizeDragStroke();
+          const wasActive = existing?.active ?? false;
+          if (wasActive) {
+            next.delete(key);
+          } else {
+            next.set(key, { ...existing, active: true });
+          }
+          pushUndo({
+            apply: () => setTiles(p => { const n = new Map(p); if (wasActive) n.delete(key); else n.set(key, { ...n.get(key), active: true }); saveTiles(n); return n; }),
+            reverse: () => setTiles(p => { const n = new Map(p); if (wasActive) n.set(key, { ...n.get(key), active: true }); else n.delete(key); saveTiles(n); return n; }),
+          });
         }
-        // Single-tile undo action
-        pushUndo({
-          apply: () => setTiles(p => {
-            const n = new Map(p);
-            if (wasActive) n.delete(key); else n.set(key, { active: true });
-            saveTiles(n);
-            return n;
-          }),
-          reverse: () => setTiles(p => {
-            const n = new Map(p);
-            if (wasActive) n.set(key, { active: true }); else n.delete(key);
-            saveTiles(n);
-            return n;
-          }),
-        });
+      } else if (tool === 'visible') {
+        if (!existing?.active) { saveTiles(next); return next; } // can only activate built tiles
+        const wasVisible = existing.visible ?? false;
+        const newState = isDrag ? true : !wasVisible;
+        next.set(key, { ...existing, visible: newState });
+        if (!isDrag) {
+          pushUndo({
+            apply: () => setTiles(p => { const n = new Map(p); const e = n.get(key); if (e) n.set(key, { ...e, visible: newState }); saveTiles(n); return n; }),
+            reverse: () => setTiles(p => { const n = new Map(p); const e = n.get(key); if (e) n.set(key, { ...e, visible: wasVisible }); saveTiles(n); return n; }),
+          });
+        }
+      } else if (tool === 'obscure') {
+        if (!existing?.visible) { saveTiles(next); return next; } // can only obscure visible tiles
+        const wasObscured = existing.obscured ?? false;
+        const newState = isDrag ? true : !wasObscured;
+        next.set(key, { ...existing, obscured: newState });
+        if (!isDrag) {
+          pushUndo({
+            apply: () => setTiles(p => { const n = new Map(p); const e = n.get(key); if (e) n.set(key, { ...e, obscured: newState }); saveTiles(n); return n; }),
+            reverse: () => setTiles(p => { const n = new Map(p); const e = n.get(key); if (e) n.set(key, { ...e, obscured: wasObscured }); saveTiles(n); return n; }),
+          });
+        }
       }
+
       saveTiles(next);
       return next;
     });
@@ -196,10 +231,11 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     if (mod && e.key === 'z' && e.shiftKey) { e.preventDefault(); redo(); return; }
     if (mod && e.key === 'Z') { e.preventDefault(); redo(); return; }
 
-    if (e.key === 'a' || e.key === 'A') setTool('activate');
+    if (e.key === 'b' || e.key === 'B') setTool('build');
     else if (e.key === 's' || e.key === 'S') setTool('select');
-    else if (e.key === 'p' || e.key === 'P') setTool('pan');
-    else if (e.key === 'Escape') setTool('activate');
+    else if (e.key === 'v' || e.key === 'V') setTool('visible');
+    else if (e.key === 'o' || e.key === 'O') setTool('obscure');
+    else if (e.key === 'Escape') setTool('build');
   }
 
   // ── Switch level ───────────────────────────────────────────────────────────
@@ -276,19 +312,9 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
       analyzing: true,
     });
 
-    // Mappy analysis
-    const mappyRes = await fetch(`/api/map-builder/${activeBuildId}/mappy`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ base64: uploadData.base64, media_type: uploadData.media_type }),
-    });
-    const mappyData = await mappyRes.json();
-
+    // Skip AI analysis for now — use defaults
     setOverlay(prev => prev ? {
       ...prev,
-      width_meters: mappyData.width_meters ?? 30,
-      height_meters: mappyData.height_meters ?? 30,
-      confidence: mappyData.confidence ?? 'low',
       analyzing: false,
     } : null);
   }
@@ -395,30 +421,98 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           Hex Grid Editor
         </p>
 
-        <div className="flex gap-3 flex-wrap mb-8">
-          <button
-            onClick={createBuild}
-            className="px-4 py-2 text-sm font-serif border border-dashed border-[var(--color-gold)] text-[var(--color-gold)] rounded hover:bg-[var(--color-gold)]/10 transition-colors"
-          >
-            + New Map
-          </button>
-        </div>
-
-        {builds.length === 0 && (
-          <p className="text-[0.88rem] italic text-[var(--color-text-dim)]">No maps yet. Create one to get started.</p>
-        )}
-
-        <div className="grid gap-3">
-          {builds.map(b => (
+        <div className="flex gap-4 flex-wrap">
+          {/* New map card */}
+          {showNewMapDialog ? (
+            <div className="w-[200px] h-[200px] border-2 border-[var(--color-gold)] rounded bg-[var(--color-surface)] flex flex-col items-center justify-center gap-3 p-4">
+              <span className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-gold)] font-sans">New Map</span>
+              <input
+                autoFocus
+                value={newMapName}
+                onChange={e => setNewMapName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newMapName.trim()) {
+                    createBuild(newMapName.trim());
+                    setShowNewMapDialog(false);
+                    setNewMapName('');
+                  }
+                  if (e.key === 'Escape') { setShowNewMapDialog(false); setNewMapName(''); }
+                }}
+                placeholder="Map name…"
+                className="w-full bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-sm text-center outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-dim)]"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowNewMapDialog(false); setNewMapName(''); }}
+                  className="px-3 py-1 text-[0.7rem] font-serif text-[var(--color-text-muted)] border border-[var(--color-border)] rounded hover:border-[var(--color-text-muted)] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (!newMapName.trim()) return;
+                    createBuild(newMapName.trim());
+                    setShowNewMapDialog(false);
+                    setNewMapName('');
+                  }}
+                  className="px-3 py-1 text-[0.7rem] font-serif text-[var(--color-gold)] border border-[var(--color-gold)]/40 rounded hover:bg-[var(--color-gold)]/10 transition-colors"
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          ) : (
             <button
-              key={b.id}
-              onClick={() => loadBuild(b.id)}
-              className="text-left px-4 py-3 border border-[var(--color-border)] rounded bg-[var(--color-surface)] hover:border-[var(--color-gold)] transition-colors"
+              onClick={() => setShowNewMapDialog(true)}
+              className="w-[200px] h-[200px] border-2 border-dashed border-[var(--color-border)] rounded flex flex-col items-center justify-center gap-2 text-[var(--color-text-dim)] hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
             >
-              <span className="font-serif text-[var(--color-text)]">{b.name || 'Untitled Map'}</span>
+              <span className="text-3xl leading-none">+</span>
+              <span className="text-[0.65rem] uppercase tracking-[0.15em] font-sans">New Map</span>
             </button>
+          )}
+
+          {/* Existing map cards */}
+          {builds.map(b => (
+            <div
+              key={b.id}
+              className="w-[200px] h-[200px] border border-[var(--color-border)] rounded bg-[var(--color-surface)] hover:border-[var(--color-gold)] transition-colors cursor-pointer flex flex-col overflow-hidden"
+            >
+              <div
+                className="h-[164px] flex items-center justify-center"
+                onClick={() => loadBuild(b.id)}
+              >
+                <span className="text-4xl opacity-20">🗺</span>
+              </div>
+              <div className="h-[36px] border-t border-[var(--color-border)] px-3 flex items-center">
+                {editingBuildName === b.id ? (
+                  <input
+                    autoFocus
+                    value={buildNameDraft}
+                    onChange={e => setBuildNameDraft(e.target.value)}
+                    onBlur={() => renameBuild(b.id, buildNameDraft)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') renameBuild(b.id, buildNameDraft);
+                      if (e.key === 'Escape') setEditingBuildName(null);
+                    }}
+                    className="w-full bg-transparent border-b border-[var(--color-gold)] text-[var(--color-text)] font-serif text-sm outline-none"
+                  />
+                ) : (
+                  <span
+                    className="font-serif text-sm text-[var(--color-text)] block truncate"
+                    onDoubleClick={() => { setEditingBuildName(b.id); setBuildNameDraft(b.name || ''); }}
+                    title="Double-click to rename"
+                  >
+                    {b.name || 'Untitled Map'}
+                  </span>
+                )}
+              </div>
+            </div>
           ))}
         </div>
+
+        {builds.length === 0 && !showNewMapDialog && (
+          <p className="text-[0.88rem] italic text-[var(--color-text-dim)] mt-6">No maps yet. Create one to get started.</p>
+        )}
       </div>
     );
   }
@@ -442,21 +536,20 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           All Maps
         </button>
 
-        <div className="w-px h-5 bg-[var(--color-border)]" />
+        <div className="flex-1" />
 
-        {/* Tool buttons */}
-        {TOOLS.map(t => (
+        {/* Mode buttons — center-aligned */}
+        {MODES.map(m => (
           <button
-            key={t.key}
-            onClick={() => setTool(t.key)}
+            key={m.key}
+            onClick={() => setTool(m.key)}
+            disabled={m.key === 'print'}
             className={`px-4 py-1.5 text-[1rem] rounded border transition-colors font-serif ${
-              tool === t.key
-                ? 'border-[var(--color-gold)] text-white bg-[var(--color-gold)]/15'
-                : 'border-[var(--color-border)] text-white/70 hover:border-[var(--color-text-muted)] hover:text-white'
-            }`}
-            title={`${t.label} (${t.shortcut})`}
+              tool === m.key ? m.activeColor : `${m.color} hover:opacity-100 opacity-70`
+            } ${m.key === 'print' ? 'opacity-40 cursor-not-allowed' : ''}`}
+            title={`${m.label} (${m.shortcut})${m.key === 'print' ? ' — coming soon' : ''}`}
           >
-            {t.label}
+            {m.label}
           </button>
         ))}
 
@@ -537,78 +630,114 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
         </button>
       </div>
 
-      {/* Canvas area — also a drop zone */}
-      <div
-        className={`flex-1 relative overflow-hidden bg-[#12100e] ${dragOver ? 'ring-2 ring-inset ring-[var(--color-gold)]' : ''}`}
-        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleImageDrop}
-      >
-        {activeLevel && (
-          <BuilderCanvas
-            cols={activeLevel.cols}
-            rows={activeLevel.rows}
-            hexSize={HEX_SIZE}
-            tiles={tiles}
-            activeTool={overlay ? 'pan' : tool}
-            onTileClick={!overlay && tool === 'activate' ? handleTileClick : undefined}
-            onPointerUp={handlePointerUp}
-          />
-        )}
+      {/* Canvas + Asset panel */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Canvas area — also a drop zone */}
+        <div
+          className={`flex-1 relative overflow-hidden bg-[#12100e] ${dragOver ? 'ring-2 ring-inset ring-[var(--color-gold)]' : ''}`}
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleImageDrop}
+        >
+          {activeLevel && (
+            <BuilderCanvas
+              cols={activeLevel.cols}
+              rows={activeLevel.rows}
+              hexSize={HEX_SIZE}
+              tiles={tiles}
+              activeTool={overlay ? 'build' : tool}
+              onTileClick={!overlay && (tool === 'build' || tool === 'visible' || tool === 'obscure') ? handleTileClick : undefined}
+              onPointerUp={handlePointerUp}
+            />
+          )}
 
-        {/* Drag-over hint */}
-        {dragOver && !overlay && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-gold)]/5 pointer-events-none">
-            <span className="font-serif text-lg text-[var(--color-gold)]">Drop map image here</span>
-          </div>
-        )}
+          {/* Drag-over hint */}
+          {dragOver && !overlay && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-gold)]/5 pointer-events-none">
+              <span className="font-serif text-lg text-[var(--color-gold)]">Drop map image here</span>
+            </div>
+          )}
 
-        {/* Image overlay controls */}
-        {overlay && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-4 py-3 flex items-center gap-4 shadow-lg">
-            {overlay.analyzing ? (
-              <span className="font-serif text-sm text-[var(--color-text-muted)]">Mappy is analyzing...</span>
-            ) : (
-              <>
-                <span className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">Size (m)</span>
-                <input
-                  type="number"
-                  value={overlay.width_meters}
-                  onChange={e => setOverlay(prev => prev ? { ...prev, width_meters: Number(e.target.value) || 1 } : null)}
-                  className="w-16 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-sm text-center outline-none focus:border-[var(--color-gold)]"
-                />
-                <span className="text-[var(--color-text-dim)]">x</span>
-                <input
-                  type="number"
-                  value={overlay.height_meters}
-                  onChange={e => setOverlay(prev => prev ? { ...prev, height_meters: Number(e.target.value) || 1 } : null)}
-                  className="w-16 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-sm text-center outline-none focus:border-[var(--color-gold)]"
-                />
-                {overlay.confidence && (
-                  <span className={`text-[0.6rem] uppercase tracking-wider ${
-                    overlay.confidence === 'high' ? 'text-[#5a8a5a]' :
-                    overlay.confidence === 'medium' ? 'text-[var(--color-gold)]' :
-                    'text-[#8a5a4a]'
-                  }`}>
-                    {overlay.confidence}
-                  </span>
-                )}
-                <button
-                  onClick={commitOverlay}
-                  className="px-3 py-1 text-[0.75rem] font-serif bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold)]/40 rounded hover:bg-[var(--color-gold)]/25 transition-colors"
-                >
-                  Commit
-                </button>
-                <button
-                  onClick={cancelOverlay}
-                  className="px-3 py-1 text-[0.75rem] font-serif text-[var(--color-text-muted)] border border-[var(--color-border)] rounded hover:border-[var(--color-text-muted)] transition-colors"
-                >
-                  Cancel
-                </button>
-              </>
-            )}
+          {/* Image overlay controls */}
+          {overlay && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-4 py-3 flex items-center gap-4 shadow-lg">
+              {overlay.analyzing ? (
+                <span className="font-serif text-sm text-[var(--color-text-muted)]">Processing image...</span>
+              ) : (
+                <>
+                  <span className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">Size (m)</span>
+                  <input
+                    type="number"
+                    value={overlay.width_meters}
+                    onChange={e => setOverlay(prev => prev ? { ...prev, width_meters: Number(e.target.value) || 1 } : null)}
+                    className="w-16 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-sm text-center outline-none focus:border-[var(--color-gold)]"
+                  />
+                  <span className="text-[var(--color-text-dim)]">x</span>
+                  <input
+                    type="number"
+                    value={overlay.height_meters}
+                    onChange={e => setOverlay(prev => prev ? { ...prev, height_meters: Number(e.target.value) || 1 } : null)}
+                    className="w-16 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-sm text-center outline-none focus:border-[var(--color-gold)]"
+                  />
+                  {overlay.confidence && (
+                    <span className={`text-[0.6rem] uppercase tracking-wider ${
+                      overlay.confidence === 'high' ? 'text-[#5a8a5a]' :
+                      overlay.confidence === 'medium' ? 'text-[var(--color-gold)]' :
+                      'text-[#8a5a4a]'
+                    }`}>
+                      {overlay.confidence}
+                    </span>
+                  )}
+                  <button
+                    onClick={commitOverlay}
+                    className="px-3 py-1 text-[0.75rem] font-serif bg-[var(--color-gold)]/15 text-[var(--color-gold)] border border-[var(--color-gold)]/40 rounded hover:bg-[var(--color-gold)]/25 transition-colors"
+                  >
+                    Commit
+                  </button>
+                  <button
+                    onClick={cancelOverlay}
+                    className="px-3 py-1 text-[0.75rem] font-serif text-[var(--color-text-muted)] border border-[var(--color-border)] rounded hover:border-[var(--color-text-muted)] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Asset palette — right sidebar */}
+        <div className="w-16 border-l border-[var(--color-border)] bg-[var(--color-surface)] flex flex-col items-center pt-3 gap-2">
+          {/* Drop zone for custom assets */}
+          <div
+            className="w-12 h-12 border-2 border-dashed border-[var(--color-border)] rounded flex items-center justify-center text-[var(--color-text-muted)] hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors cursor-pointer"
+            title="Drop asset image here"
+            onDragOver={e => e.preventDefault()}
+          >
+            <span className="text-xl leading-none">+</span>
           </div>
-        )}
+          {/* Tree */}
+          <div
+            className="w-12 h-12 border border-[var(--color-border)] rounded flex items-center justify-center text-2xl cursor-pointer hover:border-[var(--color-gold)] transition-colors"
+            title="Tree"
+          >
+            🌲
+          </div>
+          {/* Rock */}
+          <div
+            className="w-12 h-12 border border-[var(--color-border)] rounded flex items-center justify-center text-2xl cursor-pointer hover:border-[var(--color-gold)] transition-colors"
+            title="Rock"
+          >
+            🪨
+          </div>
+          {/* NPC — Goblin */}
+          <div
+            className="w-12 h-12 border border-[var(--color-border)] rounded flex items-center justify-center text-2xl cursor-pointer hover:border-[var(--color-gold)] transition-colors"
+            title="NPC"
+          >
+            👺
+          </div>
+        </div>
       </div>
     </div>
   );

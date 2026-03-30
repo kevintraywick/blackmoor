@@ -68,6 +68,57 @@ export function gridBounds(cols: number, rows: number, hexSize: number) {
   };
 }
 
+/**
+ * Get the 6 neighbors of a flat-top hex in even-q offset coordinates.
+ * CRITICAL: Returns neighbors in edge order (0-5) matching hexPath corner angles.
+ * Edge i connects corner at angle (60*i)° to corner at angle (60*(i+1))°.
+ *
+ * For flat-top hex:
+ *   Edge 0 (0°→60°)   = upper-right  → NE neighbor
+ *   Edge 1 (60°→120°)  = top          → N neighbor
+ *   Edge 2 (120°→180°) = upper-left   → NW neighbor
+ *   Edge 3 (180°→240°) = lower-left   → SW neighbor
+ *   Edge 4 (240°→300°) = bottom       → S neighbor
+ *   Edge 5 (300°→360°) = lower-right  → SE neighbor
+ */
+export function hexNeighbors(col: number, row: number): [number, number][] {
+  const isOdd = col % 2 === 1;
+  if (isOdd) {
+    return [
+      [col + 1, row],     // Edge 0: NE
+      [col, row - 1],     // Edge 1: N
+      [col - 1, row],     // Edge 2: NW
+      [col - 1, row + 1], // Edge 3: SW
+      [col, row + 1],     // Edge 4: S
+      [col + 1, row + 1], // Edge 5: SE
+    ];
+  } else {
+    return [
+      [col + 1, row - 1], // Edge 0: NE
+      [col, row - 1],     // Edge 1: N
+      [col - 1, row - 1], // Edge 2: NW
+      [col - 1, row],     // Edge 3: SW
+      [col, row + 1],     // Edge 4: S
+      [col + 1, row],     // Edge 5: SE
+    ];
+  }
+}
+
+/**
+ * Get the two corner points of hex edge i (0-5) for a flat-top hex.
+ * Edge i connects corner i and corner (i+1)%6.
+ */
+export function hexEdgePoints(cx: number, cy: number, R: number, edgeIndex: number): { x1: number; y1: number; x2: number; y2: number } {
+  const a1 = (Math.PI / 180) * (60 * edgeIndex);
+  const a2 = (Math.PI / 180) * (60 * ((edgeIndex + 1) % 6));
+  return {
+    x1: cx + R * Math.cos(a1),
+    y1: cy + R * Math.sin(a1),
+    x2: cx + R * Math.cos(a2),
+    y2: cy + R * Math.sin(a2),
+  };
+}
+
 /** Get the hex coordinate range visible within a viewport (for culling). */
 export function visibleHexRange(
   viewX: number, viewY: number, viewW: number, viewH: number,

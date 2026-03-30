@@ -136,7 +136,9 @@ export interface MagicCatalogEntry {
 // ── Map Builder types ─────────────────────────────────────────────────────────
 
 export interface TileState {
-  active: boolean;
+  active: boolean;       // tile exists (placed during Build mode)
+  visible?: boolean;     // visible to players (set during Visible mode)
+  obscured?: boolean;    // assets show as muddy blob to players (set during Obscure mode)
 }
 
 export interface PlacedAsset {
