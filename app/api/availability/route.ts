@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
+import { sendEmail } from '@/lib/email';
 
 // GET /api/availability — return all availability rows
 export async function GET() {
@@ -31,6 +32,70 @@ export async function PUT(req: Request) {
        DO UPDATE SET status = EXCLUDED.status`,
       [player_id, saturday, status]
     );
+
+    // Check quorum and notify DM
+    try {
+      const [{ count }] = await query<{ count: number }>(
+        `SELECT COUNT(*)::int as count FROM availability WHERE saturday = $1 AND status = 'in'`,
+        [saturday]
+      );
+
+      const [campaign] = await query<{
+        quorum: number;
+        dm_email: string;
+        quorum_notified: string[];
+      }>('SELECT quorum, dm_email, quorum_notified FROM campaign LIMIT 1');
+
+      if (campaign && campaign.dm_email) {
+        const d = new Date(saturday + 'T12:00:00');
+        const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        const wasNotified = campaign.quorum_notified.includes(saturday);
+
+        // Quorum just reached — send celebration email
+        if (status === 'in' && count >= campaign.quorum && !wasNotified) {
+          const inPlayers = await query<{ player_name: string; character: string }>(
+            `SELECT p.player_name, p.character FROM availability a
+             JOIN players p ON p.id = a.player_id
+             WHERE a.saturday = $1 AND a.status = 'in'
+             ORDER BY p.sort_order`,
+            [saturday]
+          );
+
+          const playerList = inPlayers.map(p => `  ${p.player_name} (${p.character})`).join('\n');
+
+          await sendEmail({
+            to: campaign.dm_email,
+            subject: `Quorum reached for ${dateStr}`,
+            text: `${count} players confirmed for ${dateStr}:\n\n${playerList}\n\nView availability: ${process.env.NEXT_PUBLIC_URL ?? 'https://blackmoor-production.up.railway.app'}/can-you-play`,
+          });
+
+          // Mark this Saturday as notified
+          const updated = [...campaign.quorum_notified, saturday];
+          await query(
+            `UPDATE campaign SET quorum_notified = $1::jsonb WHERE id = 'default'`,
+            [JSON.stringify(updated)]
+          );
+        }
+
+        // Quorum lost — someone dropped out and we're now below threshold
+        if (status === 'out' && count < campaign.quorum && wasNotified) {
+          await sendEmail({
+            to: campaign.dm_email,
+            subject: `Quorum lost for ${dateStr}`,
+            text: `A player dropped out — only ${count} of ${campaign.quorum} needed are confirmed for ${dateStr}.\n\nView availability: ${process.env.NEXT_PUBLIC_URL ?? 'https://blackmoor-production.up.railway.app'}/can-you-play`,
+          });
+
+          // Remove from notified so re-reaching quorum triggers a new email
+          const updated = campaign.quorum_notified.filter((s: string) => s !== saturday);
+          await query(
+            `UPDATE campaign SET quorum_notified = $1::jsonb WHERE id = 'default'`,
+            [JSON.stringify(updated)]
+          );
+        }
+      }
+    } catch (notifyErr) {
+      console.error('Quorum notification failed (availability still saved):', notifyErr);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

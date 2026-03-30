@@ -327,6 +327,16 @@ async function _initSchema() {
     ALTER TABLE campaign ADD COLUMN IF NOT EXISTS quorum INTEGER NOT NULL DEFAULT 5
   `).catch(() => {});
 
+  // DM email for quorum notifications
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS dm_email TEXT NOT NULL DEFAULT ''
+  `).catch(() => {});
+
+  // Track which Saturdays have already triggered a quorum notification
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS quorum_notified JSONB NOT NULL DEFAULT '[]'
+  `).catch(() => {});
+
   // Backfill hp_roll (and empty stat fields) for existing NPCs from SRD.
   // Idempotent — only updates rows with empty hp_roll.
   // Strips _N suffixes and uses partial matching so "Ettercap_4" → "8d8+8".

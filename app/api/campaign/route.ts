@@ -19,7 +19,7 @@ export async function PATCH(req: Request) {
   try {
     await ensureSchema();
     const body = await req.json();
-    const { name, world, quorum } = body;
+    const { name, world, quorum, dm_email } = body;
 
     if (typeof name !== 'string' || typeof world !== 'string') {
       return NextResponse.json({ error: 'name and world must be strings' }, { status: 400 });
@@ -37,6 +37,11 @@ export async function PATCH(req: Request) {
         sets.push(`quorum = $${vals.length + 1}`);
         vals.push(q);
       }
+    }
+
+    if (typeof dm_email === 'string') {
+      sets.push(`dm_email = $${vals.length + 1}`);
+      vals.push(dm_email.trim().slice(0, 200));
     }
 
     await query(

@@ -76,9 +76,6 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
     return m;
   });
 
-  const [forging, setForging] = useState<string | null>(null);
-  const [forgedDates, setForgedDates] = useState<Set<string>>(new Set());
-
   const getStatus = useCallback((playerId: string, saturday: string): 'in' | 'out' => {
     return (avMap.get(`${playerId}:${saturday}`) as 'in' | 'out') ?? 'out';
   }, [avMap]);
@@ -104,31 +101,6 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
   const getInCount = useCallback((saturday: string): number => {
     return players.filter(p => getStatus(p.id, saturday) === 'in').length;
   }, [players, getStatus]);
-
-  const forgeSession = useCallback(async (saturday: string) => {
-    setForging(saturday);
-    try {
-      // Get next session number
-      const res = await fetch('/api/sessions');
-      const sessions = await res.json();
-      const maxNum = sessions.reduce((m: number, s: { number: number }) => Math.max(m, s.number), 0);
-
-      await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: `session-${Date.now()}`,
-          number: maxNum + 1,
-          title: '',
-          date: saturday,
-        }),
-      });
-
-      setForgedDates(prev => new Set(prev).add(saturday));
-    } finally {
-      setForging(null);
-    }
-  }, []);
 
   return (
     <div className="min-h-screen relative" style={{ background: '#1a1614' }}>
@@ -160,8 +132,6 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
             const { month, day } = formatSaturday(sat);
             const inCount = getInCount(sat);
             const quorumMet = inCount >= quorum;
-            const hasSession = sessionDateSet.has(sat) || forgedDates.has(sat);
-
             return (
               <div key={sat} className="flex flex-col items-center">
                 {/* Date */}
@@ -263,38 +233,6 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                   })}
                 </div>
 
-                {/* Forge Session circle */}
-                {!hasSession && (
-                  <button
-                    onClick={() => forgeSession(sat)}
-                    disabled={forging === sat || !quorumMet}
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-xl transition-all duration-200"
-                    title={quorumMet ? 'Create session' : 'Waiting for quorum'}
-                    style={{
-                      marginTop: '36px',
-                      border: `2px solid ${quorumMet ? '#4a7a5a' : 'rgba(201,168,76,0.2)'}`,
-                      color: quorumMet ? '#4a7a5a' : 'rgba(201,168,76,0.3)',
-                      background: quorumMet ? 'rgba(74,122,90,0.1)' : 'transparent',
-                      cursor: quorumMet ? 'pointer' : 'not-allowed',
-                      opacity: forging === sat ? 0.5 : 1,
-                    }}
-                  >
-                    +
-                  </button>
-                )}
-                {hasSession && (
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm"
-                    style={{
-                      marginTop: '36px',
-                      border: '2px solid #d4762c',
-                      background: '#d4762c',
-                      color: '#1a1614',
-                    }}
-                  >
-                    ✓
-                  </div>
-                )}
               </div>
             );
           })}

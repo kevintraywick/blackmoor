@@ -120,6 +120,8 @@ export interface Campaign {
   name: string;
   world: string;
   quorum: number;
+  dm_email: string;
+  quorum_notified: string[];
 }
 
 export interface Availability {
