@@ -156,6 +156,13 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                       className="object-contain"
                       style={{ width: '70px', height: '70px' }}
                     />
+                  ) : inCount > 0 ? (
+                    <img
+                      src={`/images/canyouplay/torch_${inCount}player${inCount > 1 ? 's' : ''}.gif`}
+                      alt={`${inCount} player${inCount > 1 ? 's' : ''} confirmed`}
+                      className="object-contain"
+                      style={{ width: '70px', height: '70px' }}
+                    />
                   ) : (
                     <div
                       className="font-sans text-xs text-center leading-tight"
