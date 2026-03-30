@@ -137,7 +137,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                 {/* Date */}
                 <div
                   className="w-16 h-16 rounded-full flex flex-col items-center justify-center mb-4"
-                  style={{ border: '2px solid rgba(201,168,76,0.3)' }}
+                  style={{ border: '2px solid rgba(201,168,76,0.3)', marginTop: '25px' }}
                 >
                   <div className="font-sans text-[0.7rem] uppercase tracking-[0.15em] text-[#c9a84c] leading-none">
                     {month}
@@ -145,32 +145,6 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                   <div className="font-serif text-2xl text-[#e8ddd0] leading-none mt-0.5">
                     {day}
                   </div>
-                </div>
-
-                {/* Quorum indicator — fixed height box */}
-                <div className="relative mb-4 flex items-center justify-center" style={{ width: '70px', height: '70px', marginTop: '10px' }}>
-                  {quorumMet ? (
-                    <img
-                      src="/images/canyouplay/bonfire.gif"
-                      alt="Quorum met!"
-                      className="object-contain"
-                      style={{ width: '70px', height: '70px' }}
-                    />
-                  ) : inCount > 0 ? (
-                    <img
-                      src={`/images/canyouplay/torch_${inCount}player${inCount > 1 ? 's' : ''}.gif`}
-                      alt={`${inCount} player${inCount > 1 ? 's' : ''} confirmed`}
-                      className="object-contain"
-                      style={{ width: '70px', height: '70px' }}
-                    />
-                  ) : (
-                    <div
-                      className="font-sans text-xs text-center leading-tight"
-                      style={{ color: '#8a7d6e' }}
-                    >
-                      {quorum - inCount === 1 ? '1 player needed...' : `${quorum - inCount} players needed...`}
-                    </div>
-                  )}
                 </div>
 
                 {/* Player list */}
