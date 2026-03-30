@@ -9,7 +9,7 @@ export async function sendEmail({ to, subject, text }: { to: string; subject: st
 
   try {
     await resend.emails.send({
-      from: process.env.RESEND_FROM ?? 'Blackmoor <onboarding@resend.dev>',
+      from: process.env.RESEND_FROM ?? 'Blackmoor <dm@kevintraywick.com>',
       to,
       subject,
       text,
