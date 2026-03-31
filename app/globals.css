@@ -35,6 +35,14 @@ body {
   font-family: var(--font-geist-sans);
 }
 
+/* Hide scrollbars globally — scroll via wheel/finger only */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
 .magic-cat-btn {
   background: transparent;
 }
