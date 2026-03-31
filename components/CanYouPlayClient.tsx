@@ -10,8 +10,9 @@ import type { Availability } from '@/lib/types';
 function getNextSaturdays(count: number): string[] {
   const dates: string[] = [];
   const d = new Date();
-  // advance to next Saturday (or today if already Saturday)
+  // advance to next Saturday (or today if already Saturday), then skip one week
   d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
+  d.setDate(d.getDate() + 7);
   for (let i = 0; i < count; i++) {
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
