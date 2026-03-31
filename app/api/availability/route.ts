@@ -70,7 +70,7 @@ export async function PUT(req: Request) {
           await sendEmail({
             to: campaign.dm_email,
             subject: `Quorum reached for ${dateStr}`,
-            text: `${count} players confirmed for ${dateStr}:\n\n${playerList}\n\nView availability: ${process.env.NEXT_PUBLIC_URL ?? 'https://blackmoor-production.up.railway.app'}/can-you-play`,
+            text: `${count} players confirmed for ${dateStr}:\n\n${playerList}\n\nView availability: ${process.env.NEXT_PUBLIC_URL ?? 'https://blackmoor-production.up.railway.app'}/canyouplay`,
           });
 
           // Mark this Saturday as notified
@@ -86,7 +86,7 @@ export async function PUT(req: Request) {
           await sendEmail({
             to: campaign.dm_email,
             subject: `Quorum lost for ${dateStr}`,
-            text: `A player dropped out — only ${count} of ${campaign.quorum} needed are confirmed for ${dateStr}.\n\nView availability: ${process.env.NEXT_PUBLIC_URL ?? 'https://blackmoor-production.up.railway.app'}/can-you-play`,
+            text: `A player dropped out — only ${count} of ${campaign.quorum} needed are confirmed for ${dateStr}.\n\nView availability: ${process.env.NEXT_PUBLIC_URL ?? 'https://blackmoor-production.up.railway.app'}/canyouplay`,
           });
 
           // Remove from notified so re-reaching quorum triggers a new email
