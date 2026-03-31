@@ -204,7 +204,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                   })}
                 </div>
 
-                {!quorumMet && (
+                {!quorumMet && inCount > 0 && (
                   <div className="mt-3 font-sans text-xs text-center" style={{ color: '#8a7d6e' }}>
                     {quorum - inCount === 1 ? '1 more for a game' : `${quorum - inCount} more for a game`}
                   </div>
