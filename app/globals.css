@@ -43,6 +43,29 @@ body {
   display: none;
 }
 
+/* Scrollbar appears only on focus for approved elements */
+.focus-scrollbar {
+  scrollbar-width: none;
+}
+.focus-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.focus-scrollbar:focus {
+  scrollbar-width: thin;
+  scrollbar-color: #5a4f46 transparent;
+}
+.focus-scrollbar:focus::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+}
+.focus-scrollbar:focus::-webkit-scrollbar-thumb {
+  background: #5a4f46;
+  border-radius: 3px;
+}
+.focus-scrollbar:focus::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .magic-cat-btn {
   background: transparent;
 }

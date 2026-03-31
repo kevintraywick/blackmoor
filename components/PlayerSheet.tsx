@@ -420,6 +420,7 @@ export function Sheet({
 
   const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[var(--color-gold)] mb-2 pb-1.5 border-b border-[var(--color-border)] font-sans';
   const ta = 'w-full bg-transparent border-none text-[var(--color-text-body)] font-serif text-[1.05rem] leading-[1.6] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452] overflow-hidden';
+  const taScroll = 'w-full bg-transparent border-none text-[var(--color-text-body)] font-serif text-[1.05rem] leading-[1.6] resize-none outline-none placeholder:text-[#8a7452] overflow-y-auto focus-scrollbar';
   const fi = 'bg-transparent border-none border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-lg font-bold outline-none focus:border-b-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5';
 
   return (
@@ -594,9 +595,9 @@ export function Sheet({
         </div>
 
         {/* Background */}
-        <div className="bg-[var(--color-surface)] border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
+        <div className="bg-[var(--color-surface)] border-[var(--color-border)] p-3 flex flex-col" style={{ minWidth: 0, minHeight: 225 }}>
           <div className={sh}>Background</div>
-          <textarea rows={4} value={values.general_notes} onChange={e => setField('general_notes', e.target.value)} className={ta} placeholder="" />
+          <textarea value={values.general_notes} onChange={e => setField('general_notes', e.target.value)} className={`${taScroll} flex-1`} placeholder="" />
         </div>
 
       </div>
