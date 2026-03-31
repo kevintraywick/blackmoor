@@ -366,6 +366,7 @@ export function Sheet({
   poisonCount?: number;
 }) {
   const [values, setValues] = useState<PlayerSheetType>(data);
+  const [charName, setCharName] = useState(character);
   const [showMessages, setShowMessages] = useState(false);
   const [messages, setMessages] = useState<{ id: string; message: string; created_at: number }[]>([]);
   const [unread, setUnread] = useState(unreadCount);
@@ -464,61 +465,101 @@ export function Sheet({
             )}
           </div>
 
-          <div className="flex-1 min-w-0">
-            {/* Row 1: Character name + indicators */}
-            <div className="flex items-center gap-2">
-              <span className="text-[var(--color-text)] text-lg sm:text-xl font-bold font-serif whitespace-nowrap">{character}</span>
+          {/* Desktop: single row with name + fields + indicators */}
+          <div className="hidden sm:flex items-baseline flex-1 min-w-0">
+            <input
+              value={charName}
+              onChange={e => {
+                setCharName(e.target.value);
+                clearTimeout((window as Record<string, unknown>).__charTimer as ReturnType<typeof setTimeout>);
+                const val = e.target.value;
+                (window as Record<string, unknown>).__charTimer = setTimeout(() => {
+                  fetch(`/api/players/${playerId}/name`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ character: val }),
+                  });
+                }, 800);
+              }}
+              className="text-[var(--color-text)] text-xl font-bold font-serif bg-transparent border-none outline-none min-w-0"
+              style={{ width: `${Math.max(charName.length + 1, 4)}ch`, marginRight: 16 }}
+            />
+            <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 60, width: 80, marginRight: 16 }} />
+            <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 60, width: 80, marginRight: 16 }} />
+            <input value={values.discord} placeholder="Discord…" onChange={e => setField('discord', e.target.value)} className={fi} style={{ flex: 1, minWidth: 80 }} />
+          </div>
 
-              {/* Indicators — inline with name on both mobile and desktop */}
+          {/* Mobile: stacked layout */}
+          <div className="flex flex-col flex-1 min-w-0 sm:hidden">
+            <div className="flex items-center gap-2">
+              <input
+                value={charName}
+                onChange={e => {
+                  setCharName(e.target.value);
+                  clearTimeout((window as Record<string, unknown>).__charTimer as ReturnType<typeof setTimeout>);
+                  const val = e.target.value;
+                  (window as Record<string, unknown>).__charTimer = setTimeout(() => {
+                    fetch(`/api/players/${playerId}/name`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ character: val }),
+                    });
+                  }, 800);
+                }}
+                className="text-[var(--color-text)] text-lg font-bold font-serif bg-transparent border-none outline-none min-w-0"
+                style={{ width: `${Math.max(charName.length + 1, 4)}ch` }}
+              />
               {poisonCount > 0 && (
                 <div className="animate-pulse flex items-center gap-1 cursor-default" title="Poisoned!">
                   <span style={{ fontSize: '16px', lineHeight: 1 }}>🤢</span>
-                  <span className="hidden sm:inline text-[0.55rem] uppercase tracking-wider text-[#7ac28a] font-sans">Poisoned</span>
                 </div>
               )}
               {unread > 0 && (
-                <div
-                  onClick={toggleMessages}
-                  className="animate-pulse cursor-pointer flex items-center gap-1"
-                  title={`${unread} unread message${unread > 1 ? 's' : ''}`}
-                >
+                <div onClick={toggleMessages} className="animate-pulse cursor-pointer flex items-center gap-1" title={`${unread} unread message${unread > 1 ? 's' : ''}`}>
                   <div style={{ width: 16, height: 16, minWidth: 16, minHeight: 16, backgroundColor: '#dc2626', borderRadius: '50%' }} />
-                  <span className="hidden sm:inline text-[0.55rem] uppercase tracking-wider text-[#dc2626] font-sans">DM</span>
                 </div>
               )}
               {unread === 0 && messages.length > 0 && (
-                <div
-                  onClick={toggleMessages}
-                  className="cursor-pointer rounded-full opacity-40 hover:opacity-70 transition-opacity flex-shrink-0"
-                  style={{ width: 12, height: 12, minWidth: 12, minHeight: 12, backgroundColor: '#5a4f46' }}
-                  title="View messages"
-                />
+                <div onClick={toggleMessages} className="cursor-pointer rounded-full opacity-40 hover:opacity-70 transition-opacity flex-shrink-0" style={{ width: 12, height: 12, backgroundColor: '#5a4f46' }} title="View messages" />
               )}
             </div>
-
-            {/* Row 2: species / class / discord fields */}
-            <div className="flex items-baseline gap-2 sm:gap-4 mt-1">
-              <input
-                value={values.species}
-                placeholder="Species…"
-                onChange={e => setField('species', e.target.value)}
-                className={`${fi} min-w-[50px] w-[70px] sm:w-[80px]`}
-              />
-              <input
-                value={values.class}
-                placeholder="Class…"
-                onChange={e => setField('class', e.target.value)}
-                className={`${fi} min-w-[50px] w-[70px] sm:w-[80px]`}
-              />
-              <input
-                value={values.discord}
-                placeholder="Discord…"
-                onChange={e => setField('discord', e.target.value)}
-                className={`${fi} hidden sm:block flex-1 min-w-[80px]`}
-              />
+            <div className="flex items-baseline gap-2 mt-1">
+              <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={`${fi} min-w-[50px] w-[70px]`} />
+              <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={`${fi} min-w-[50px] w-[70px]`} />
             </div>
           </div>
         </div>
+
+        {/* Desktop indicators — absolute positioned (hidden on mobile) */}
+        {poisonCount > 0 && (
+          <div
+            className="animate-pulse absolute hidden sm:flex items-center gap-1.5 cursor-default"
+            style={{ right: unread > 0 ? 79 : 46, top: '50%', transform: 'translateY(-50%)' }}
+            title="Poisoned!"
+          >
+            <span style={{ fontSize: '18px', lineHeight: 1 }}>🤢</span>
+            <span className="text-[0.55rem] uppercase tracking-wider text-[#7ac28a] font-sans">Poisoned</span>
+          </div>
+        )}
+        {unread > 0 && (
+          <div
+            onClick={toggleMessages}
+            className="animate-pulse cursor-pointer rounded-full absolute hidden sm:flex items-center gap-1.5"
+            style={{ right: 16, top: '50%', transform: 'translateY(-50%)' }}
+            title={`${unread} unread message${unread > 1 ? 's' : ''}`}
+          >
+            <div style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, backgroundColor: '#dc2626', borderRadius: '50%' }} />
+            <span className="text-[0.55rem] uppercase tracking-wider text-[#dc2626] font-sans">DM</span>
+          </div>
+        )}
+        {unread === 0 && messages.length > 0 && (
+          <div
+            onClick={toggleMessages}
+            className="cursor-pointer rounded-full absolute hidden sm:block opacity-40 hover:opacity-70 transition-opacity"
+            style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, backgroundColor: '#5a4f46', right: 16, top: '50%', transform: 'translateY(-50%)' }}
+            title="View messages"
+          />
+        )}
       </div>
 
       {/* DM Message pane */}
