@@ -137,7 +137,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                 {/* Date */}
                 <div
                   className="w-16 h-16 rounded-full flex flex-col items-center justify-center mb-4"
-                  style={{ border: '2px solid rgba(201,168,76,0.3)', marginTop: '25px' }}
+                  style={{ border: '2px solid rgba(201,168,76,0.3)' }}
                 >
                   <div className="font-sans text-[0.7rem] uppercase tracking-[0.15em] text-[#c9a84c] leading-none">
                     {month}
