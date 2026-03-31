@@ -339,6 +339,7 @@ export function Sheet({
   initial,
   img,
   data,
+  unreadCount = 0,
 }: {
   playerId: string;
   playerName: string;
@@ -346,8 +347,13 @@ export function Sheet({
   initial: string;
   img?: string;
   data: PlayerSheetType;
+  unreadCount?: number;
 }) {
   const [values, setValues] = useState<PlayerSheetType>(data);
+  const [showMessages, setShowMessages] = useState(false);
+  const [messages, setMessages] = useState<{ id: string; message: string; created_at: number }[]>([]);
+  const [unread, setUnread] = useState(unreadCount);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const { save: autosave, saveNow, status: saveStatus } = useAutosave(`/api/players/${playerId}`);
 
   function setField(key: keyof PlayerSheetType, value: PlayerSheetType[keyof PlayerSheetType]) {
@@ -382,6 +388,31 @@ export function Sheet({
     setField('items', (values.items ?? []).filter(i => i.id !== id));
   }
 
+  async function toggleMessages() {
+    if (showMessages) {
+      setShowMessages(false);
+      return;
+    }
+    setShowMessages(true);
+    setLoadingMessages(true);
+    try {
+      const res = await fetch(`/api/dm-messages?player_id=${playerId}`);
+      const msgs = await res.json();
+      setMessages(msgs);
+      // Mark as read
+      if (unread > 0) {
+        setUnread(0);
+        fetch('/api/dm-messages/read', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ player_id: playerId }),
+        });
+      }
+    } finally {
+      setLoadingMessages(false);
+    }
+  }
+
   const statusText  = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed — check connection' }[saveStatus];
   const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[var(--color-text-muted)]';
 
@@ -399,7 +430,7 @@ export function Sheet({
       )}
 
       {/* Header — portrait + name/class fields */}
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-tl-md rounded-tr-md px-4 py-3 border-b-0 flex items-center gap-4">
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-tl-md rounded-tr-md px-4 py-3 border-b-0 flex items-center gap-4 relative">
         {/* Portrait circle */}
         <div className="relative w-14 h-14 rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0">
           <span className="text-[1.2rem] text-[var(--color-text-muted)] select-none">{initial}</span>
@@ -415,7 +446,7 @@ export function Sheet({
         </div>
 
         {/* Name / class fields — all same font, single line */}
-        <div className="flex items-baseline gap-2 flex-1 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="text-[var(--color-gold)] text-xl font-bold tracking-[0.06em] font-serif whitespace-nowrap">{playerName}</span>
           <span className="text-[var(--color-border)]">/</span>
           <span className="text-[var(--color-text)] text-xl font-bold font-serif whitespace-nowrap">{character}</span>
@@ -443,6 +474,68 @@ export function Sheet({
             className={fi}
             style={{ flex: 1, minWidth: 80 }}
           />
+
+        </div>
+
+        {/* Red dot — unread DM messages */}
+        {unread > 0 && (
+          <div
+            onClick={toggleMessages}
+            className="animate-pulse cursor-pointer rounded-full absolute"
+            style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, backgroundColor: '#e06060', right: 16, top: '50%', transform: 'translateY(-50%)' }}
+            title={`${unread} unread message${unread > 1 ? 's' : ''}`}
+          />
+        )}
+        {unread === 0 && messages.length > 0 && (
+          <div
+            onClick={toggleMessages}
+            className="cursor-pointer rounded-full absolute opacity-40 hover:opacity-70 transition-opacity"
+            style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, backgroundColor: '#5a4f46', right: 16, top: '50%', transform: 'translateY(-50%)' }}
+            title="View messages"
+          />
+        )}
+      </div>
+
+      {/* DM Message pane */}
+      <div
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{
+          maxHeight: showMessages ? '400px' : '0px',
+          opacity: showMessages ? 1 : 0,
+        }}
+      >
+        <div
+          className="relative border-x border-[var(--color-border)] px-4 py-3"
+          style={{
+            backgroundImage: 'url(/images/dm_messages/dm_message.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          <div className="absolute inset-0" style={{ background: 'rgba(26,22,20,0.9)' }} />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[0.65rem] uppercase tracking-[0.15em] text-[#c05050] font-sans">Messages from the DM</span>
+              <button
+                onClick={() => setShowMessages(false)}
+                className="text-[#5a4f46] hover:text-[var(--color-text)] text-sm bg-transparent border-none cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            {loadingMessages && <p className="text-[#8a7d6e] text-sm font-serif">Loading...</p>}
+            {!loadingMessages && messages.length === 0 && <p className="text-[#8a7d6e] text-sm font-serif italic">No messages</p>}
+            {messages.map(m => {
+              const d = new Date(m.created_at * 1000);
+              const time = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+              return (
+                <div key={m.id} className="mb-2 last:mb-0">
+                  <p className="text-[var(--color-text-body)] text-[0.88rem] font-serif leading-relaxed">{m.message}</p>
+                  <p className="text-[#5a4f46] text-[0.65rem] font-sans mt-0.5">{time}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
