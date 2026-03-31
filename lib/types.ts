@@ -130,6 +130,14 @@ export interface Availability {
   status: 'in' | 'out';
 }
 
+export interface DmMessage {
+  id: string;
+  player_id: string;
+  message: string;
+  created_at: number;
+  read: boolean;
+}
+
 export type MagicCategory = 'spell' | 'scroll' | 'magic_item' | 'other';
 
 export interface MagicCatalogEntry {

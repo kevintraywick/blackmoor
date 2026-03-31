@@ -174,6 +174,7 @@ export default function DmPlayersClient({
         <DmPlayerBox
           key={selectedId}
           playerId={selectedId}
+          playerName={selectedPlayer.character}
           initialNotes={selectedSheet?.dm_notes ?? ''}
           initialStatus={(selectedSheet?.status ?? 'active') as 'active' | 'away' | 'removed'}
         />
