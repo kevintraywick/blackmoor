@@ -14,7 +14,7 @@ export default async function HomePage() {
       {/* Splash art fills the whole viewport, sits behind the nav */}
       <div className="absolute inset-0 overflow-hidden">
         <Image
-          src="/SOTW_splash_rev2.png"
+          src="/images/splash/home_splash_2.png"
           alt="Shadow of the Wolf"
           fill
           className="object-contain object-top"
