@@ -260,7 +260,7 @@ function SpellList({
                 ✕
               </button>
             </div>
-            <div className="flex gap-1 pl-2.5 mt-0.5 min-w-0">
+            <div className="flex flex-wrap gap-x-1 gap-y-0 pl-2.5 mt-0.5 min-w-0">
               <input value={spell.action_type} onChange={e => onUpdate(spell.id, 'action_type', e.target.value)} className={`${ri} text-[0.78rem] text-[#ddd8d2] w-16 flex-shrink-0`} placeholder="action…" />
               <span className="text-[var(--color-border)] text-[0.78rem]">·</span>
               <input value={spell.range}       onChange={e => onUpdate(spell.id, 'range', e.target.value)}       className={`${ri} text-[0.78rem] text-[#ddd8d2] w-14 flex-shrink-0`} placeholder="range…" />
@@ -318,8 +318,8 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
     : null;
 
   return (
-    <div className="flex flex-col items-center gap-0.5 flex-1 min-w-[60px]">
-      <div className="relative text-[0.68rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+    <div className="flex flex-col items-center gap-0.5 flex-1 min-w-[48px] sm:min-w-[60px]">
+      <div className="relative text-[0.62rem] sm:text-[0.68rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
         {icon}
         {label}
       </div>
@@ -330,12 +330,12 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
         onChange={e => onChange(e.target.value)}
         className="bg-transparent border-none border-b border-[var(--color-border)] text-[var(--color-text)] text-[1.1rem] text-center outline-none w-full focus:border-b-[var(--color-gold)] placeholder:text-[#8a7452] font-serif pb-0.5"
       />
-      <div className="flex gap-0.5 mt-0.5">
+      <div className="flex gap-0.5 sm:gap-0.5 mt-0.5">
         {[-1, 1].map(d => (
           <button
             key={d}
             onClick={() => adjust(d)}
-            className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] active:bg-[#3a3020] transition-colors"
+            className="w-8 h-8 sm:w-[22px] sm:h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] active:bg-[#3a3020] transition-colors"
           >
             {d === -1 ? '−' : '+'}
           </button>
@@ -447,80 +447,78 @@ export function Sheet({
       )}
 
       {/* Header — portrait + name/class fields */}
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-tl-md rounded-tr-md px-4 py-3 border-b-0 flex items-center gap-4 relative">
-        {/* Portrait circle — 15% bigger */}
-        <div className="relative w-16 h-16 rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0">
-          <span className="text-[1.4rem] text-[var(--color-text-muted)] select-none">{initial}</span>
-          {img && (
-            <Image
-              src={img}
-              alt={character}
-              fill
-              className="object-cover absolute inset-0"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-          )}
-        </div>
-
-        {/* Character name, species, class, discord */}
-        <div className="flex items-baseline flex-1 min-w-0">
-          <span className="text-[var(--color-text)] text-xl font-bold font-serif whitespace-nowrap" style={{ marginRight: 16 }}>{character}</span>
-          <input
-            value={values.species}
-            placeholder="Species…"
-            onChange={e => setField('species', e.target.value)}
-            className={fi}
-            style={{ minWidth: 60, width: 80, marginRight: 16 }}
-          />
-          <input
-            value={values.class}
-            placeholder="Class…"
-            onChange={e => setField('class', e.target.value)}
-            className={fi}
-            style={{ minWidth: 60, width: 80, marginRight: 16 }}
-          />
-          <input
-            value={values.discord}
-            placeholder="Discord…"
-            onChange={e => setField('discord', e.target.value)}
-            className={fi}
-            style={{ flex: 1, minWidth: 80 }}
-          />
-
-        </div>
-
-        {/* Green poison indicator */}
-        {poisonCount > 0 && (
-          <div
-            className="animate-pulse absolute flex items-center gap-1.5 cursor-default"
-            style={{ right: unread > 0 ? 79 : 46, top: '50%', transform: 'translateY(-50%)' }}
-            title="Poisoned!"
-          >
-            <span style={{ fontSize: '18px', lineHeight: 1 }}>🤢</span>
-            <span className="text-[0.55rem] uppercase tracking-wider text-[#7ac28a] font-sans">Poisoned</span>
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-tl-md rounded-tr-md px-3 sm:px-4 py-3 border-b-0 relative">
+        {/* Mobile: stacked layout. Desktop: single row */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          {/* Portrait circle */}
+          <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0">
+            <span className="text-[1.2rem] sm:text-[1.4rem] text-[var(--color-text-muted)] select-none">{initial}</span>
+            {img && (
+              <Image
+                src={img}
+                alt={character}
+                fill
+                className="object-cover absolute inset-0"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            )}
           </div>
-        )}
 
-        {/* Red dot — unread DM messages */}
-        {unread > 0 && (
-          <div
-            onClick={toggleMessages}
-            className="animate-pulse cursor-pointer rounded-full absolute flex items-center gap-1.5"
-            style={{ right: 16, top: '50%', transform: 'translateY(-50%)' }}
-            title={`${unread} unread message${unread > 1 ? 's' : ''}`}
-          >
-            <div style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, backgroundColor: '#dc2626', borderRadius: '50%' }} />
-            <span className="text-[0.55rem] uppercase tracking-wider text-[#dc2626] font-sans">DM</span>
+          <div className="flex-1 min-w-0">
+            {/* Row 1: Character name + indicators */}
+            <div className="flex items-center gap-2">
+              <span className="text-[var(--color-text)] text-lg sm:text-xl font-bold font-serif whitespace-nowrap">{character}</span>
+
+              {/* Indicators — inline with name on both mobile and desktop */}
+              {poisonCount > 0 && (
+                <div className="animate-pulse flex items-center gap-1 cursor-default" title="Poisoned!">
+                  <span style={{ fontSize: '16px', lineHeight: 1 }}>🤢</span>
+                  <span className="hidden sm:inline text-[0.55rem] uppercase tracking-wider text-[#7ac28a] font-sans">Poisoned</span>
+                </div>
+              )}
+              {unread > 0 && (
+                <div
+                  onClick={toggleMessages}
+                  className="animate-pulse cursor-pointer flex items-center gap-1"
+                  title={`${unread} unread message${unread > 1 ? 's' : ''}`}
+                >
+                  <div style={{ width: 16, height: 16, minWidth: 16, minHeight: 16, backgroundColor: '#dc2626', borderRadius: '50%' }} />
+                  <span className="hidden sm:inline text-[0.55rem] uppercase tracking-wider text-[#dc2626] font-sans">DM</span>
+                </div>
+              )}
+              {unread === 0 && messages.length > 0 && (
+                <div
+                  onClick={toggleMessages}
+                  className="cursor-pointer rounded-full opacity-40 hover:opacity-70 transition-opacity flex-shrink-0"
+                  style={{ width: 12, height: 12, minWidth: 12, minHeight: 12, backgroundColor: '#5a4f46' }}
+                  title="View messages"
+                />
+              )}
+            </div>
+
+            {/* Row 2: species / class / discord fields */}
+            <div className="flex items-baseline gap-2 sm:gap-4 mt-1">
+              <input
+                value={values.species}
+                placeholder="Species…"
+                onChange={e => setField('species', e.target.value)}
+                className={`${fi} min-w-[50px] w-[70px] sm:w-[80px]`}
+              />
+              <input
+                value={values.class}
+                placeholder="Class…"
+                onChange={e => setField('class', e.target.value)}
+                className={`${fi} min-w-[50px] w-[70px] sm:w-[80px]`}
+              />
+              <input
+                value={values.discord}
+                placeholder="Discord…"
+                onChange={e => setField('discord', e.target.value)}
+                className={`${fi} hidden sm:block flex-1 min-w-[80px]`}
+              />
+            </div>
           </div>
-        )}
-        {unread === 0 && messages.length > 0 && (
-          <div
-            onClick={toggleMessages}
-            className="cursor-pointer rounded-full absolute opacity-40 hover:opacity-70 transition-opacity"
-            style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, backgroundColor: '#5a4f46', right: 16, top: '50%', transform: 'translateY(-50%)' }}
-            title="View messages"
-          />
-        )}
+        </div>
       </div>
 
       {/* DM Message pane */}
@@ -566,49 +564,65 @@ export function Sheet({
         </div>
       </div>
 
-      {/* Stats row */}
-      <div className="flex gap-2 flex-wrap bg-[#1e1b18] border border-[var(--color-border)] border-t-0 border-b-0 px-4 py-2.5">
-        {(['level','hp','xp','speed','size','ac','gold'] as const).map(key => (
-          <Stat key={key} label={key.toUpperCase()} value={values[key]} onChange={v => setField(key, v)} />
-        ))}
+      {/* Stats row — 2 rows on mobile, single row on desktop */}
+      <div className="bg-[#1e1b18] border border-[var(--color-border)] border-t-0 border-b-0 px-3 sm:px-4 py-2.5">
+        {/* Desktop: all 7 in one row */}
+        <div className="hidden sm:flex gap-2">
+          {(['level','hp','xp','speed','size','ac','gold'] as const).map(key => (
+            <Stat key={key} label={key.toUpperCase()} value={values[key]} onChange={v => setField(key, v)} />
+          ))}
+        </div>
+        {/* Mobile: top row (4), bottom row (3) */}
+        <div className="flex flex-col gap-2 sm:hidden">
+          <div className="flex gap-1.5">
+            {(['hp','ac','level','gold'] as const).map(key => (
+              <Stat key={key} label={key.toUpperCase()} value={values[key]} onChange={v => setField(key, v)} />
+            ))}
+          </div>
+          <div className="flex gap-1.5 justify-center">
+            {(['xp','speed','size'] as const).map(key => (
+              <Stat key={key} label={key.toUpperCase()} value={values[key]} onChange={v => setField(key, v)} />
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* 2×3 content grid */}
-      <div className="grid grid-cols-2 border border-[var(--color-border)] border-t-0 rounded-bl-md rounded-br-md overflow-hidden">
+      {/* Content panes — single column mobile, 2×3 grid desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 border border-[var(--color-border)] border-t-0 rounded-bl-md rounded-br-md overflow-hidden">
 
         {/* 1: Weapons */}
-        <div className="border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210, background: '#282220' }}>
+        <div className="sm:border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 160, background: '#282220' }}>
           <div className={sh} style={{ fontSize: '0.78rem' }}>Weapons</div>
           <WeaponList weapons={values.gear} onAdd={addWeapon} onDelete={deleteWeapon} onUpdate={updateWeapon} />
         </div>
 
         {/* 2: Cantrips and Spells */}
-        <div className="border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210, background: '#282220' }}>
+        <div className="border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 160, background: '#282220' }}>
           <div className={sh} style={{ fontSize: '0.78rem' }}>Cantrips and Spells</div>
           <SpellList spells={values.spells ?? []} onAdd={addSpell} onDelete={deleteSpell} onUpdate={updateSpell} />
         </div>
 
         {/* 3: Gear */}
-        <div className="bg-[var(--color-surface)] border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, minHeight: 225 }}>
+        <div className="bg-[var(--color-surface)] sm:border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, minHeight: 120 }}>
           <div className={sh}>Gear</div>
           <BoonList value={values.boons} onChange={v => setField('boons', v)} columns={2} />
         </div>
 
         {/* 4: Magic Items */}
-        <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 225 }}>
+        <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 120 }}>
           <div className={sh}>Magic Items</div>
           <ItemList items={values.items ?? []} onDelete={deleteItem} />
         </div>
 
         {/* Class and Species Abilities */}
-        <div className="bg-[var(--color-surface)] border-r border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
+        <div className="bg-[var(--color-surface)] sm:border-r border-b sm:border-b-0 border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
           <div className={sh}>Class and Species Abilities</div>
           <textarea rows={2} value={values.class_features} onChange={e => setField('class_features', e.target.value)} className={ta} placeholder="" />
           <textarea rows={2} value={values.player_notes} onChange={e => setField('player_notes', e.target.value)} className={`${ta} mt-2`} placeholder="" />
         </div>
 
         {/* Background */}
-        <div className="bg-[var(--color-surface)] border-[var(--color-border)] p-3 flex flex-col" style={{ minWidth: 0, minHeight: 225 }}>
+        <div className="bg-[var(--color-surface)] border-[var(--color-border)] p-3 flex flex-col" style={{ minWidth: 0, minHeight: 160 }}>
           <div className={sh}>Background</div>
           <div className="flex-1 overflow-hidden relative">
             <textarea value={values.general_notes} onChange={e => setField('general_notes', e.target.value)} className={`${ta} absolute inset-0`} style={{ overflowY: 'scroll', paddingRight: '20px', width: 'calc(100% + 20px)' }} placeholder="" />
@@ -629,10 +643,10 @@ export default function PlayerSheets({ players, sheets }: { players: Player[]; s
   const activeData = sheets[activeId];
 
   return (
-    <div className="max-w-[860px] mx-auto px-4 pb-16">
+    <div className="max-w-[860px] mx-auto px-2 sm:px-4 pb-16">
 
       {/* Player selector */}
-      <div className="flex justify-center gap-4 flex-wrap py-5 bg-[var(--color-surface)] border-b border-[var(--color-border)] -mx-4 px-4 mb-6">
+      <div className="flex justify-center gap-2 sm:gap-4 flex-wrap py-4 sm:py-5 bg-[var(--color-surface)] border-b border-[var(--color-border)] -mx-4 px-4 mb-4 sm:mb-6">
         {players.map(p => {
           const status = sheets[p.id]?.status ?? 'active';
           if (status === 'removed') return null;
@@ -641,14 +655,14 @@ export default function PlayerSheets({ players, sheets }: { players: Player[]; s
             <button
               key={p.id}
               onClick={() => setActiveId(p.id)}
-              className={`flex flex-col items-center gap-1.5 cursor-pointer bg-transparent border-none transition-opacity ${isAway ? 'opacity-40' : ''}`}
+              className={`flex flex-col items-center gap-1 sm:gap-1.5 cursor-pointer bg-transparent border-none transition-opacity ${isAway ? 'opacity-40' : ''}`}
             >
-              <div className={`relative w-20 h-20 rounded-full overflow-hidden border-[3px] transition-all ${
+              <div className={`relative w-14 h-14 sm:w-20 sm:h-20 rounded-full overflow-hidden border-[3px] transition-all ${
                 activeId === p.id
                   ? 'border-[var(--color-gold)]'
                   : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)] hover:scale-105'
               } bg-[#2e2825] flex items-center justify-center`}>
-                <span className="text-[1.6rem] text-[var(--color-text-muted)] select-none">{p.initial}</span>
+                <span className="text-[1.2rem] sm:text-[1.6rem] text-[var(--color-text-muted)] select-none">{p.initial}</span>
                 <Image
                   src={p.img}
                   alt={p.playerName}
@@ -657,7 +671,7 @@ export default function PlayerSheets({ players, sheets }: { players: Player[]; s
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               </div>
-              <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
+              <span className={`text-[0.65rem] sm:text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
                 activeId === p.id ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'
               }`}>
                 {p.playerName}{isAway ? ' · away' : ''}
