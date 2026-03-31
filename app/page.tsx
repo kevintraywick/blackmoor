@@ -19,7 +19,7 @@ export default async function HomePage() {
           fill
           className="object-contain object-top"
           priority
-          style={{ transform: 'scale(1.5) translateY(66px)', transformOrigin: 'top center' }}
+          style={{ transform: 'scale(1.35) translateY(-109px)', transformOrigin: 'top center' }}
         />
       </div>
       {/* Nav floats above the image */}

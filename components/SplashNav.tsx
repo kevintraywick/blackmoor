@@ -6,7 +6,7 @@ import type { Player } from '@/lib/types';
 
 export default function SplashNav({ players }: { players: Player[] }) {
   return (
-    <div className="bg-transparent px-4 py-4 flex items-center justify-center gap-5 z-10">
+    <div className="px-4 flex items-start justify-center gap-5 z-10" style={{ background: 'rgba(42,49,64,0.6)', paddingTop: '12px', maxHeight: '110px', overflow: 'visible' }}>
 
       {/* DM circle */}
       <Link href="/dm" className="flex flex-col items-center gap-1.5 no-underline group" title="Dungeon Master">
@@ -48,17 +48,6 @@ export default function SplashNav({ players }: { players: Player[] }) {
         </Link>
       ))}
 
-      {/* Add player — placeholder */}
-      <div className="flex flex-col items-center gap-1.5">
-        <button
-          disabled
-          title="Add new player (coming soon)"
-          className="w-20 h-20 rounded-full border-2 border-dashed border-[var(--color-border)] bg-transparent text-[var(--color-border)] text-3xl flex items-center justify-center cursor-not-allowed"
-        >
-          +
-        </button>
-        <span className="text-xs uppercase tracking-[0.08em] text-[var(--color-surface-raised)] font-sans">Add</span>
-      </div>
     </div>
   );
 }
