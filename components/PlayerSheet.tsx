@@ -8,6 +8,7 @@ import type { SaveStatus } from '@/lib/useAutosave';
 
 // ── Boon list — clickable ☐/☑ lines parsed from stored text ─────────────────
 function BoonList({ value, onChange, columns = 1, emptyText }: { value: string; onChange: (v: string) => void; columns?: number; emptyText?: string }) {
+  const [editing, setEditing] = useState(false);
   const [newBoon, setNewBoon] = useState('');
   const lines = value ? value.split('\n') : [];
 
@@ -23,13 +24,11 @@ function BoonList({ value, onChange, columns = 1, emptyText }: { value: string; 
     const entry = '☐ ' + newBoon.trim();
     onChange(value ? value + '\n' + entry : entry);
     setNewBoon('');
+    setEditing(false);
   }
 
   return (
     <div>
-      {lines.length === 0 && (
-        <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">{emptyText ?? 'Use + to add an item'}</p>
-      )}
       <div style={columns > 1 ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, columnGap: '16px' } : undefined}>
       {lines.map((line, i) => {
         if (!line.trim()) return null;
@@ -46,30 +45,42 @@ function BoonList({ value, onChange, columns = 1, emptyText }: { value: string; 
               <span className={`text-xl leading-none flex-shrink-0 ${isChecked ? 'text-[var(--color-gold)]' : 'text-[#6a5a50]'}`}>
                 {isChecked ? '☑' : '☐'}
               </span>
-              <span className={`font-serif text-[0.88rem] ${isChecked ? 'text-[#6a5a50] line-through' : 'text-[var(--color-text-body)]'}`}>
+              <span className={`font-serif text-[1.05rem] ${isChecked ? 'text-[#6a5a50] line-through' : 'text-[var(--color-text-body)]'}`}>
                 {text}
               </span>
             </div>
           );
         }
-        return <div key={i} className="font-serif text-[0.88rem] text-[var(--color-text-body)] py-0.5">{line}</div>;
+        return <div key={i} className="font-serif text-[1.05rem] text-[var(--color-text-body)] py-0.5">{line}</div>;
       })}
 
-      </div>
-      <div className="flex gap-2 mt-2 pt-2 border-t border-[var(--color-surface-raised)] items-center">
-        <button
-          onClick={addBoon}
-          className="text-[0.85rem] text-[#6a5a50] hover:text-[var(--color-gold)] bg-transparent border-none transition-colors flex-shrink-0"
+      {/* Inline add row — lives in the grid */}
+      {editing ? (
+        <div className="flex items-center gap-2 py-0.5">
+          <span className="text-xl leading-none flex-shrink-0 text-[#6a5a50]">☐</span>
+          <input
+            value={newBoon}
+            onChange={e => setNewBoon(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') addBoon();
+              if (e.key === 'Escape') { setEditing(false); setNewBoon(''); }
+            }}
+            onBlur={() => { if (!newBoon.trim()) { setEditing(false); setNewBoon(''); } }}
+            placeholder=""
+            className="flex-1 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[1.05rem] outline-none focus:border-[var(--color-gold)] pb-0.5"
+            autoFocus
+          />
+        </div>
+      ) : (
+        <div
+          className="flex items-center gap-2 py-0.5 cursor-pointer select-none group"
+          onClick={() => setEditing(true)}
         >
-          +
-        </button>
-        <input
-          value={newBoon}
-          onChange={e => setNewBoon(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && addBoon()}
-          placeholder=""
-          className="flex-1 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5"
-        />
+          <span className="text-lg leading-none flex-shrink-0 text-[#6a5a50] group-hover:text-[var(--color-gold)] transition-colors border border-[#3d3530] rounded w-5 h-5 flex items-center justify-center">+</span>
+          <span className="font-serif text-[1.05rem] italic text-[var(--color-text-dim)]">Add item...</span>
+        </div>
+      )}
+
       </div>
     </div>
   );
@@ -87,6 +98,7 @@ function WeaponList({
   onDelete: (id: string) => void;
   onUpdate: (id: string, field: keyof WeaponItem, value: string) => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [atk, setAtk]   = useState('');
   const [dmg, setDmg]   = useState('');
@@ -95,67 +107,69 @@ function WeaponList({
     if (!name.trim()) return;
     onAdd({ name: name.trim(), attack_bonus: atk.trim(), damage: dmg.trim() });
     setName(''); setAtk(''); setDmg('');
+    setEditing(false);
   }
 
-  const rowIn = 'bg-transparent border-none outline-none font-serif text-[0.88rem] w-full';
+  const rowIn = 'bg-transparent border-none outline-none font-serif text-[1.05rem] w-full';
 
   return (
     <div>
       {/* Column headers */}
-      <div className="grid grid-cols-[1fr_50px_70px_16px] gap-1 text-[0.6rem] uppercase tracking-[0.1em] text-[#6a5a50] pb-1 border-b border-[var(--color-surface-raised)] mb-1.5 font-sans">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 50px 86px', gap: '4px' }} className="text-[0.6rem] uppercase tracking-[0.1em] text-[#6a5a50] pb-1 border-b border-[var(--color-surface-raised)] mb-1.5 font-sans">
         <span>Weapon</span>
-        <span className="text-center">Atk</span>
-        <span className="text-center">Damage</span>
-        <span></span>
+        <span className="text-right">Atk</span>
+        <span className="text-right">Damage</span>
       </div>
 
-      {weapons.length === 0 && (
+      {weapons.length === 0 && !editing && (
         <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">No weapons yet</p>
       )}
       {weapons.map(w => (
-        <div key={w.id} className="grid grid-cols-[1fr_50px_70px_16px] gap-1 items-center py-[3px]">
+        <div key={w.id} style={{ display: 'grid', gridTemplateColumns: '1fr 50px 86px', gap: '4px' }} className="items-center py-[3px]">
           <input value={w.name}         onChange={e => onUpdate(w.id, 'name', e.target.value)}         className={`${rowIn} text-[var(--color-text-body)] truncate`} />
-          <input value={w.attack_bonus} onChange={e => onUpdate(w.id, 'attack_bonus', e.target.value)} className={`${rowIn} text-[var(--color-gold)] text-center`} />
-          <input value={w.damage}       onChange={e => onUpdate(w.id, 'damage', e.target.value)}       className={`${rowIn} text-[var(--color-text-body)] text-center`} />
-          <button
-            onClick={() => onDelete(w.id)}
-            className="text-[#4a3a35] hover:text-[#8a3a3a] text-[0.65rem] text-center transition-colors"
-          >
-            ✕
-          </button>
+          <input value={w.attack_bonus} onChange={e => onUpdate(w.id, 'attack_bonus', e.target.value)} className={`${rowIn} text-[var(--color-gold)] text-right`} />
+          <input value={w.damage}       onChange={e => onUpdate(w.id, 'damage', e.target.value)}       className={`${rowIn} text-[var(--color-text-body)] text-right`} />
         </div>
       ))}
 
-      {/* Add row */}
-      <div className="flex gap-1 mt-2 items-center">
-        <button
-          onClick={submit}
-          className="text-[0.85rem] text-[#6a5a50] hover:text-[var(--color-gold)] bg-transparent border-none transition-colors flex-shrink-0"
+      {/* Inline add row */}
+      {editing ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 50px 86px', gap: '4px' }} className="items-center py-[3px]">
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') submit();
+              if (e.key === 'Escape') { setEditing(false); setName(''); setAtk(''); setDmg(''); }
+            }}
+            placeholder=""
+            className={`${rowIn} text-[var(--color-text-body)] border-b border-[var(--color-surface-raised)] focus:border-[var(--color-gold)]`}
+            autoFocus
+          />
+          <input
+            value={atk}
+            onChange={e => setAtk(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setEditing(false); setName(''); setAtk(''); setDmg(''); } }}
+            placeholder="+0"
+            className={`${rowIn} text-[var(--color-gold)] text-right placeholder:text-[#8a7452]`}
+          />
+          <input
+            value={dmg}
+            onChange={e => setDmg(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setEditing(false); setName(''); setAtk(''); setDmg(''); } }}
+            placeholder="1d8+0"
+            className={`${rowIn} text-[var(--color-text-body)] text-right placeholder:text-[#8a7452]`}
+          />
+        </div>
+      ) : (
+        <div
+          className="flex items-center gap-2 py-1 cursor-pointer select-none group mt-1"
+          onClick={() => setEditing(true)}
         >
-          +
-        </button>
-        <input
-          value={name}
-          onChange={e => setName(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && submit()}
-          placeholder="Weapon name…"
-          className="flex-1 min-w-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5"
-        />
-        <input
-          value={atk}
-          onChange={e => setAtk(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && submit()}
-          placeholder="+0"
-          className="w-10 text-center flex-shrink-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5"
-        />
-        <input
-          value={dmg}
-          onChange={e => setDmg(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && submit()}
-          placeholder="1d8+0"
-          className="w-14 text-center flex-shrink-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5"
-        />
-      </div>
+          <span className="text-lg leading-none flex-shrink-0 text-[#6a5a50] group-hover:text-[var(--color-gold)] transition-colors border border-[#3d3530] rounded w-5 h-5 flex items-center justify-center">+</span>
+          <span className="font-serif text-[1.05rem] italic text-[var(--color-text-dim)]">Add weapon...</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -168,35 +182,35 @@ function ItemList({
   items: MarketplaceItem[];
   onDelete: (id: string) => void;
 }) {
-  if (items.length === 0) return (
-    <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">Visit the Marketplace to acquire items</p>
-  );
   const effect = (item: MarketplaceItem) => {
     if (!item.stat_type || item.stat_value == null) return '';
     return `${item.stat_type.charAt(0).toUpperCase() + item.stat_type.slice(1)} ${item.stat_value}`;
   };
   return (
     <div>
+      {items.length === 0 && (
+        <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">Visit the Marketplace to acquire items</p>
+      )}
       {items.map((item, i) => (
         <div key={item.id}>
           {i > 0 && <div className="h-px bg-[var(--color-surface-raised)] my-1.5" />}
           <div className="flex items-baseline gap-1.5 min-w-0">
-            <span className="text-[0.88rem] text-[var(--color-text-body)] font-serif flex-1 min-w-0 truncate">{item.name}</span>
+            <span className="text-[1.05rem] text-[var(--color-text-body)] font-serif min-w-0 truncate">{item.name}</span>
+            <span className="text-[0.8rem] text-[#6a5a50] font-serif flex-shrink-0">{item.price}gp</span>
+            <span className="flex-1" />
             {effect(item) && (
-              <span className="text-[0.88rem] text-[var(--color-gold)] font-serif w-24 flex-shrink-0 text-right">{effect(item)}</span>
+              <span className="text-[1.05rem] text-[var(--color-gold)] font-serif flex-shrink-0 text-right">{effect(item)}</span>
             )}
-            <button
-              onClick={() => onDelete(item.id)}
-              className="text-[#4a3a35] hover:text-[#8a3a3a] text-[0.65rem] flex-shrink-0 transition-colors"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="text-[0.7rem] text-[#6a5a50] pl-1 mt-0.5">
-            {item.price} gp
           </div>
         </div>
       ))}
+      <div
+        className="flex items-center gap-2 py-1 cursor-pointer select-none group mt-1"
+        onClick={() => window.location.href = '/dm/marketplace'}
+      >
+        <span className="text-lg leading-none flex-shrink-0 text-[#6a5a50] group-hover:text-[var(--color-gold)] transition-colors border border-[#3d3530] rounded w-5 h-5 flex items-center justify-center">+</span>
+        <span className="font-serif text-[1.05rem] italic text-[var(--color-text-dim)]">Marketplace...</span>
+      </div>
     </div>
   );
 }
@@ -227,21 +241,18 @@ function SpellList({
     setShowForm(false);
   }
 
-  const inputCls = 'flex-1 min-w-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5';
+  const inputCls = 'flex-1 min-w-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[1.05rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5';
 
   return (
     <div>
-      {spells.length === 0 && (
-        <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">No spells yet</p>
-      )}
       {spells.map((spell, i) => {
         const ri = 'bg-transparent border-none outline-none font-serif';
         return (
           <div key={spell.id}>
             {i > 0 && <div className="h-px bg-[var(--color-surface-raised)] my-1.5" />}
             <div className="flex items-baseline gap-1.5 min-w-0">
-              <input value={spell.name}   onChange={e => onUpdate(spell.id, 'name', e.target.value)}   className={`${ri} text-[0.88rem] text-[var(--color-text-body)] flex-1 min-w-0`} placeholder="Spell name…" />
-              <input value={spell.effect} onChange={e => onUpdate(spell.id, 'effect', e.target.value)} className={`${ri} text-[0.88rem] text-[var(--color-gold)] w-24 flex-shrink-0 text-right`} placeholder="effect…" />
+              <input value={spell.name}   onChange={e => onUpdate(spell.id, 'name', e.target.value)}   className={`${ri} text-[1.05rem] text-[var(--color-text-body)] flex-1 min-w-0`} placeholder="Spell name…" />
+              <input value={spell.effect} onChange={e => onUpdate(spell.id, 'effect', e.target.value)} className={`${ri} text-[1.05rem] text-[var(--color-gold)] w-24 flex-shrink-0 text-right`} placeholder="effect…" />
               <button
                 onClick={() => onDelete(spell.id)}
                 className="text-[#4a3a35] hover:text-[#8a3a3a] text-[0.65rem] flex-shrink-0 transition-colors"
@@ -266,7 +277,7 @@ function SpellList({
         <div className="mt-2 pt-2 border-t border-[var(--color-surface-raised)] flex flex-col gap-1.5">
           <div className="flex gap-2">
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Name…" className={inputCls} />
-            <input value={effect} onChange={e => setEffect(e.target.value)} placeholder="Damage / Effect" className="w-24 flex-shrink-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[0.82rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5" />
+            <input value={effect} onChange={e => setEffect(e.target.value)} placeholder="Damage / Effect" className="w-24 flex-shrink-0 bg-transparent border-b border-[var(--color-surface-raised)] text-[var(--color-text-body)] font-serif text-[1.05rem] outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5" />
           </div>
           <div className="flex gap-2">
             <input value={actionType}  onChange={e => setActionType(e.target.value)}  placeholder="action / bonus…" className={inputCls} />
@@ -280,12 +291,13 @@ function SpellList({
           </div>
         </div>
       ) : (
-        <button
+        <div
+          className="flex items-center gap-2 py-1 cursor-pointer select-none group mt-1"
           onClick={() => setShowForm(true)}
-          className="mt-2 text-[0.72rem] text-[#6a5a50] hover:text-[var(--color-gold)] bg-transparent border-none transition-colors"
         >
-          +
-        </button>
+          <span className="text-lg leading-none flex-shrink-0 text-[#6a5a50] group-hover:text-[var(--color-gold)] transition-colors border border-[#3d3530] rounded w-5 h-5 flex items-center justify-center">+</span>
+          <span className="font-serif text-[1.05rem] italic text-[var(--color-text-dim)]">Add spell...</span>
+        </div>
       )}
     </div>
   );
@@ -316,7 +328,7 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
         value={value}
         placeholder="—"
         onChange={e => onChange(e.target.value)}
-        className="bg-transparent border-none border-b border-[var(--color-border)] text-[var(--color-text)] text-[0.95rem] text-center outline-none w-full focus:border-b-[var(--color-gold)] placeholder:text-[#8a7452] font-serif pb-0.5"
+        className="bg-transparent border-none border-b border-[var(--color-border)] text-[var(--color-text)] text-[1.1rem] text-center outline-none w-full focus:border-b-[var(--color-gold)] placeholder:text-[#8a7452] font-serif pb-0.5"
       />
       <div className="flex gap-0.5 mt-0.5">
         {[-1, 1].map(d => (
@@ -436,9 +448,9 @@ export function Sheet({
 
       {/* Header — portrait + name/class fields */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-tl-md rounded-tr-md px-4 py-3 border-b-0 flex items-center gap-4 relative">
-        {/* Portrait circle */}
-        <div className="relative w-14 h-14 rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0">
-          <span className="text-[1.2rem] text-[var(--color-text-muted)] select-none">{initial}</span>
+        {/* Portrait circle — 15% bigger */}
+        <div className="relative w-16 h-16 rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0">
+          <span className="text-[1.4rem] text-[var(--color-text-muted)] select-none">{initial}</span>
           {img && (
             <Image
               src={img}
@@ -450,28 +462,23 @@ export function Sheet({
           )}
         </div>
 
-        {/* Name / class fields — all same font, single line */}
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="text-[var(--color-gold)] text-xl font-bold tracking-[0.06em] font-serif whitespace-nowrap">{playerName}</span>
-          <span className="text-[var(--color-border)]">/</span>
-          <span className="text-[var(--color-text)] text-xl font-bold font-serif whitespace-nowrap">{character}</span>
-          <span className="text-[var(--color-border)]">/</span>
+        {/* Character name, species, class, discord */}
+        <div className="flex items-baseline flex-1 min-w-0">
+          <span className="text-[var(--color-text)] text-xl font-bold font-serif whitespace-nowrap" style={{ marginRight: 16 }}>{character}</span>
           <input
             value={values.species}
             placeholder="Species…"
             onChange={e => setField('species', e.target.value)}
             className={fi}
-            style={{ minWidth: 60, width: 80 }}
+            style={{ minWidth: 60, width: 80, marginRight: 16 }}
           />
-          <span className="text-[var(--color-border)]">·</span>
           <input
             value={values.class}
             placeholder="Class…"
             onChange={e => setField('class', e.target.value)}
             className={fi}
-            style={{ minWidth: 60, width: 80 }}
+            style={{ minWidth: 60, width: 80, marginRight: 16 }}
           />
-          <span className="text-[var(--color-border)]">/</span>
           <input
             value={values.discord}
             placeholder="Discord…"
@@ -485,11 +492,12 @@ export function Sheet({
         {/* Green poison indicator */}
         {poisonCount > 0 && (
           <div
-            className="animate-pulse absolute flex items-center justify-center"
-            style={{ right: 79, top: '50%', transform: 'translateY(-50%)', fontSize: '14px', lineHeight: 1 }}
+            className="animate-pulse absolute flex items-center gap-1.5 cursor-default"
+            style={{ right: unread > 0 ? 79 : 46, top: '50%', transform: 'translateY(-50%)' }}
             title="Poisoned!"
           >
-            🤢
+            <span style={{ fontSize: '18px', lineHeight: 1 }}>🤢</span>
+            <span className="text-[0.55rem] uppercase tracking-wider text-[#7ac28a] font-sans">Poisoned</span>
           </div>
         )}
 
@@ -497,16 +505,19 @@ export function Sheet({
         {unread > 0 && (
           <div
             onClick={toggleMessages}
-            className="animate-pulse cursor-pointer rounded-full absolute"
-            style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, backgroundColor: '#dc2626', right: 46, top: '50%', transform: 'translateY(-50%)' }}
+            className="animate-pulse cursor-pointer rounded-full absolute flex items-center gap-1.5"
+            style={{ right: 16, top: '50%', transform: 'translateY(-50%)' }}
             title={`${unread} unread message${unread > 1 ? 's' : ''}`}
-          />
+          >
+            <div style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, backgroundColor: '#dc2626', borderRadius: '50%' }} />
+            <span className="text-[0.55rem] uppercase tracking-wider text-[#dc2626] font-sans">DM</span>
+          </div>
         )}
         {unread === 0 && messages.length > 0 && (
           <div
             onClick={toggleMessages}
             className="cursor-pointer rounded-full absolute opacity-40 hover:opacity-70 transition-opacity"
-            style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, backgroundColor: '#5a4f46', right: 46, top: '50%', transform: 'translateY(-50%)' }}
+            style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, backgroundColor: '#5a4f46', right: 16, top: '50%', transform: 'translateY(-50%)' }}
             title="View messages"
           />
         )}
@@ -546,7 +557,7 @@ export function Sheet({
               const time = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
               return (
                 <div key={m.id} className="mb-2 last:mb-0">
-                  <p className="text-[var(--color-text-body)] text-[0.88rem] font-serif leading-relaxed">{m.message}</p>
+                  <p className="text-[var(--color-text-body)] text-[1.05rem] font-serif leading-relaxed">{m.message}</p>
                   <p className="text-[#5a4f46] text-[0.65rem] font-sans mt-0.5">{time}</p>
                 </div>
               );
@@ -566,14 +577,14 @@ export function Sheet({
       <div className="grid grid-cols-2 border border-[var(--color-border)] border-t-0 rounded-bl-md rounded-br-md overflow-hidden">
 
         {/* 1: Weapons */}
-        <div className="bg-[var(--color-surface)] border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210 }}>
-          <div className={sh}>Weapons</div>
+        <div className="border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210, background: '#282220' }}>
+          <div className={sh} style={{ fontSize: '0.78rem' }}>Weapons</div>
           <WeaponList weapons={values.gear} onAdd={addWeapon} onDelete={deleteWeapon} onUpdate={updateWeapon} />
         </div>
 
-        {/* 2: Magic Spells and Items */}
-        <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210 }}>
-          <div className={sh}>Cantrips and Spells</div>
+        {/* 2: Cantrips and Spells */}
+        <div className="border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210, background: '#282220' }}>
+          <div className={sh} style={{ fontSize: '0.78rem' }}>Cantrips and Spells</div>
           <SpellList spells={values.spells ?? []} onAdd={addSpell} onDelete={deleteSpell} onUpdate={updateSpell} />
         </div>
 
