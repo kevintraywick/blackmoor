@@ -353,6 +353,17 @@ async function _initSchema() {
     ON dm_messages (player_id, created_at DESC)
   `).catch(() => {});
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS poison_status (
+      id          TEXT PRIMARY KEY,
+      player_id   TEXT NOT NULL,
+      poison_type TEXT NOT NULL DEFAULT 'Poisoned',
+      duration    TEXT NOT NULL DEFAULT 'long_rest',
+      started_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      active      BOOLEAN NOT NULL DEFAULT true
+    )
+  `).catch(() => {});
+
   // Backfill hp_roll (and empty stat fields) for existing NPCs from SRD.
   // Idempotent — only updates rows with empty hp_roll.
   // Strips _N suffixes and uses partial matching so "Ettercap_4" → "8d8+8".
