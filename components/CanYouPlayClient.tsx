@@ -180,7 +180,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                         <span
                           className="font-serif text-sm flex-1 text-left transition-all duration-200"
                           style={{
-                            color: isOut ? '#5a4f46' : '#e8ddd0',
+                            color: isOut ? '#7a6e63' : '#e8ddd0',
                             textDecoration: 'none',
                           }}
                         >
