@@ -7,20 +7,9 @@ import type { Availability } from '@/lib/types';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function getNextSaturdays(count: number): string[] {
-  const dates: string[] = [];
-  const d = new Date();
-  // advance to next Saturday (or today if already Saturday), then skip one week
-  d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
-  d.setDate(d.getDate() + 7);
-  for (let i = 0; i < count; i++) {
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    dates.push(`${yyyy}-${mm}-${dd}`);
-    d.setDate(d.getDate() + 7);
-  }
-  return dates;
+// Hardcoded dates — replace with calendar system later
+function getNextSaturdays(): string[] {
+  return ['2026-04-11', '2026-04-18', '2026-04-25'];
 }
 
 function formatSaturday(iso: string): { month: string; day: string } {
@@ -65,7 +54,7 @@ interface Props {
 // ── component ────────────────────────────────────────────────────────────────
 
 export default function CanYouPlayClient({ players, initialAvailability, quorum, sessionDates }: Props) {
-  const saturdays = getNextSaturdays(3);
+  const saturdays = getNextSaturdays();
   const sessionDateSet = new Set(sessionDates);
 
   // Build availability map: "playerId:saturday" → status
