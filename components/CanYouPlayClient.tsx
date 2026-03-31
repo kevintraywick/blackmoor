@@ -110,14 +110,14 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
       <div className="relative z-10 max-w-[1000px] mx-auto px-6 py-10">
         {/* Header */}
         <h1 className="font-serif text-4xl text-[#e8ddd0] text-center mb-2 tracking-wide">
-          Can You Play?
+          Are You In?
         </h1>
-        <p className="text-center text-[#8a7d6e] font-sans text-sm mb-10">
+        <p className="text-center text-[#8a7d6e] font-sans text-sm mb-4 sm:mb-10">
           Tap your name for each date you can play
         </p>
 
         {/* Saturday columns */}
-        <div className="grid grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-6 mb-12">
           {saturdays.map(sat => {
             const { month, day } = formatSaturday(sat);
             const inCount = getInCount(sat);
@@ -148,7 +148,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                       <button
                         key={p.id}
                         onClick={() => toggle(p.id, sat)}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded transition-all duration-200"
+                        className="w-full flex items-center gap-3 px-3 py-1.5 sm:py-2 rounded transition-all duration-200"
                         style={{
                           background: isOut ? 'rgba(90,79,70,0.15)' : 'rgba(201,168,76,0.08)',
                           border: `1px solid ${isOut ? 'rgba(90,79,70,0.2)' : 'rgba(201,168,76,0.15)'}`,
@@ -156,7 +156,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                       >
                         {/* Portrait */}
                         <div
-                          className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 transition-all duration-200"
+                          className="relative w-10 h-10 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 transition-all duration-200"
                           style={{
                             opacity: isOut ? 0.3 : 1,
                             filter: isOut ? 'grayscale(1)' : 'none',
@@ -168,7 +168,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
 
                         {/* Name */}
                         <span
-                          className="font-serif text-sm flex-1 text-left transition-all duration-200"
+                          className="font-serif text-base sm:text-sm flex-1 text-left transition-all duration-200"
                           style={{
                             color: isOut ? '#7a6e63' : '#e8ddd0',
                             textDecoration: 'none',
@@ -190,7 +190,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
 
                         {/* Status indicator */}
                         <span
-                          className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[0.6rem]"
+                          className="w-5 h-5 sm:w-4 sm:h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[0.6rem]"
                           style={{
                             border: isOut ? '1.5px solid #5a4f46' : '1.5px solid #4a7a5a',
                             background: isOut ? 'transparent' : '#4a7a5a',
