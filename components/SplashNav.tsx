@@ -23,9 +23,6 @@ export default function SplashNav({ players }: { players: Player[] }) {
         </div>
       </Link>
 
-      {/* Divider */}
-      <div className="w-px h-20 bg-[var(--color-border)] mx-1 flex-shrink-0" />
-
       {/* Player circles */}
       {players.map(p => (
         <Link

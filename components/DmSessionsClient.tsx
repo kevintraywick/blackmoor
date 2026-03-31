@@ -33,7 +33,7 @@ function NpcCastingBoard({
   onToggle: (id: string) => void;
 }) {
   const [search, setSearch] = useState('');
-  const [showAvailable, setShowAvailable] = useState(true);
+  const [showAvailable, setShowAvailable] = useState(false);
 
   // Count assigned NPCs (supports duplicates)
   const counts: Record<string, number> = {};
