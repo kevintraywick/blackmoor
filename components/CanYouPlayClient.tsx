@@ -148,7 +148,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                 </div>
 
                 {/* Player list */}
-                <div className="w-full space-y-2">
+                <div className="w-full space-y-2" style={{ marginTop: '10px' }}>
                   {players.map(p => {
                     const status = getStatus(p.id, sat);
                     const isOut = status === 'out';
