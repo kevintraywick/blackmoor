@@ -419,7 +419,7 @@ export function Sheet({
   const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[var(--color-text-muted)]';
 
   const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[var(--color-gold)] mb-2 pb-1.5 border-b border-[var(--color-border)] font-sans';
-  const ta = 'w-full bg-transparent border-none text-[var(--color-text-body)] font-serif text-[0.88rem] leading-[1.55] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452]';
+  const ta = 'w-full bg-transparent border-none text-[var(--color-text-body)] font-serif text-[1.05rem] leading-[1.6] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452] overflow-hidden';
   const fi = 'bg-transparent border-none border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-lg font-bold outline-none focus:border-b-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5';
 
   return (
@@ -562,25 +562,25 @@ export function Sheet({
       {/* 2×3 content grid */}
       <div className="grid grid-cols-2 border border-[var(--color-border)] border-t-0 rounded-bl-md rounded-br-md overflow-hidden">
 
-        {/* Boons */}
-        <div className="bg-[var(--color-surface)] border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, minHeight: 210 }}>
-          <div className={sh}>Boons</div>
-          <BoonList value={values.boons} onChange={v => setField('boons', v)} />
-        </div>
-
-        {/* Weapons */}
-        <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210 }}>
+        {/* 1: Weapons */}
+        <div className="bg-[var(--color-surface)] border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210 }}>
           <div className={sh}>Weapons</div>
           <WeaponList weapons={values.gear} onAdd={addWeapon} onDelete={deleteWeapon} onUpdate={updateWeapon} />
         </div>
 
-        {/* Magic Spells */}
-        <div className="bg-[var(--color-surface)] border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 225 }}>
-          <div className={sh}>Magic Spells</div>
+        {/* 2: Magic Spells and Items */}
+        <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 210 }}>
+          <div className={sh}>Cantrips and Spells</div>
           <SpellList spells={values.spells ?? []} onAdd={addSpell} onDelete={deleteSpell} onUpdate={updateSpell} />
         </div>
 
-        {/* Magic Items */}
+        {/* 3: Gear */}
+        <div className="bg-[var(--color-surface)] border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, minHeight: 225 }}>
+          <div className={sh}>Gear</div>
+          <BoonList value={values.boons} onChange={v => setField('boons', v)} />
+        </div>
+
+        {/* 4: Magic Items */}
         <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 225 }}>
           <div className={sh}>Magic Items</div>
           <ItemList items={values.items ?? []} onDelete={deleteItem} />
