@@ -7,7 +7,7 @@ import { useAutosave } from '@/lib/useAutosave';
 import type { SaveStatus } from '@/lib/useAutosave';
 
 // ── Boon list — clickable ☐/☑ lines parsed from stored text ─────────────────
-function BoonList({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function BoonList({ value, onChange, columns = 1, emptyText }: { value: string; onChange: (v: string) => void; columns?: number; emptyText?: string }) {
   const [newBoon, setNewBoon] = useState('');
   const lines = value ? value.split('\n') : [];
 
@@ -28,8 +28,9 @@ function BoonList({ value, onChange }: { value: string; onChange: (v: string) =>
   return (
     <div>
       {lines.length === 0 && (
-        <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">Use + to add a boon or quest reward</p>
+        <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">{emptyText ?? 'Use + to add an item'}</p>
       )}
+      <div style={columns > 1 ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, columnGap: '16px' } : undefined}>
       {lines.map((line, i) => {
         if (!line.trim()) return null;
         const isChecked = line.startsWith('☑');
@@ -54,6 +55,7 @@ function BoonList({ value, onChange }: { value: string; onChange: (v: string) =>
         return <div key={i} className="font-serif text-[0.88rem] text-[var(--color-text-body)] py-0.5">{line}</div>;
       })}
 
+      </div>
       <div className="flex gap-2 mt-2 pt-2 border-t border-[var(--color-surface-raised)] items-center">
         <button
           onClick={addBoon}
@@ -578,7 +580,7 @@ export function Sheet({
         {/* 3: Gear */}
         <div className="bg-[var(--color-surface)] border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, minHeight: 225 }}>
           <div className={sh}>Gear</div>
-          <BoonList value={values.boons} onChange={v => setField('boons', v)} />
+          <BoonList value={values.boons} onChange={v => setField('boons', v)} columns={2} />
         </div>
 
         {/* 4: Magic Items */}
@@ -597,7 +599,9 @@ export function Sheet({
         {/* Background */}
         <div className="bg-[var(--color-surface)] border-[var(--color-border)] p-3 flex flex-col" style={{ minWidth: 0, minHeight: 225 }}>
           <div className={sh}>Background</div>
-          <textarea value={values.general_notes} onChange={e => setField('general_notes', e.target.value)} className={`${taScroll} flex-1`} placeholder="" />
+          <div className="flex-1 overflow-hidden relative">
+            <textarea value={values.general_notes} onChange={e => setField('general_notes', e.target.value)} className={`${ta} absolute inset-0`} style={{ overflowY: 'scroll', paddingRight: '20px', width: 'calc(100% + 20px)' }} placeholder="" />
+          </div>
         </div>
 
       </div>

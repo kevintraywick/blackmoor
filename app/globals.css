@@ -52,18 +52,19 @@ body {
 }
 .focus-scrollbar:focus {
   scrollbar-width: thin;
-  scrollbar-color: #5a4f46 transparent;
+  scrollbar-color: #c9a84c #2a2420;
 }
 .focus-scrollbar:focus::-webkit-scrollbar {
   display: block;
   width: 6px;
 }
 .focus-scrollbar:focus::-webkit-scrollbar-thumb {
-  background: #5a4f46;
+  background: #c9a84c;
   border-radius: 3px;
 }
 .focus-scrollbar:focus::-webkit-scrollbar-track {
-  background: transparent;
+  background: #2a2420;
+  border-radius: 3px;
 }
 
 .magic-cat-btn {
