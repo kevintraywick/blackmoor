@@ -340,6 +340,7 @@ export function Sheet({
   img,
   data,
   unreadCount = 0,
+  poisonCount = 0,
 }: {
   playerId: string;
   playerName: string;
@@ -348,6 +349,7 @@ export function Sheet({
   img?: string;
   data: PlayerSheetType;
   unreadCount?: number;
+  poisonCount?: number;
 }) {
   const [values, setValues] = useState<PlayerSheetType>(data);
   const [showMessages, setShowMessages] = useState(false);
@@ -477,12 +479,23 @@ export function Sheet({
 
         </div>
 
+        {/* Green poison indicator */}
+        {poisonCount > 0 && (
+          <div
+            className="animate-pulse absolute flex items-center justify-center"
+            style={{ right: 79, top: '50%', transform: 'translateY(-50%)', fontSize: '14px', lineHeight: 1 }}
+            title="Poisoned!"
+          >
+            🤢
+          </div>
+        )}
+
         {/* Red dot — unread DM messages */}
         {unread > 0 && (
           <div
             onClick={toggleMessages}
             className="animate-pulse cursor-pointer rounded-full absolute"
-            style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, backgroundColor: '#e06060', right: 16, top: '50%', transform: 'translateY(-50%)' }}
+            style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, backgroundColor: '#dc2626', right: 46, top: '50%', transform: 'translateY(-50%)' }}
             title={`${unread} unread message${unread > 1 ? 's' : ''}`}
           />
         )}
@@ -490,7 +503,7 @@ export function Sheet({
           <div
             onClick={toggleMessages}
             className="cursor-pointer rounded-full absolute opacity-40 hover:opacity-70 transition-opacity"
-            style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, backgroundColor: '#5a4f46', right: 16, top: '50%', transform: 'translateY(-50%)' }}
+            style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, backgroundColor: '#5a4f46', right: 46, top: '50%', transform: 'translateY(-50%)' }}
             title="View messages"
           />
         )}
