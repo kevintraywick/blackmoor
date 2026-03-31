@@ -337,6 +337,22 @@ async function _initSchema() {
     ALTER TABLE campaign ADD COLUMN IF NOT EXISTS quorum_notified JSONB NOT NULL DEFAULT '[]'
   `).catch(() => {});
 
+  // ── DM Messages ────────────────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS dm_messages (
+      id         TEXT PRIMARY KEY,
+      player_id  TEXT NOT NULL,
+      message    TEXT NOT NULL DEFAULT '',
+      created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      read       BOOLEAN NOT NULL DEFAULT false
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS dm_messages_player_id_idx
+    ON dm_messages (player_id, created_at DESC)
+  `).catch(() => {});
+
   // Backfill hp_roll (and empty stat fields) for existing NPCs from SRD.
   // Idempotent — only updates rows with empty hp_roll.
   // Strips _N suffixes and uses partial matching so "Ettercap_4" → "8d8+8".
