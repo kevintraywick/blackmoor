@@ -138,6 +138,15 @@ export interface DmMessage {
   read: boolean;
 }
 
+export interface PoisonStatus {
+  id: string;
+  player_id: string;
+  poison_type: string;
+  duration: string;       // 'long_rest' or minutes as string (e.g. '10')
+  started_at: number;
+  active: boolean;
+}
+
 export type MagicCategory = 'spell' | 'scroll' | 'magic_item' | 'other';
 
 export interface MagicCatalogEntry {

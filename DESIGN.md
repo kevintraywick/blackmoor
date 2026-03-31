@@ -16,6 +16,14 @@ Living document for UI/UX decisions and constraints. Review before making visual
 
 - **No dropdowns, collapsing sections, pull-downs, accordions, or hidden menus.** All options and content must be visible on the page at all times. Use radio buttons, button groups, segmented controls, or inline lists instead.
 - **No scrollable sub-containers.** The page itself scrolls; interior elements do not get `overflow-y-auto` or `max-h-*` unless explicitly approved.
+- **+/− buttons for numeric adjustments.** Use the small `w-[22px] h-5` bordered buttons from `PlayerSheet` Stat component for any numeric stepper (HP, gold, timers, etc.). Style: `bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm` with gold hover. Value displayed between the buttons.
+- **Radio-style selectors** use unfilled circles (`border: 2px solid #5a4f46`) that fill green (`#4a7a5a` with ✓) when selected.
+
+## Responsive / Mobile
+
+- **Mobile-first with Tailwind breakpoints.** Default styles target mobile; `sm:` (640px+) targets desktop. One component, not separate pages.
+- **Touch targets**: Minimum `py-3` padding on tappable rows, portraits at `w-10 h-10`, checkmarks at `w-5 h-5` on mobile.
+- **Stacking**: Multi-column grids collapse to single column on mobile (`grid-cols-1 sm:grid-cols-3`).
 
 ## Color
 

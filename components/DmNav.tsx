@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -26,7 +27,14 @@ function ArrowLeft() {
   );
 }
 
-export default function DmNav({ current, sessionId }: { current: NavSection; sessionId?: string }) {
+export default function DmNav({ current, sessionId, poisonCount: initialPoisonCount }: { current: NavSection; sessionId?: string; poisonCount?: number }) {
+  const [poisonCount, setPoisonCount] = useState(initialPoisonCount ?? 0);
+
+  useEffect(() => {
+    if (initialPoisonCount !== undefined) return; // already provided by server
+    fetch('/api/poison').then(r => r.json()).then((rows: unknown[]) => setPoisonCount(rows.length)).catch(() => {});
+  }, [initialPoisonCount]);
+
   return (
     <nav className="sticky top-0 bg-[#161d18] backdrop-blur border-b border-[#4a7a5a]/40 px-8 py-2.5 flex items-center gap-4 z-10 text-sm font-serif">
       <Link href="/" className="flex items-center gap-2 text-[#4a8a5a] hover:text-[#5ab87a] transition-colors no-underline flex-shrink-0">
@@ -38,9 +46,10 @@ export default function DmNav({ current, sessionId }: { current: NavSection; ses
       </Link>
       {LINKS.map(link => {
         const href = link.key === 'maps' && sessionId ? `/dm/maps?session=${sessionId}` : link.href;
+        const isPoisonGlow = link.key === 'poisons' && poisonCount > 0 && current !== 'poisons';
         return link.key === current
           ? <span key={link.key} className="text-[#5ab87a] font-semibold">{link.label}</span>
-          : <Link key={link.key} href={href} className="text-[#4a8a5a] hover:text-[#5ab87a] transition-colors no-underline">{link.label}</Link>;
+          : <Link key={link.key} href={href} className={`transition-colors no-underline ${isPoisonGlow ? 'text-[#7ac28a] animate-pulse' : 'text-[#4a8a5a] hover:text-[#5ab87a]'}`}>{link.label}</Link>;
       })}
     </nav>
   );
