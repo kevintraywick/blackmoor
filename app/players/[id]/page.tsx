@@ -23,7 +23,11 @@ export default async function PlayerPage({ params }: Props) {
   const player = players.find(p => p.id === id);
   if (!player) notFound();
 
-  const rows = await query<PlayerSheetType>('SELECT * FROM player_sheets WHERE id = $1', [id]);
+  const [rows, unreadRows] = await Promise.all([
+    query<PlayerSheetType>('SELECT * FROM player_sheets WHERE id = $1', [id]),
+    query<{ count: number }>('SELECT COUNT(*)::int as count FROM dm_messages WHERE player_id = $1 AND read = false', [id]),
+  ]);
+  const unreadCount = unreadRows[0]?.count ?? 0;
 
   const empty: PlayerSheetType = {
     id, discord: '', species: '', class: '', level: '', hp: '', xp: '',
@@ -60,6 +64,7 @@ export default async function PlayerPage({ params }: Props) {
           initial={player.initial}
           img={player.img}
           data={data}
+          unreadCount={unreadCount}
         />
         <PlayerMapPanel playerId={player.id} />
       </div>
