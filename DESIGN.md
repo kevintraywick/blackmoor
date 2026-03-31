@@ -31,9 +31,24 @@ Living document for UI/UX decisions and constraints. Review before making visual
 - **App palette**: Warm browns (`#1a1614` base) with gold accent (`#c9a84c`).
 - **DM context**: Forest green (`#4a7a5a` bg, white text) for the DM nav bar and DM-only UI surfaces.
 - **Magic categories**: Gold (spell), brown (scroll), purple (magic item), green (other).
+- **Poison context**: Green (`#4a7a5a` for active indicators, `#7ac28a` for text). Nav tab pulses green when active.
+- **DM message dot**: Bright red `#dc2626`. Positioned in player name bar with `animate-pulse`.
+- **Combat panes** (Weapons, Cantrips/Spells): Warmer background `#282220` to visually elevate above other panes.
+- **Journey Map**: Exception — cheerful saturated soft blues, white circles (`rgba(255,255,255,0.9)`), light path.
 
 ## Typography
 
 - **Serif** (EB Garamond): Body text, titles, form inputs, nav links.
 - **Sans** (Geist): Section labels, small-caps headers, UI chrome.
-- **Section headers**: `text-[0.7rem] uppercase tracking-[0.15em]` in gold.
+- **Section headers**: `text-[0.7rem] uppercase tracking-[0.15em]` in gold. Combat pane headers slightly larger (`0.78rem`).
+- **Pane body text**: `text-[1.05rem]` — unified across all player sheet panes.
+- **Stat values**: `text-[1.1rem]` in the stats row.
+
+## Inline Add Pattern
+
+All list panes (Weapons, Gear, Cantrips, Magic Items) use an inline `[+] Add item...` row:
+- Sits at the bottom of the list within the same grid/layout
+- `+` in a bordered box (`border border-[#3d3530] rounded w-5 h-5`), gold on hover
+- Italic placeholder text in `text-[var(--color-text-dim)]`
+- Click opens an inline input; Enter confirms, Escape cancels
+- No separate "Add" button or section divider

@@ -33,9 +33,16 @@ This is a tool for heroes and the people who run their world. It should feel lik
 - **No hidden-choice controls without asking first.** Before implementing a `<select>` dropdown, `<datalist>`, or any pull-down menu, ask the user — they prefer options to be visible on the page (radio buttons, button groups, segmented controls, etc.). Only use a dropdown if the user explicitly approves it after seeing the alternatives.
 - **No scrollable containers by default.** Do not use `overflow-y-auto`, `max-h-*`, or any scroll-constrained container unless the user specifically requests it. Show all content at full height. Only suggest a scrollable container if it is clearly the superior solution, and get approval first.
 
+### Page-Specific Aesthetics
+- **Journey Map** is an exception to the warm/dark aesthetic — it should feel **cheerful and light**. Saturated soft blues, white circles, light text. Unlike the rest of Shadow of the Wolf.
+
 ## Gotchas
 
 - **Image uploads are capped at 4MB.** Midjourney outputs (typically 2048x2048 PNG, ~6MB) will be rejected by the upload API. Resize with `magick <file> -resize 1024x1024 <file>` before uploading or committing to `public/`.
+- **`autoFocus` on inputs causes page scroll.** If an input with `autoFocus` renders on page load (even inside a conditionally-shown panel that defaults open), the browser scrolls to it. Default panels to closed (`useState(false)`) when they contain autoFocus inputs.
+- **`ensureSchema` is memoized.** After adding new DDL (tables/columns), the dev server must be restarted — the schema won't re-run on refresh.
+- **Tailwind v4 breaks `grid-cols-[...]` arbitrary values.** Use inline `style={{ display: 'grid', gridTemplateColumns: '...' }}` instead for complex grid templates.
+- **Safari ignores `scrollbar-width: none` on textareas.** Use a wrapper `overflow-hidden` div with the textarea sized wider to clip the native scrollbar off-screen.
 
 ## GITHUB
 Alert the user on a local push or commit if the change has not been pushed to Github.
