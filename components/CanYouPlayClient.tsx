@@ -123,7 +123,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
           Can You Play?
         </h1>
         <p className="text-center text-[#8a7d6e] font-sans text-sm mb-10">
-          Tap your name to mark yourself in.
+          Tap your name for each date you can play
         </p>
 
         {/* Saturday columns */}
