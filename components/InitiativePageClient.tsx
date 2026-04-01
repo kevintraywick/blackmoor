@@ -148,13 +148,14 @@ export default function InitiativePageClient({
     const combatants: Combatant[] = [];
 
     activePlayers.forEach(p => {
+      const entered = playerInits[p.id] ?? 0;
       combatants.push({
         id: p.id,
         name: p.character,
         subName: p.playerName,
         type: 'player',
-        initiative: playerInits[p.id] ?? 0,
-        rolled: false,
+        initiative: entered > 0 ? entered : (rollDice('1d20') ?? Math.ceil(Math.random() * 20)),
+        rolled: entered === 0,
         img: p.img,
         initial: p.initial,
       });
