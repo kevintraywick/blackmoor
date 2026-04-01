@@ -23,8 +23,11 @@ Living document for UI/UX decisions and constraints. Review before making visual
 ## Responsive / Mobile
 
 - **Mobile-first with Tailwind breakpoints.** Default styles target mobile; `sm:` (640px+) targets desktop. One component, not separate pages.
-- **Touch targets**: Minimum `py-3` padding on tappable rows, portraits at `w-10 h-10`, checkmarks at `w-5 h-5` on mobile.
+- **Touch targets**: Minimum `py-3` padding on tappable rows, portraits at `w-10 h-10`, checkmarks at `w-5 h-5` on mobile. +/- buttons expand to `w-8 h-8` on mobile (32px touch targets).
 - **Stacking**: Multi-column grids collapse to single column on mobile (`grid-cols-1 sm:grid-cols-3`).
+- **Player selector circles**: `w-14 h-14` on mobile, `w-20 h-20` on desktop.
+- **Stats row**: Two rows on mobile (HP/AC/Level/Gold + XP/Speed/Size), single row on desktop.
+- **Header**: Stacked on mobile (name row + fields row, Discord hidden), single inline row on desktop.
 
 ## Color
 
@@ -32,7 +35,9 @@ Living document for UI/UX decisions and constraints. Review before making visual
 - **DM context**: Forest green (`#4a7a5a` bg, white text) for the DM nav bar and DM-only UI surfaces.
 - **Magic categories**: Gold (spell), brown (scroll), purple (magic item), green (other).
 - **Poison context**: Green (`#4a7a5a` for active indicators, `#7ac28a` for text). Nav tab pulses green when active.
-- **DM message dot**: Bright red `#dc2626`. Positioned in player name bar with `animate-pulse`.
+- **DM message dot**: Bright red `#dc2626` dot, no label.
+- **Boon dot**: White `#ffffff` with subtle glow (`boxShadow: 0 0 6px rgba(255,255,255,0.5)`). Pulses until player opens it, then stays solid until expired/cancelled.
+- **Indicator layout**: All three indicators (boon, poison, DM) in a flex container at `right: 16` in the header. Order left-to-right: boon (white) | poison (🤢) | DM (red). Dots only, no text labels.
 - **Combat panes** (Weapons, Cantrips/Spells): Warmer background `#282220` to visually elevate above other panes.
 - **Journey Map**: Exception — cheerful saturated soft blues, white circles (`rgba(255,255,255,0.9)`), light path.
 
