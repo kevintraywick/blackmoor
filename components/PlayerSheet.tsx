@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, MarketplaceItem, Player } from '@/lib/types';
+import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, MarketplaceItem, Player, PlayerBoon } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import type { SaveStatus } from '@/lib/useAutosave';
 
@@ -345,29 +345,61 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
   );
 }
 
-// ── Full player sheet form ────────────────────────────────────────────────────
-export function Sheet({
-  playerId,
-  playerName,
-  character,
-  initial,
-  img,
-  data,
-  unreadCount = 0,
-  poisonCount = 0,
-}: {
-  playerId: string;
-  playerName: string;
-  character: string;
-  initial: string;
-  img?: string;
-  data: PlayerSheetType;
-  unreadCount?: number;
-  poisonCount?: number;
+// ── Desktop header indicators (right to left: DM, Poison, Boon) ─────────────
+function DesktopIndicators({ unread, messages, poisonCount, boonCount, boonsSeen, toggleMessages, toggleBoons }: {
+  unread: number; messages: { id: string }[]; poisonCount: number; boonCount: number; boonsSeen: boolean;
+  toggleMessages: () => void; toggleBoons: () => void;
 }) {
+  // Calculate positions right-to-left: DM is rightmost, then poison, then boon
+  let r = 16;
+  const dmR = r;
+  if (unread > 0) r += 63; else if (messages.length > 0) r += 26;
+  const poisonR = r;
+  if (poisonCount > 0) r += 80;
+  const boonR = r;
+
+  return (
+    <>
+      {/* Boon — white dot (leftmost) */}
+      {boonCount > 0 && (
+        <div onClick={toggleBoons} className={`cursor-pointer absolute hidden sm:block ${!boonsSeen ? 'animate-pulse' : ''}`}
+          style={{ right: boonR, top: '50%', transform: 'translateY(-50%)' }} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}>
+          <div style={{ width: 14, height: 14, backgroundColor: '#e8ddd0', borderRadius: '50%' }} />
+        </div>
+      )}
+      {/* Poison — green (middle) */}
+      {poisonCount > 0 && (
+        <div className="animate-pulse absolute hidden sm:flex items-center gap-1.5 cursor-default"
+          style={{ right: poisonR, top: '50%', transform: 'translateY(-50%)' }} title="Poisoned!">
+          <span style={{ fontSize: '18px', lineHeight: 1 }}>🤢</span>
+          <span className="text-[0.55rem] uppercase tracking-wider text-[#7ac28a] font-sans">Poisoned</span>
+        </div>
+      )}
+      {/* DM messages — red (rightmost) */}
+      {unread > 0 && (
+        <div onClick={toggleMessages} className="animate-pulse cursor-pointer rounded-full absolute hidden sm:flex items-center gap-1.5"
+          style={{ right: dmR, top: '50%', transform: 'translateY(-50%)' }} title={`${unread} unread message${unread > 1 ? 's' : ''}`}>
+          <div style={{ width: 18, height: 18, backgroundColor: '#dc2626', borderRadius: '50%' }} />
+          <span className="text-[0.55rem] uppercase tracking-wider text-[#dc2626] font-sans">DM</span>
+        </div>
+      )}
+      {unread === 0 && messages.length > 0 && (
+        <div onClick={toggleMessages} className="cursor-pointer rounded-full absolute hidden sm:block opacity-40 hover:opacity-70 transition-opacity"
+          style={{ width: 14, height: 14, backgroundColor: '#5a4f46', right: dmR, top: '50%', transform: 'translateY(-50%)' }} title="View messages" />
+      )}
+    </>
+  );
+}
+
+// ── Full player sheet form ────────────────────────────────────────────────────
+export function Sheet({ playerId, playerName, character, initial, img, data, unreadCount = 0, poisonCount = 0, boonCount = 0, boonUnseen = 0 }: { playerId: string; playerName: string; character: string; initial: string; img?: string; data: PlayerSheetType; unreadCount?: number; poisonCount?: number; boonCount?: number; boonUnseen?: number }) {
   const [values, setValues] = useState<PlayerSheetType>(data);
   const [charName, setCharName] = useState(character);
   const [showMessages, setShowMessages] = useState(false);
+  const [showBoons, setShowBoons] = useState(false);
+  const [boons, setBoons] = useState<PlayerBoon[]>([]);
+  const [boonsSeen, setBoonsSeen] = useState(boonUnseen === 0);
+  const [loadingBoons, setLoadingBoons] = useState(false);
   const [messages, setMessages] = useState<{ id: string; message: string; created_at: number }[]>([]);
   const [unread, setUnread] = useState(unreadCount);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -404,6 +436,8 @@ export function Sheet({
   function deleteItem(id: string) {
     setField('items', (values.items ?? []).filter(i => i.id !== id));
   }
+
+  async function toggleBoons() { if (showBoons) { setShowBoons(false); return; } setShowBoons(true); setLoadingBoons(true); try { const res = await fetch(`/api/boons?player_id=${playerId}`); const d = await res.json(); setBoons(d.active); if (!boonsSeen) { setBoonsSeen(true); fetch('/api/boons', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ player_id: playerId, action: 'seen' }) }); } } finally { setLoadingBoons(false); } }
 
   async function toggleMessages() {
     if (showMessages) {
@@ -509,6 +543,7 @@ export function Sheet({
                 className="text-[var(--color-text)] text-lg font-bold font-serif bg-transparent border-none outline-none min-w-0"
                 style={{ width: `${Math.max(charName.length + 1, 4)}ch` }}
               />
+              {boonCount > 0 && (<div onClick={toggleBoons} className={`cursor-pointer flex items-center gap-1 ${!boonsSeen ? 'animate-pulse' : ''}`} title="Boon active"><div style={{ width: 12, height: 12, backgroundColor: '#e8ddd0', borderRadius: '50%' }} /></div>)}
               {poisonCount > 0 && (
                 <div className="animate-pulse flex items-center gap-1 cursor-default" title="Poisoned!">
                   <span style={{ fontSize: '16px', lineHeight: 1 }}>🤢</span>
@@ -530,36 +565,21 @@ export function Sheet({
           </div>
         </div>
 
-        {/* Desktop indicators — absolute positioned (hidden on mobile) */}
-        {poisonCount > 0 && (
-          <div
-            className="animate-pulse absolute hidden sm:flex items-center gap-1.5 cursor-default"
-            style={{ right: unread > 0 ? 79 : 46, top: '50%', transform: 'translateY(-50%)' }}
-            title="Poisoned!"
-          >
-            <span style={{ fontSize: '18px', lineHeight: 1 }}>🤢</span>
-            <span className="text-[0.55rem] uppercase tracking-wider text-[#7ac28a] font-sans">Poisoned</span>
+        {/* Desktop indicators — order from right: DM | Poison | Boon (white dot) */}
+        <DesktopIndicators unread={unread} messages={messages} poisonCount={poisonCount} boonCount={boonCount} boonsSeen={boonsSeen} toggleMessages={toggleMessages} toggleBoons={toggleBoons} />
+      </div>
+
+      {/* Boon detail pane */}
+      <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: showBoons ? '400px' : '0px', opacity: showBoons ? 1 : 0 }}>
+        <div className="border-x border-[var(--color-border)] px-4 py-3 bg-[#1e1d1a]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[0.65rem] uppercase tracking-[0.15em] text-[#e8ddd0] font-sans">Active Boons</span>
+            <button onClick={() => setShowBoons(false)} className="text-[#5a4f46] hover:text-[var(--color-text)] text-sm bg-transparent border-none cursor-pointer">✕</button>
           </div>
-        )}
-        {unread > 0 && (
-          <div
-            onClick={toggleMessages}
-            className="animate-pulse cursor-pointer rounded-full absolute hidden sm:flex items-center gap-1.5"
-            style={{ right: 16, top: '50%', transform: 'translateY(-50%)' }}
-            title={`${unread} unread message${unread > 1 ? 's' : ''}`}
-          >
-            <div style={{ width: 18, height: 18, minWidth: 18, minHeight: 18, backgroundColor: '#dc2626', borderRadius: '50%' }} />
-            <span className="text-[0.55rem] uppercase tracking-wider text-[#dc2626] font-sans">DM</span>
-          </div>
-        )}
-        {unread === 0 && messages.length > 0 && (
-          <div
-            onClick={toggleMessages}
-            className="cursor-pointer rounded-full absolute hidden sm:block opacity-40 hover:opacity-70 transition-opacity"
-            style={{ width: 14, height: 14, minWidth: 14, minHeight: 14, backgroundColor: '#5a4f46', right: 16, top: '50%', transform: 'translateY(-50%)' }}
-            title="View messages"
-          />
-        )}
+          {loadingBoons && <p className="text-[#8a7d6e] text-sm font-serif">Loading...</p>}
+          {!loadingBoons && boons.length === 0 && <p className="text-[#8a7d6e] text-sm font-serif italic">No active boons</p>}
+          {boons.map(b => (<div key={b.id} className="mb-3 last:mb-0"><div className="flex items-center gap-2 mb-0.5"><span className="font-serif text-[1.05rem] text-[var(--color-text)]">{b.name}</span>{b.grants_advantage && <span className="text-[0.5rem] uppercase tracking-wider text-[#c9a84c] font-sans border border-[#c9a84c40] px-1 py-0.5 rounded-sm">Advantage</span>}</div><p className="font-serif text-[0.9rem] text-[var(--color-text-body)] leading-relaxed">{b.description}</p>{b.effect && <p className="text-[0.75rem] text-[var(--color-text-muted)] font-sans mt-1">Effect: {b.effect}</p>}<p className="text-[0.65rem] text-[#5a4f46] font-sans mt-0.5">{b.expiry_type === 'permanent' && 'Until used'}{b.expiry_type === 'long_rest' && 'Until long rest'}{b.expiry_type === 'timer' && `${b.expiry_minutes} min timer`}</p></div>))}
+        </div>
       </div>
 
       {/* DM Message pane */}

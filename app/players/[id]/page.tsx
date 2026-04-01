@@ -23,13 +23,16 @@ export default async function PlayerPage({ params }: Props) {
   const player = players.find(p => p.id === id);
   if (!player) notFound();
 
-  const [rows, unreadRows, poisonRows] = await Promise.all([
+  const [rows, unreadRows, poisonRows, boonRows] = await Promise.all([
     query<PlayerSheetType>('SELECT * FROM player_sheets WHERE id = $1', [id]),
     query<{ count: number }>('SELECT COUNT(*)::int as count FROM dm_messages WHERE player_id = $1 AND read = false', [id]),
     query<{ count: number }>('SELECT COUNT(*)::int as count FROM poison_status WHERE player_id = $1 AND active = true', [id]),
+    query<{ count: number; unseen: number }>('SELECT COUNT(*)::int as count, COUNT(*) FILTER (WHERE seen = false)::int as unseen FROM player_boons WHERE player_id = $1 AND active = true', [id]),
   ]);
   const unreadCount = unreadRows[0]?.count ?? 0;
   const poisonCount = poisonRows[0]?.count ?? 0;
+  const boonCount = boonRows[0]?.count ?? 0;
+  const boonUnseen = boonRows[0]?.unseen ?? 0;
 
   const empty: PlayerSheetType = {
     id, discord: '', species: '', class: '', level: '', hp: '', xp: '',
@@ -68,6 +71,8 @@ export default async function PlayerPage({ params }: Props) {
           data={data}
           unreadCount={unreadCount}
           poisonCount={poisonCount}
+          boonCount={boonCount}
+          boonUnseen={boonUnseen}
         />
         <PlayerMapPanel playerId={player.id} />
       </div>
