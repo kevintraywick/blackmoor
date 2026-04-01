@@ -81,6 +81,7 @@ export interface Session {
   notes: string;
   npc_ids: string[];
   menagerie: MenagerieEntry[];
+  terrain: string;
   sort_order: number;
   last_modified: number;
 }

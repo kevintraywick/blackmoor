@@ -494,9 +494,9 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
               value={charName}
               onChange={e => {
                 setCharName(e.target.value);
-                clearTimeout((window as Record<string, unknown>).__charTimer as ReturnType<typeof setTimeout>);
+                clearTimeout((window as unknown as Record<string, unknown>).__charTimer as ReturnType<typeof setTimeout>);
                 const val = e.target.value;
-                (window as Record<string, unknown>).__charTimer = setTimeout(() => {
+                (window as unknown as Record<string, unknown>).__charTimer = setTimeout(() => {
                   fetch(`/api/players/${playerId}/name`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -519,9 +519,9 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                 value={charName}
                 onChange={e => {
                   setCharName(e.target.value);
-                  clearTimeout((window as Record<string, unknown>).__charTimer as ReturnType<typeof setTimeout>);
+                  clearTimeout((window as unknown as Record<string, unknown>).__charTimer as ReturnType<typeof setTimeout>);
                   const val = e.target.value;
-                  (window as Record<string, unknown>).__charTimer = setTimeout(() => {
+                  (window as unknown as Record<string, unknown>).__charTimer = setTimeout(() => {
                     fetch(`/api/players/${playerId}/name`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
