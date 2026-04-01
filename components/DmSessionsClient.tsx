@@ -290,7 +290,7 @@ export default function DmSessionsClient({
           {/* + box */}
           <button
             onClick={handleNew}
-            className="flex-shrink-0 w-[88px] rounded border border-dashed border-[var(--color-border)] bg-transparent flex items-center justify-center text-[var(--color-border)] text-2xl hover:border-[#5a4a44] hover:text-[#5a4a44] transition-colors"
+            className="flex-shrink-0 w-[88px] rounded border border-dashed border-[var(--color-border)] bg-transparent flex items-center justify-center text-lg font-bold font-serif text-[var(--color-gold)] hover:border-[#5a4a44] transition-colors"
             title="New session"
           >
             +
