@@ -123,6 +123,7 @@ export interface Campaign {
   quorum: number;
   dm_email: string;
   quorum_notified: string[];
+  description: string;
 }
 
 export interface Availability {

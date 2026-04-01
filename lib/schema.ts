@@ -337,6 +337,11 @@ async function _initSchema() {
     ALTER TABLE campaign ADD COLUMN IF NOT EXISTS quorum_notified JSONB NOT NULL DEFAULT '[]'
   `).catch(() => {});
 
+  // Site description for Discord embeds / meta tags
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''
+  `).catch(() => {});
+
   // ── DM Messages ────────────────────────────────────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS dm_messages (

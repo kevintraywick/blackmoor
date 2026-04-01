@@ -44,6 +44,11 @@ export async function PATCH(req: Request) {
       vals.push(dm_email.trim().slice(0, 200));
     }
 
+    if (typeof body.description === 'string') {
+      sets.push(`description = $${vals.length + 1}`);
+      vals.push(body.description.trim().slice(0, 300));
+    }
+
     await query(
       `UPDATE campaign SET ${sets.join(', ')} WHERE id = 'default'`,
       vals
