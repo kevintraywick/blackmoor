@@ -342,6 +342,17 @@ async function _initSchema() {
     ALTER TABLE campaign ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''
   `).catch(() => {});
 
+  // ── Invitations (shareable availability polls) ─────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS invitations (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      slug TEXT UNIQUE NOT NULL,
+      label TEXT NOT NULL,
+      dates JSONB NOT NULL DEFAULT '[]',
+      created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::bigint)
+    )
+  `).catch(() => {});
+
   // ── DM Messages ────────────────────────────────────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS dm_messages (

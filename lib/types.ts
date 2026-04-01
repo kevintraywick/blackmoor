@@ -126,6 +126,14 @@ export interface Campaign {
   description: string;
 }
 
+export interface Invitation {
+  id: string;
+  slug: string;
+  label: string;
+  dates: string[];
+  created_at: number;
+}
+
 export interface Availability {
   player_id: string;
   saturday: string;

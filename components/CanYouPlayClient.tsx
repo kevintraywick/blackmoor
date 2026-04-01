@@ -26,12 +26,13 @@ interface Props {
   players: Player[];
   initialAvailability: Availability[];
   quorum: number;
+  dates?: string[];
 }
 
 // ── component ────────────────────────────────────────────────────────────────
 
-export default function CanYouPlayClient({ players, initialAvailability, quorum }: Props) {
-  const saturdays = getNextSaturdays();
+export default function CanYouPlayClient({ players, initialAvailability, quorum, dates }: Props) {
+  const saturdays = dates ?? getNextSaturdays();
 
   // Build availability map: "playerId:saturday" → status
   const [avMap, setAvMap] = useState<Map<string, string>>(() => {
