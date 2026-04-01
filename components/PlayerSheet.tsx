@@ -345,49 +345,38 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
   );
 }
 
-// ── Desktop header indicators (right to left: DM, Poison, Boon) ─────────────
+// ── Desktop header indicators — flex row, right-aligned ─────────────────────
 function DesktopIndicators({ unread, messages, poisonCount, boonCount, boonsSeen, toggleMessages, toggleBoons }: {
   unread: number; messages: { id: string }[]; poisonCount: number; boonCount: number; boonsSeen: boolean;
   toggleMessages: () => void; toggleBoons: () => void;
 }) {
-  // Calculate positions right-to-left: DM is rightmost, then poison, then boon
-  let r = 16;
-  const dmR = r;
-  if (unread > 0) r += 63; else if (messages.length > 0) r += 26;
-  const poisonR = r;
-  if (poisonCount > 0) r += 80;
-  const boonR = r;
-
   return (
-    <>
+    <div className="absolute hidden sm:flex items-center gap-3" style={{ right: 16, top: '50%', transform: 'translateY(-50%)' }}>
       {/* Boon — white dot (leftmost) */}
       {boonCount > 0 && (
-        <div onClick={toggleBoons} className={`cursor-pointer absolute hidden sm:block ${!boonsSeen ? 'animate-pulse' : ''}`}
-          style={{ right: boonR, top: '50%', transform: 'translateY(-50%)' }} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}>
-          <div style={{ width: 14, height: 14, backgroundColor: '#e8ddd0', borderRadius: '50%' }} />
+        <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`}
+          title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}>
+          <div style={{ width: 16, height: 16, backgroundColor: '#ffffff', borderRadius: '50%', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} />
         </div>
       )}
       {/* Poison — green (middle) */}
       {poisonCount > 0 && (
-        <div className="animate-pulse absolute hidden sm:flex items-center gap-1.5 cursor-default"
-          style={{ right: poisonR, top: '50%', transform: 'translateY(-50%)' }} title="Poisoned!">
+        <div className="animate-pulse flex items-center gap-1.5 cursor-default" title="Poisoned!">
           <span style={{ fontSize: '18px', lineHeight: 1 }}>🤢</span>
-          <span className="text-[0.55rem] uppercase tracking-wider text-[#7ac28a] font-sans">Poisoned</span>
         </div>
       )}
       {/* DM messages — red (rightmost) */}
       {unread > 0 && (
-        <div onClick={toggleMessages} className="animate-pulse cursor-pointer rounded-full absolute hidden sm:flex items-center gap-1.5"
-          style={{ right: dmR, top: '50%', transform: 'translateY(-50%)' }} title={`${unread} unread message${unread > 1 ? 's' : ''}`}>
+        <div onClick={toggleMessages} className="animate-pulse cursor-pointer flex items-center gap-1.5"
+          title={`${unread} unread message${unread > 1 ? 's' : ''}`}>
           <div style={{ width: 18, height: 18, backgroundColor: '#dc2626', borderRadius: '50%' }} />
-          <span className="text-[0.55rem] uppercase tracking-wider text-[#dc2626] font-sans">DM</span>
         </div>
       )}
       {unread === 0 && messages.length > 0 && (
-        <div onClick={toggleMessages} className="cursor-pointer rounded-full absolute hidden sm:block opacity-40 hover:opacity-70 transition-opacity"
-          style={{ width: 14, height: 14, backgroundColor: '#5a4f46', right: dmR, top: '50%', transform: 'translateY(-50%)' }} title="View messages" />
+        <div onClick={toggleMessages} className="cursor-pointer rounded-full opacity-40 hover:opacity-70 transition-opacity"
+          style={{ width: 14, height: 14, backgroundColor: '#5a4f46' }} title="View messages" />
       )}
-    </>
+    </div>
   );
 }
 
