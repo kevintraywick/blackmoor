@@ -380,6 +380,26 @@ async function _initSchema() {
     )
   `).catch(() => {});
 
+  // ── Session Events (session lifecycle logging) ──────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS session_events (
+      id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      session_id  TEXT NOT NULL,
+      event_type  TEXT NOT NULL,
+      payload     JSONB NOT NULL DEFAULT '{}',
+      created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS session_events_session_id_idx
+    ON session_events (session_id, created_at DESC)
+  `).catch(() => {});
+
+  // Session lifecycle timestamps
+  await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS started_at BIGINT`).catch(() => {});
+  await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS ended_at BIGINT`).catch(() => {});
+
   // Backfill hp_roll (and empty stat fields) for existing NPCs from SRD.
   // Idempotent — only updates rows with empty hp_roll.
   // Strips _N suffixes and uses partial matching so "Ettercap_4" → "8d8+8".

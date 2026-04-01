@@ -84,6 +84,8 @@ export interface Session {
   terrain: string;
   sort_order: number;
   last_modified: number;
+  started_at: number | null;
+  ended_at: number | null;
 }
 
 export type GridType = 'square' | 'hex';
@@ -191,6 +193,14 @@ export interface PlayerBoon {
   started_at: number;
   active: boolean;
   seen: boolean;
+}
+
+export interface SessionEvent {
+  id: string;
+  session_id: string;
+  event_type: string;
+  payload: Record<string, unknown>;
+  created_at: number;
 }
 
 export type MagicCategory = 'spell' | 'scroll' | 'magic_item' | 'other';

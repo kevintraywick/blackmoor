@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import type { Session, Npc, MenagerieEntry } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import { resolveImageUrl } from '@/lib/imageUrl';
@@ -24,6 +25,173 @@ function emptyValues(session: Session): Record<string, string | number> {
     locations: session.locations ?? '',
     notes: session.notes ?? '',
   };
+}
+
+// ── Session Control Bar ──────────────────────────────────────────────────────
+
+function SessionControlBar({
+  sessionId,
+  session,
+  onLongRest,
+  onSessionUpdate,
+}: {
+  sessionId: string;
+  session: Session;
+  onLongRest: () => void;
+  onSessionUpdate: (s: Session) => void;
+}) {
+  const [combatCount, setCombatCount] = useState(0);
+  const [longRestSummary, setLongRestSummary] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/sessions/${sessionId}/events?type=combat_start`)
+      .then(r => r.json())
+      .then((events: unknown[]) => setCombatCount(events.length))
+      .catch(() => {});
+  }, [sessionId]);
+
+  const isStarted = !!session.started_at;
+  const isEnded = !!session.ended_at;
+
+  async function handleStart() {
+    const res = await fetch(`/api/sessions/${sessionId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'start' }),
+    });
+    if (res.ok) onSessionUpdate(await res.json());
+  }
+
+  async function handleEnd() {
+    const res = await fetch(`/api/sessions/${sessionId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'end' }),
+    });
+    if (res.ok) onSessionUpdate(await res.json());
+  }
+
+  async function handleLongRestClick() {
+    if (!confirm('Long Rest? This will restore NPC HP, expire boons, and clear poisons.')) return;
+    const res = await fetch(`/api/sessions/${sessionId}/long-rest`, { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      setLongRestSummary(`${data.restored_npcs} NPCs healed, ${data.expired_boons} boons expired, ${data.cleared_poisons} poisons cleared`);
+      setTimeout(() => setLongRestSummary(null), 3000);
+      onLongRest();
+    }
+  }
+
+  async function handleRollInitiative() {
+    await fetch(`/api/sessions/${sessionId}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: 'combat_start' }),
+    });
+    setCombatCount(prev => prev + 1);
+    try { localStorage.setItem('blackmoor-last-session', sessionId); } catch { /* silent */ }
+  }
+
+  const circleBase: React.CSSProperties = {
+    width: 64, height: 64,
+    border: '1px solid rgba(201,168,76,0.4)',
+    background: 'transparent',
+  };
+
+  const buttons = [
+    {
+      label: 'START',
+      onClick: handleStart,
+      style: {
+        ...circleBase,
+        ...(isStarted && !isEnded ? { borderColor: '#2d8a4e', boxShadow: '0 0 12px rgba(45,138,78,0.6)' } : {}),
+      },
+      className: isStarted && !isEnded ? 'animate-pulse-slow-green' : '',
+      disabled: isStarted && !isEnded,
+    },
+    {
+      label: 'LONG REST',
+      onClick: handleLongRestClick,
+      style: circleBase,
+    },
+    {
+      label: 'ROLL INIT',
+      href: '/dm/initiative',
+      onClick: handleRollInitiative,
+      style: circleBase,
+      badge: combatCount > 0 ? combatCount : null,
+    },
+    {
+      label: 'BOON',
+      href: '/dm/boons',
+      style: circleBase,
+    },
+    {
+      label: 'END',
+      onClick: handleEnd,
+      style: {
+        ...circleBase,
+        ...(isEnded ? { borderColor: '#a05050', boxShadow: '0 0 12px rgba(160,80,80,0.6)' } : {}),
+      },
+      className: isEnded ? 'animate-pulse-slow-red' : '',
+      disabled: isEnded,
+    },
+  ];
+
+  return (
+    <div className="flex flex-col items-center gap-2 py-4 border-b border-[var(--color-border)]">
+      <style>{`
+        @keyframes pulse-slow-green {
+          0%, 100% { box-shadow: 0 0 8px rgba(45,138,78,0.4); border-color: #2d8a4e; }
+          50% { box-shadow: 0 0 18px rgba(45,138,78,0.7); border-color: #5ab87a; }
+        }
+        @keyframes pulse-slow-red {
+          0%, 100% { box-shadow: 0 0 8px rgba(160,80,80,0.4); border-color: #a05050; }
+          50% { box-shadow: 0 0 18px rgba(160,80,80,0.7); border-color: #d06060; }
+        }
+        .animate-pulse-slow-green { animation: pulse-slow-green 3s ease-in-out infinite; }
+        .animate-pulse-slow-red { animation: pulse-slow-red 3s ease-in-out infinite; }
+      `}</style>
+      <div className="flex items-center" style={{ gap: 16 }}>
+        {buttons.map(btn => {
+          const circle = (
+            <button
+              key={btn.label}
+              onClick={btn.onClick}
+              disabled={btn.disabled}
+              className={`rounded-full flex items-center justify-center transition-all hover:scale-105 relative ${btn.className ?? ''}`}
+              style={btn.style}
+              title={btn.label}
+            >
+              <span className="text-white text-[0.55rem] uppercase tracking-[0.1em] font-sans leading-none text-center px-1">
+                {btn.label}
+              </span>
+              {btn.badge != null && (
+                <span
+                  className="absolute -top-1 -right-1 bg-[#c9a84c] text-[#1a1614] text-[0.55rem] font-bold font-sans rounded-full flex items-center justify-center"
+                  style={{ width: 18, height: 18 }}
+                >
+                  {btn.badge}
+                </span>
+              )}
+            </button>
+          );
+
+          if (btn.href) {
+            return (
+              <Link key={btn.label} href={btn.href} onClick={btn.onClick}>
+                {circle}
+              </Link>
+            );
+          }
+          return circle;
+        })}
+      </div>
+      {longRestSummary && (
+        <span className="text-[0.7rem] text-[#4a8a65] font-sans">{longRestSummary}</span>
+      )}
+    </div>
+  );
 }
 
 function NpcCastingBoard({
@@ -224,17 +392,6 @@ export default function DmSessionsClient({
     ));
   }
 
-  function handleLongRest() {
-    if (!selectedId || menagerie.length === 0) return;
-    if (!confirm('Grant a Long Rest? This will restore all NPCs to full HP.')) return;
-    const restored = menagerie.map(e => ({ ...e, hp: e.maxHp ?? e.hp }));
-    setMenagerie(restored);
-    autosave({ menagerie: restored });
-    setSessions(prev => prev.map(s =>
-      s.id === selectedId ? { ...s, menagerie: restored } : s
-    ));
-  }
-
   async function handleNew() {
     if (creating.current) return;
     creating.current = true;
@@ -304,6 +461,32 @@ export default function DmSessionsClient({
         </div>
       </div>
 
+      {/* Session Control Bar */}
+      {selected && (
+        <div className="bg-[#1e1b18] px-6">
+          <div className="max-w-[1000px] mx-auto">
+            <SessionControlBar
+              sessionId={selected.id}
+              session={selected}
+              onLongRest={async () => {
+                // Refresh menagerie from server after omnibus long rest
+                try {
+                  const fresh = await fetch(`/api/sessions/${selected.id}`).then(r => r.json());
+                  if (fresh?.menagerie) {
+                    const m = Array.isArray(fresh.menagerie) ? fresh.menagerie : [];
+                    setMenagerie(m);
+                    setSessions(prev => prev.map(s => s.id === selected.id ? { ...s, menagerie: m } : s));
+                  }
+                } catch { /* silent */ }
+              }}
+              onSessionUpdate={(updated) => {
+                setSessions(prev => prev.map(s => s.id === updated.id ? updated : s));
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Session detail panel */}
       <div className="px-8 py-8 max-w-[1000px] mx-auto">
         {!selected ? (
@@ -318,14 +501,6 @@ export default function DmSessionsClient({
                 <div key={f.key}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">{f.label}</div>
-                    {f.key === 'scenes' && (
-                      <button
-                        onClick={handleLongRest}
-                        className="text-[0.6rem] uppercase tracking-[0.15em] text-[#4a8a65] hover:text-[#5ab87a] transition-colors border border-[#2d5a3f] rounded px-2 py-1"
-                      >
-                        Long Rest
-                      </button>
-                    )}
                   </div>
                   <textarea
                     rows={f.rows}

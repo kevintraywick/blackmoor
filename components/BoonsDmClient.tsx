@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import type { Player, BoonTemplate, PlayerBoon, BoonCategory } from '@/lib/types';
 
 interface Props {
@@ -100,6 +101,16 @@ export default function BoonsDmClient({ players, initialTemplates, initialActive
 
   return (
     <div className="max-w-[1000px] mx-auto px-4 pb-16">
+      {/* Return to Session */}
+      <div className="flex justify-end pt-3">
+        <Link
+          href="/dm"
+          className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors font-sans"
+        >
+          ← Session
+        </Link>
+      </div>
+
       {/* Player selector */}
       <div className="flex justify-center gap-3 flex-wrap py-5">
         {players.map(p => (

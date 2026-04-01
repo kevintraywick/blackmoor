@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import type { Npc, Player, MenagerieEntry } from '@/lib/types';
 import { resolveImageUrl } from '@/lib/imageUrl';
 import { rollDice } from '@/lib/dice';
@@ -530,8 +531,18 @@ export default function InitiativePageClient({
         </div>
       </div>
 
+      {/* Return to Session */}
+      <div className="max-w-[1000px] mx-auto px-4 pt-3 flex justify-end">
+        <Link
+          href="/dm"
+          className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors font-sans"
+        >
+          ← Session
+        </Link>
+      </div>
+
       {/* Main pane */}
-      <div className="max-w-[1000px] mx-auto px-4 pb-16 pt-6">
+      <div className="max-w-[1000px] mx-auto px-4 pb-16 pt-3">
         <div className="border border-[var(--color-border)] rounded bg-[#1a2535]">
 
           {/* Players */}

@@ -1,7 +1,7 @@
 ---
 title: "feat: DM Session Control Bar — lifecycle buttons, event logging, omnibus Long Rest"
 type: feat
-status: active
+status: completed
 date: 2026-04-01
 ---
 
