@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export type NavSection = 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative' | 'maps' | 'magic' | 'marketplace' | 'poisons' | 'inventory';
+export type NavSection = 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative' | 'maps' | 'magic' | 'marketplace' | 'poisons' | 'inventory' | 'boons';
 
 const LINKS: { key: NavSection; label: string; href: string }[] = [
   { key: 'campaign',    label: 'Campaign',         href: '/dm/campaign' },
@@ -17,6 +17,7 @@ const LINKS: { key: NavSection; label: string; href: string }[] = [
   { key: 'marketplace', label: 'Marketplace',     href: '/dm/marketplace' },
   { key: 'inventory',   label: 'Inventory',       href: '/dm/inventory' },
   { key: 'poisons',     label: 'Poisons & Traps', href: '/dm/poisons' },
+  { key: 'boons',       label: 'Boons',           href: '/dm/boons' },
 ];
 
 function ArrowLeft() {
