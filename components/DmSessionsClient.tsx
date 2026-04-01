@@ -31,12 +31,14 @@ function NpcCastingBoard({
   npcIds,
   sessions,
   currentSessionId,
+  menagerie,
   onAdd,
 }: {
   allNpcs: Npc[];
   npcIds: string[];
   sessions: Session[];
   currentSessionId: string | null;
+  menagerie: MenagerieEntry[];
   onAdd: (id: string) => void;
 }) {
   const [selectedCatalogNpc, setSelectedCatalogNpc] = useState<string | null>(null);
@@ -68,7 +70,7 @@ function NpcCastingBoard({
   function renderNpcCircle(npc: Npc, opts: { selected?: boolean; onClick: () => void; size?: number }) {
     const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
     const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
-    const sz = opts.size ?? 58;
+    const sz = opts.size ?? 64;
     return (
       <button
         key={npc.id}
@@ -89,7 +91,7 @@ function NpcCastingBoard({
             : <span className="text-sm text-[var(--color-text-muted)] font-serif">{initial}</span>
           }
         </div>
-        <span className="font-serif text-[0.75rem] text-[var(--color-text-muted)] max-w-[70px] truncate text-center">
+        <span className="font-serif text-[0.87rem] text-[var(--color-text-muted)] max-w-[76px] truncate text-center">
           {npc.name || 'Unnamed'}
         </span>
       </button>
@@ -105,7 +107,29 @@ function NpcCastingBoard({
           <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs assigned yet.</p>
         ) : (
           <div className="flex flex-wrap gap-3">
-            {assignedNpcs.map(npc => renderNpcCircle(npc, { onClick: () => {} }))}
+            {assignedNpcs.map((npc, idx) => {
+              const entry = menagerie.find((e, i) => {
+                // Match nth occurrence of this npc_id
+                let count = 0;
+                for (let j = 0; j < npcIds.length; j++) {
+                  if (npcIds[j] === npc.id) {
+                    if (j === idx) return e.npc_id === npc.id && count === 0;
+                    if (npcIds[j] === npc.id) count++;
+                  }
+                }
+                return false;
+              }) ?? menagerie.find(e => e.npc_id === npc.id);
+              return (
+                <div key={`${npc.id}-${idx}`} className="flex flex-col items-center gap-1">
+                  {renderNpcCircle(npc, { onClick: () => {} })}
+                  {entry && entry.maxHp !== undefined && (
+                    <span className={`text-[0.72rem] font-serif tabular-nums ${entry.hp <= 0 ? 'text-[#a05050]' : entry.hp < entry.maxHp ? 'text-[#c07050]' : 'text-[#4a8a65]'}`}>
+                      {entry.hp}/{entry.maxHp}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -292,7 +316,17 @@ export default function DmSessionsClient({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-start">
               {FIELDS.map(f => (
                 <div key={f.key}>
-                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">{f.label}</div>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">{f.label}</div>
+                    {f.key === 'scenes' && (
+                      <button
+                        onClick={handleLongRest}
+                        className="text-[0.6rem] uppercase tracking-[0.15em] text-[#4a8a65] hover:text-[#5ab87a] transition-colors border border-[#2d5a3f] rounded px-2 py-1"
+                      >
+                        Long Rest
+                      </button>
+                    )}
+                  </div>
                   <textarea
                     rows={f.rows}
                     value={values[f.key as FieldKey] as string}
@@ -311,45 +345,10 @@ export default function DmSessionsClient({
               npcIds={npcIds}
               sessions={sessions}
               currentSessionId={selectedId}
+              menagerie={menagerie}
               onAdd={handleNpcToggle}
             />
 
-            {/* Menagerie HP summary + Long Rest */}
-            {menagerie.length > 0 && menagerie.some(e => e.maxHp !== undefined) && (
-              <div className="mb-7">
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPC Hit Points</div>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {menagerie.map((entry, idx) => {
-                    const isDamaged = entry.maxHp !== undefined && entry.hp < entry.maxHp;
-                    const isDead = entry.hp <= 0;
-                    return (
-                      <div
-                        key={idx}
-                        className={`flex items-center gap-2 px-2.5 py-1 rounded-full border text-xs font-serif ${
-                          isDead
-                            ? 'border-[#6a1a1a]/40 bg-[#241414] opacity-50'
-                            : isDamaged
-                              ? 'border-[#6a1a1a]/40 bg-[#2e1a1a]'
-                              : 'border-[#2d5a3f]/40 bg-[#1a2520]'
-                        }`}
-                      >
-                        <span className="text-[var(--color-text)]">{entry.label || 'NPC'}</span>
-                        <span className={`tabular-nums ${isDead ? 'text-[#a05050]' : isDamaged ? 'text-[#c07050]' : 'text-[#4a8a65]'}`}>
-                          {entry.hp}/{entry.maxHp}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <button
-                  onClick={handleLongRest}
-                  className="text-[0.7rem] uppercase tracking-[0.15em] text-[#4a8a65] border border-[#2d5a3f]
-                             rounded px-4 py-2 hover:bg-[#1a2a1a] hover:border-[#4a8a65] transition-colors font-serif"
-                >
-                  Long Rest
-                </button>
-              </div>
-            )}
 
             {/* Save status */}
             <div className={`text-xs text-right mt-2 h-4 transition-opacity duration-200 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} ${statusColor}`}>
