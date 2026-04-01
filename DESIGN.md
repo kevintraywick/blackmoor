@@ -42,7 +42,8 @@ Living document for UI/UX decisions and constraints. Review before making visual
 - **Journey Map**: Exception — cheerful saturated soft blues, white circles (`rgba(255,255,255,0.9)`), light path.
 - **CYP availability dots**: Red (`#8b1a1a`) and green (`#2d8a4e`) dots per player row, `3.5×3.5` on mobile / `3×3` on desktop. Active dot gets `boxShadow: 0 0 6px` glow. Both empty = unseen (player dimmed). Row tap cycles: unseen → in (green) → out (red) → in...
 - **CYP date circles**: 77px with inline sizing (`style={{ width: 77, height: 77 }}`), not Tailwind arbitrary values. Gold border `rgba(201,168,76,0.3)`.
-- **CYP sound effects**: `swords.mp3` on "in", `run_away.mp3` on "out". Volume 0.5, `.catch(() => {})` for autoplay restrictions.
+- **CYP sound effects**: `swords.mp3` on "in", `run_away.mp3` on "out", `maybe.mp3` on "maybe". Volume 0.5, `.catch(() => {})` for autoplay restrictions.
+- **Home button**: Use `dice_home.png` (30px circle, `rounded-full overflow-hidden`) for all links home. No text, no arrow. Tooltip: "Shadow of the Wolf". On CYP page, 77px centered at bottom.
 
 ## Typography
 

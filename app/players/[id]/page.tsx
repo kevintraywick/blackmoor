@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import { getPlayers } from '@/lib/getPlayers';
@@ -47,7 +48,7 @@ export default async function PlayerPage({ params }: Props) {
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-serif">
 
       <div className="sticky top-0 bg-[var(--color-surface)] border-b border-[var(--color-border)] px-8 py-3 flex items-center gap-3 z-10 text-sm">
-        <Link href="/" className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] no-underline flex items-center gap-1"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 -mt-px"><path d="M10 3L5 8l5 5" /></svg>Home</Link>
+        <Link href="/" title="Shadow of the Wolf" className="flex-shrink-0"><div className="relative rounded-full overflow-hidden" style={{ width: 30, height: 30 }}><Image src="/images/invite/dice_home.png" alt="Home" fill className="object-cover" /></div></Link>
         <span className="text-[var(--color-border)]">|</span>
         <span className="text-[var(--color-gold)] font-bold">{player.playerName}</span>
         <span className="text-[var(--color-border)]">/</span>
