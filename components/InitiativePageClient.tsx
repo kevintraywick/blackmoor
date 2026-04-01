@@ -508,7 +508,7 @@ export default function InitiativePageClient({
   return (
     <div>
       {/* Session box row — overlaid on banner */}
-      <div className="relative z-10 -mt-20 px-6 py-4">
+      <div className="relative z-10 px-6 pb-2" style={{ marginTop: -37 }}>
         <div className="max-w-[1000px] mx-auto flex justify-center gap-2.5 overflow-x-auto pb-1">
           {sessions.map(s => (
             <button
@@ -539,21 +539,15 @@ export default function InitiativePageClient({
 
           {/* Players */}
           <div className="relative px-6 pt-5 pb-5">
-            <div className="flex items-center mb-4">
-              <div className="flex-1"></div>
-              {/* Wrapper matches InitCounter width so dice centers over the column */}
-              <div className="flex items-center gap-1 flex-shrink-0" style={{ width: 'calc(1.75rem + 3rem + 1.75rem + 0.5rem)' }}>
-                <div className="flex-1 flex justify-center">
-                  <button
-                    onClick={handleGo}
-                    className="rounded-full bg-transparent flex items-center justify-center hover:scale-110 transition-transform"
-                    style={{ width: 60, height: 60, fontSize: '1.8rem', border: '1px solid rgba(201,168,76,0.5)' }}
-                    title="Roll Initiative"
-                  >
-                    🎲
-                  </button>
-                </div>
-              </div>
+            <div className="flex justify-center mb-4">
+              <button
+                onClick={handleGo}
+                className="rounded-full bg-transparent flex items-center justify-center hover:scale-110 transition-transform"
+                style={{ width: 60, height: 60, fontSize: '1.8rem', border: '1px solid rgba(201,168,76,0.5)' }}
+                title="Roll Initiative"
+              >
+                🎲
+              </button>
             </div>
             <div className="flex flex-col gap-4">
               {activePlayers.map(p => (
