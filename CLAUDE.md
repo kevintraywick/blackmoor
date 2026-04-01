@@ -41,7 +41,9 @@ This is a tool for heroes and the people who run their world. It should feel lik
 - **Image uploads are capped at 4MB.** Midjourney outputs (typically 2048x2048 PNG, ~6MB) will be rejected by the upload API. Resize with `magick <file> -resize 1024x1024 <file>` before uploading or committing to `public/`.
 - **`autoFocus` on inputs causes page scroll.** If an input with `autoFocus` renders on page load (even inside a conditionally-shown panel that defaults open), the browser scrolls to it. Default panels to closed (`useState(false)`) when they contain autoFocus inputs.
 - **`ensureSchema` is memoized.** After adding new DDL (tables/columns), the dev server must be restarted — the schema won't re-run on refresh.
-- **Tailwind v4 breaks `grid-cols-[...]` arbitrary values.** Use inline `style={{ display: 'grid', gridTemplateColumns: '...' }}` instead for complex grid templates.
+- **Tailwind v4 breaks arbitrary sizing values.** `w-[70px]`, `h-[70px]`, and `grid-cols-[...]` don't reliably generate CSS. Use inline `style={{ width: 70, height: 70 }}` for precise sizing and `style={{ display: 'grid', gridTemplateColumns: '...' }}` for complex grids.
+- **Always run `tsc --noEmit` before deploying.** Feature branches may merge code that references types/nav entries not present on main. Railway's build will fail on type errors that the dev server ignores.
+- **Deploy to Railway with `railway up`.** Auto-deploy from GitHub push may not trigger — use `railway up` explicitly to upload and build.
 - **Safari ignores `scrollbar-width: none` on textareas.** Use a wrapper `overflow-hidden` div with the textarea sized wider to clip the native scrollbar off-screen.
 - **Linter/formatter reverts file edits.** When editing `PlayerSheet.tsx` or other large components, changes to props/state declarations get silently reverted between edits. Commit immediately after making working changes to prevent loss.
 - **Player IDs are not character names.** Player IDs (`ashton`, `brandon`, etc.) are in the `players` table; character names are display-only. Routes use IDs: `/players/ashton`, not `/players/ash`.
