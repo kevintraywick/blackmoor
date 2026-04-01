@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import type { Player } from '@/lib/types';
 import type { Availability } from '@/lib/types';
@@ -46,17 +46,24 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum 
     return (avMap.get(`${playerId}:${saturday}`) as 'in' | 'maybe' | 'out') ?? 'unseen';
   }, [avMap]);
 
-  const playSound = useCallback((status: 'in' | 'out') => {
-    const src = status === 'in' ? '/audio/swords.mp3' : '/audio/run_away.mp3';
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playSound = useCallback((status: 'in' | 'out' | 'maybe') => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    const src = status === 'in' ? '/audio/swords.mp3' : status === 'out' ? '/audio/run_away.mp3' : '/audio/maybe.mp3';
     const audio = new Audio(src);
     audio.volume = 0.5;
     audio.play().catch(() => {});
+    audioRef.current = audio;
   }, []);
 
   const toggle = useCallback(async (playerId: string, saturday: string) => {
     const current = getStatus(playerId, saturday);
-    // unseen → in → out → in → out ...
-    const next = current === 'unseen' ? 'in' : current === 'in' ? 'out' : 'in';
+    // unseen → in → out → maybe → in → out → maybe ...
+    const next = current === 'unseen' ? 'in' : current === 'in' ? 'out' : current === 'out' ? 'maybe' : 'in';
 
     playSound(next);
 
@@ -128,6 +135,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum 
                   {players.map(p => {
                     const status = getStatus(p.id, sat);
                     const isIn = status === 'in';
+                    const isMaybe = status === 'maybe';
                     const isOut = status === 'out';
                     const unseen = status === 'unseen';
 
@@ -163,13 +171,13 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum 
                           {p.character}
                         </span>
 
-                        {/* Status circle: white ? → green → red */}
+                        {/* Status circle: black ? → green → red → amber */}
                         <span
                           className="w-5 h-5 sm:w-4 sm:h-4 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
                           style={{
-                            background: isIn ? '#2d8a4e' : isOut ? '#8b1a1a' : '#1a1614',
+                            background: isIn ? '#2d8a4e' : isOut ? '#8b1a1a' : isMaybe ? '#c9a84c' : '#1a1614',
                             border: '1px solid rgba(255,255,255,0.5)',
-                            boxShadow: isIn ? '0 0 6px rgba(45,138,78,0.6)' : isOut ? '0 0 6px rgba(139,26,26,0.6)' : 'none',
+                            boxShadow: isIn ? '0 0 6px rgba(45,138,78,0.6)' : isOut ? '0 0 6px rgba(139,26,26,0.6)' : isMaybe ? '0 0 6px rgba(201,168,76,0.6)' : 'none',
                             color: '#fff',
                             fontSize: '1rem',
                             fontFamily: 'var(--font-sans)',
@@ -184,7 +192,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum 
                 </div>
 
                 {/* In count */}
-                <div className="font-serif mt-4 self-end" style={{ fontSize: '1.85rem', color: '#d0ccc6', marginRight: 6 }}>
+                <div className="font-serif mt-4" style={{ fontSize: '1.85rem', color: '#d0ccc6' }}>
                   {inCount}
                 </div>
 

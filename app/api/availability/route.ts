@@ -21,7 +21,7 @@ export async function PUT(req: Request) {
     await ensureSchema();
     const { player_id, saturday, status } = await req.json();
 
-    if (!player_id || !saturday || !['in', 'out'].includes(status)) {
+    if (!player_id || !saturday || !['in', 'maybe', 'out'].includes(status)) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
