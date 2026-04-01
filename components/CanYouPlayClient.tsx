@@ -176,7 +176,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum 
                           className="w-5 h-5 sm:w-4 sm:h-4 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
                           style={{
                             background: isIn ? '#2d8a4e' : isOut ? '#8b1a1a' : isMaybe ? '#c9a84c' : '#1a1614',
-                            border: '1px solid rgba(255,255,255,0.5)',
+                            border: unseen ? 'none' : '1px solid rgba(255,255,255,0.5)',
                             boxShadow: isIn ? '0 0 6px rgba(45,138,78,0.6)' : isOut ? '0 0 6px rgba(139,26,26,0.6)' : isMaybe ? '0 0 6px rgba(201,168,76,0.6)' : 'none',
                             color: '#fff',
                             fontSize: '1rem',
@@ -199,6 +199,19 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum 
               </div>
             );
           })}
+        </div>
+
+        {/* Home button */}
+        <div className="flex justify-center mt-8 mb-4">
+          <a href="/" title="Shadow of the Wolf" className="block rounded-full overflow-hidden" style={{ width: 77, height: 77, flexShrink: 0 }}>
+            <Image
+              src="/images/invite/dice_home.png"
+              alt="Home"
+              width={77}
+              height={77}
+              className="object-cover rounded-full"
+            />
+          </a>
         </div>
 
       </div>
