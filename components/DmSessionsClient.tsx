@@ -41,7 +41,8 @@ function SessionControlBar({
   onSessionUpdate: (s: Session) => void;
 }) {
   const [combatCount, setCombatCount] = useState(0);
-  const [longRestSummary, setLongRestSummary] = useState<string | null>(null);
+  const [longRestPhase, setLongRestPhase] = useState<'idle' | 'confirm' | 'resting' | 'summary'>('idle');
+  const [longRestResult, setLongRestResult] = useState<{ restored_npcs: number; expired_boons: number; cleared_poisons: number } | null>(null);
 
   useEffect(() => {
     fetch(`/api/sessions/${sessionId}/events?type=combat_start`)
@@ -51,9 +52,16 @@ function SessionControlBar({
   }, [sessionId]);
 
   const isStarted = !!session.started_at;
-  const isEnded = !!session.ended_at;
+  const isPaused = !!session.ended_at;
+  const isRunning = isStarted && !isPaused;
+  // Right button: idle → paused (shows "END SESSION?") → ended (shows stats)
+  const [sessionEnded, setSessionEnded] = useState(false);
+  // Track if session has been started at least once (after resume, show ✓ instead of START)
+  const [hasResumed, setHasResumed] = useState(false);
 
   async function handleStart() {
+    if (isPaused || sessionEnded) setHasResumed(true);
+    setSessionEnded(false);
     const res = await fetch(`/api/sessions/${sessionId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -62,7 +70,7 @@ function SessionControlBar({
     if (res.ok) onSessionUpdate(await res.json());
   }
 
-  async function handleEnd() {
+  async function handlePause() {
     const res = await fetch(`/api/sessions/${sessionId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -71,14 +79,31 @@ function SessionControlBar({
     if (res.ok) onSessionUpdate(await res.json());
   }
 
-  async function handleLongRestClick() {
-    if (!confirm('Long Rest? This will restore NPC HP, expire boons, and clear poisons.')) return;
+  async function handleEndSession() {
+    setSessionEnded(true);
+    // Log a session_end event (pause doesn't log one, only full end does)
+    await fetch(`/api/sessions/${sessionId}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: 'session_end' }),
+    });
+  }
+
+  function handleLongRestClick() {
+    setLongRestPhase('confirm');
+  }
+
+  async function executeLongRest() {
+    setLongRestPhase('resting');
     const res = await fetch(`/api/sessions/${sessionId}/long-rest`, { method: 'POST' });
     if (res.ok) {
       const data = await res.json();
-      setLongRestSummary(`${data.restored_npcs} NPCs healed, ${data.expired_boons} boons expired, ${data.cleared_poisons} poisons cleared`);
-      setTimeout(() => setLongRestSummary(null), 3000);
+      setLongRestResult(data);
+      setLongRestPhase('summary');
       onLongRest();
+      setTimeout(() => { setLongRestPhase('idle'); setLongRestResult(null); }, 4000);
+    } else {
+      setLongRestPhase('idle');
     }
   }
 
@@ -98,16 +123,24 @@ function SessionControlBar({
     background: 'transparent',
   };
 
+  // Left button: START → ✓ (running after resume) → RESUME (when paused or ended)
+  const startLabel = isRunning && hasResumed ? '✓' : (isPaused || sessionEnded) ? 'RESUME' : 'START';
+
+  // Right button: PAUSE → END SESSION? (when paused) → ended (stats)
+  const rightLabel = sessionEnded ? 'ENDED' : isPaused ? 'END\nSESSION?' : 'PAUSE';
+  const rightOnClick = sessionEnded ? undefined : isPaused ? handleEndSession : handlePause;
+
   const buttons = [
     {
-      label: 'START',
+      label: startLabel,
       onClick: handleStart,
       style: {
         ...circleBase,
-        ...(isStarted && !isEnded ? { borderColor: '#2d8a4e', boxShadow: '0 0 12px rgba(45,138,78,0.6)' } : {}),
+        ...(isRunning ? { borderColor: '#2d8a4e', boxShadow: '0 0 12px rgba(45,138,78,0.6)' } : {}),
       },
-      className: isStarted && !isEnded ? 'animate-pulse-slow-green' : '',
-      disabled: isStarted && !isEnded,
+      className: isRunning ? 'animate-pulse-slow-green' : '',
+      disabled: isRunning,
+      isCheck: isRunning && hasResumed,
     },
     {
       label: 'LONG REST',
@@ -116,7 +149,7 @@ function SessionControlBar({
     },
     {
       label: 'ROLL INIT',
-      href: '/dm/initiative',
+      href: '/dm/initiative?fresh=1',
       onClick: handleRollInitiative,
       style: circleBase,
       badge: combatCount > 0 ? combatCount : null,
@@ -127,14 +160,15 @@ function SessionControlBar({
       style: circleBase,
     },
     {
-      label: 'END',
-      onClick: handleEnd,
+      label: rightLabel,
+      onClick: rightOnClick,
       style: {
         ...circleBase,
-        ...(isEnded ? { borderColor: '#a05050', boxShadow: '0 0 12px rgba(160,80,80,0.6)' } : {}),
+        ...(isPaused && !sessionEnded ? { borderColor: '#c9a84c', boxShadow: '0 0 10px rgba(201,168,76,0.4)' } : {}),
+        ...(sessionEnded ? { borderColor: '#a05050', boxShadow: '0 0 12px rgba(160,80,80,0.6)' } : {}),
       },
-      className: isEnded ? 'animate-pulse-slow-red' : '',
-      disabled: isEnded,
+      className: sessionEnded ? 'animate-pulse-slow-red' : '',
+      disabled: sessionEnded,
     },
   ];
 
@@ -151,44 +185,136 @@ function SessionControlBar({
         }
         .animate-pulse-slow-green { animation: pulse-slow-green 3s ease-in-out infinite; }
         .animate-pulse-slow-red { animation: pulse-slow-red 3s ease-in-out infinite; }
+        @keyframes rest-glow {
+          0% { opacity: 0; transform: scale(0.9); }
+          15% { opacity: 1; transform: scale(1); }
+          85% { opacity: 1; transform: scale(1); }
+          100% { opacity: 0; transform: scale(0.95); }
+        }
+        @keyframes ember-drift {
+          0% { opacity: 0; transform: translateY(0) scale(0.5); }
+          20% { opacity: 1; }
+          100% { opacity: 0; transform: translateY(-30px) scale(0); }
+        }
+        @keyframes rest-line-in {
+          0% { opacity: 0; transform: translateY(6px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .rest-summary-appear { animation: rest-glow 4s ease-in-out forwards; }
+        .rest-line { animation: rest-line-in 0.4s ease-out forwards; opacity: 0; }
       `}</style>
-      <div className="flex items-center" style={{ gap: 16 }}>
-        {buttons.map(btn => {
-          const circle = (
+
+      {/* Long Rest Confirmation Overlay */}
+      {longRestPhase === 'confirm' && (
+        <div className="flex flex-col items-center gap-3 py-2">
+          <span className="font-serif text-[1.15rem] text-[var(--color-gold)] tracking-wide">
+            Long Rest?
+          </span>
+          <div className="flex items-center" style={{ gap: 16 }}>
             <button
-              key={btn.label}
-              onClick={btn.onClick}
-              disabled={btn.disabled}
-              className={`rounded-full flex items-center justify-center transition-all hover:scale-105 relative ${btn.className ?? ''}`}
-              style={btn.style}
-              title={btn.label}
+              onClick={executeLongRest}
+              className="rounded-full flex items-center justify-center transition-all hover:scale-105"
+              style={{ width: 64, height: 64, background: '#2d5a3f', border: '1px solid rgba(255,255,255,0.7)' }}
             >
               <span className="text-white text-[0.55rem] uppercase tracking-[0.1em] font-sans leading-none text-center px-1">
-                {btn.label}
+                Grant Rest
               </span>
-              {btn.badge != null && (
-                <span
-                  className="absolute -top-1 -right-1 bg-[#c9a84c] text-[#1a1614] text-[0.55rem] font-bold font-sans rounded-full flex items-center justify-center"
-                  style={{ width: 18, height: 18 }}
-                >
-                  {btn.badge}
-                </span>
-              )}
             </button>
-          );
+            <button
+              onClick={() => setLongRestPhase('idle')}
+              className="rounded-full flex items-center justify-center transition-all hover:scale-105"
+              style={{ width: 64, height: 64, background: '#1a1614', border: '1px solid rgba(255,255,255,0.7)' }}
+            >
+              <span className="text-white text-[0.55rem] uppercase tracking-[0.1em] font-sans leading-none text-center px-1">
+                Not Yet
+              </span>
+            </button>
+          </div>
+          <span className="text-[0.65rem] text-[var(--color-text-muted)] font-sans uppercase tracking-widest">
+            Restores HP &middot; Expires boons &middot; Clears poisons
+          </span>
+        </div>
+      )}
 
-          if (btn.href) {
-            return (
-              <Link key={btn.label} href={btn.href} onClick={btn.onClick}>
-                {circle}
-              </Link>
+      {/* Resting... */}
+      {longRestPhase === 'resting' && (
+        <div className="flex items-center gap-3 py-4">
+          <span className="font-serif text-[0.9rem] text-[var(--color-text-muted)] animate-pulse">
+            Resting&hellip;
+          </span>
+        </div>
+      )}
+
+      {/* Long Rest Summary */}
+      {longRestPhase === 'summary' && longRestResult && (
+        <div className="rest-summary-appear flex flex-col items-center gap-2 py-3">
+          <span className="font-serif text-[1.1rem] text-[var(--color-gold)] tracking-wide">
+            Rested
+          </span>
+          <div className="flex flex-col items-center gap-1">
+            {longRestResult.restored_npcs > 0 && (
+              <span className="rest-line font-serif text-[0.85rem] text-[#7ac28a]" style={{ animationDelay: '0.2s' }}>
+                {longRestResult.restored_npcs} creature{longRestResult.restored_npcs !== 1 ? 's' : ''} healed
+              </span>
+            )}
+            {longRestResult.expired_boons > 0 && (
+              <span className="rest-line font-serif text-[0.85rem] text-[#c9a84c]" style={{ animationDelay: '0.5s' }}>
+                {longRestResult.expired_boons} boon{longRestResult.expired_boons !== 1 ? 's' : ''} expired
+              </span>
+            )}
+            {longRestResult.cleared_poisons > 0 && (
+              <span className="rest-line font-serif text-[0.85rem] text-[#8eb89a]" style={{ animationDelay: '0.8s' }}>
+                {longRestResult.cleared_poisons} poison{longRestResult.cleared_poisons !== 1 ? 's' : ''} cleared
+              </span>
+            )}
+            {longRestResult.restored_npcs === 0 && longRestResult.expired_boons === 0 && longRestResult.cleared_poisons === 0 && (
+              <span className="rest-line font-serif text-[0.85rem] text-[var(--color-text-muted)]" style={{ animationDelay: '0.2s' }}>
+                Nothing to restore
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Control circles — hidden during long rest flow */}
+      {longRestPhase === 'idle' && (
+        <div className="flex items-center" style={{ gap: 16 }}>
+          {buttons.map(btn => {
+            const circle = (
+              <button
+                key={btn.label}
+                onClick={btn.onClick}
+                disabled={btn.disabled}
+                className={`rounded-full flex items-center justify-center transition-all hover:scale-105 relative ${btn.className ?? ''}`}
+                style={btn.style}
+                title={btn.label}
+              >
+                <span className={`uppercase tracking-[0.1em] font-sans leading-tight text-center px-1 whitespace-pre-line ${
+                  btn.isCheck ? 'text-[#5ab87a] text-xl' : 'text-white text-[0.55rem]'
+                }`}>
+                  {btn.label}
+                </span>
+                {btn.badge != null && (
+                  <span
+                    className="absolute -top-1 -right-1 bg-[#c9a84c] text-[#1a1614] text-[0.55rem] font-bold font-sans rounded-full flex items-center justify-center"
+                    style={{ width: 18, height: 18 }}
+                  >
+                    {btn.badge}
+                  </span>
+                )}
+              </button>
             );
-          }
-          return circle;
-        })}
-      </div>
-      {longRestSummary && (
-        <span className="text-[0.7rem] text-[#4a8a65] font-sans">{longRestSummary}</span>
+
+            if (btn.href) {
+              return (
+                <Link key={btn.label} href={btn.href} onClick={btn.onClick}>
+                  {circle}
+                </Link>
+              );
+            }
+            return circle;
+          })}
+        </div>
       )}
     </div>
   );

@@ -87,7 +87,7 @@ export async function POST(
     const now = Date.now();
 
     if (action === 'start') {
-      await query('UPDATE sessions SET started_at = $1 WHERE id = $2', [now, id]);
+      await query('UPDATE sessions SET started_at = $1, ended_at = NULL WHERE id = $2', [now, id]);
       await query(
         `INSERT INTO session_events (id, session_id, event_type, payload, created_at)
          VALUES (gen_random_uuid()::text, $1, 'session_start', '{}', $2)`,
@@ -97,7 +97,7 @@ export async function POST(
       await query('UPDATE sessions SET ended_at = $1 WHERE id = $2', [now, id]);
       await query(
         `INSERT INTO session_events (id, session_id, event_type, payload, created_at)
-         VALUES (gen_random_uuid()::text, $1, 'session_end', '{}', $2)`,
+         VALUES (gen_random_uuid()::text, $1, 'session_pause', '{}', $2)`,
         [id, now]
       );
     } else {

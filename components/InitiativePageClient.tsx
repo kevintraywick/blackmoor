@@ -128,9 +128,16 @@ export default function InitiativePageClient({
     } catch { /* silent */ }
   }, []);
 
-  // Restore combat state on mount
+  // Restore combat state on mount (skip if fresh=1 query param)
   useEffect(() => {
     try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('fresh') === '1') {
+        localStorage.removeItem(STORAGE_KEY);
+        // Clean the URL without reloading
+        window.history.replaceState({}, '', window.location.pathname);
+        return;
+      }
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const state: CombatState = JSON.parse(raw);
