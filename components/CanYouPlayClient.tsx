@@ -163,30 +163,30 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum 
                           {p.character}
                         </span>
 
-                        {/* Two dots: red | green */}
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span
-                            className="w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-full transition-all duration-200"
-                            style={{
-                              border: '1.5px solid #8b1a1a',
-                              background: isOut ? '#8b1a1a' : 'transparent',
-                              boxShadow: isOut ? '0 0 6px rgba(139,26,26,0.6)' : 'none',
-                            }}
-                          />
-                          <span
-                            className="w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-full transition-all duration-200"
-                            style={{
-                              border: '1.5px solid #2d8a4e',
-                              background: isIn ? '#2d8a4e' : 'transparent',
-                              boxShadow: isIn ? '0 0 6px rgba(45,138,78,0.6)' : 'none',
-                            }}
-                          />
-                        </div>
+                        {/* Status circle: white ? → green → red */}
+                        <span
+                          className="w-5 h-5 sm:w-4 sm:h-4 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
+                          style={{
+                            background: isIn ? '#2d8a4e' : isOut ? '#8b1a1a' : '#1a1614',
+                            border: '1px solid rgba(255,255,255,0.5)',
+                            boxShadow: isIn ? '0 0 6px rgba(45,138,78,0.6)' : isOut ? '0 0 6px rgba(139,26,26,0.6)' : 'none',
+                            color: '#fff',
+                            fontSize: '1rem',
+                            fontFamily: 'var(--font-sans)',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {unseen ? '?' : ''}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
 
+                {/* In count */}
+                <div className="font-serif mt-4 self-end" style={{ fontSize: '1.85rem', color: '#d0ccc6', marginRight: 6 }}>
+                  {inCount}
+                </div>
 
               </div>
             );
