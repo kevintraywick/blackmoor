@@ -44,7 +44,7 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
           <Image src="/images/dm.png" alt="" fill className="object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
         </div>
       </Link>
-      <div className="flex-1 flex justify-center gap-4 overflow-x-auto">
+      <div className="flex-1 flex justify-center flex-wrap" style={{ gap: '4px 16px' }}>
       {LINKS.map(link => {
         const href = link.key === 'maps' && sessionId ? `/dm/maps?session=${sessionId}` : link.href;
         const isPoisonGlow = link.key === 'poisons' && poisonCount > 0 && current !== 'poisons';
