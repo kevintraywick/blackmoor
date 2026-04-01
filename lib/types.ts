@@ -147,6 +147,42 @@ export interface PoisonStatus {
   active: boolean;
 }
 
+export type BoonCategory = 'boon' | 'inspiration' | 'luck';
+
+export interface BoonTemplate {
+  id: string;
+  name: string;
+  category: BoonCategory;
+  description: string;
+  effect: string;
+  action_type: string;
+  range: string;
+  components: string;
+  duration: string;
+  grants_advantage: boolean;
+  created_at: number;
+}
+
+export interface PlayerBoon {
+  id: string;
+  player_id: string;
+  template_id: string;
+  name: string;
+  category: BoonCategory;
+  description: string;
+  effect: string;
+  action_type: string;
+  range: string;
+  components: string;
+  duration_text: string;
+  grants_advantage: boolean;
+  expiry_type: string;
+  expiry_minutes: number;
+  started_at: number;
+  active: boolean;
+  seen: boolean;
+}
+
 export type MagicCategory = 'spell' | 'scroll' | 'magic_item' | 'other';
 
 export interface MagicCatalogEntry {
