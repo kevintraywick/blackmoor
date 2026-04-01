@@ -7,19 +7,22 @@ import { resolveImageUrl } from '@/lib/imageUrl';
 
 // Fields to render in the detail panel — npcs replaced by NPC checkboxes
 const FIELDS = [
-  { key: 'goal',      label: 'Goal / Hook',   rows: 3, placeholder: "What's the session goal? How does it open?",  cols: 1 },
-  { key: 'scenes',    label: 'Scene Outline', rows: 7, placeholder: 'Encounters, beats, traps, treasure, exits…',  cols: 1 },
-  { key: 'locations', label: 'Locations',     rows: 5, placeholder: 'Key locations and descriptions…',             cols: 2 },
-  { key: 'notes',     label: 'Notes',         rows: 4, placeholder: 'Music, atmosphere, misc reminders…',          cols: 2 },
+  { key: 'scenes',    label: 'Scene',     rows: 10, placeholder: 'Goal, encounters, beats, traps, treasure, exits…',  cols: 2 },
+  { key: 'locations', label: 'Locations', rows: 10, placeholder: 'Key locations and descriptions…',                   cols: 2 },
 ] as const;
 
 type FieldKey = (typeof FIELDS)[number]['key'];
 
 function emptyValues(session: Session): Record<string, string | number> {
+  const goal = (session.goal ?? '').trim();
+  const scenes = (session.scenes ?? '').trim();
+  const combined = goal ? `${goal}\n\n${scenes}` : scenes;
   return {
     title: session.title,
     date:  session.date,
-    ...Object.fromEntries(FIELDS.map(f => [f.key, session[f.key as keyof Session] ?? ''])),
+    scenes: combined,
+    locations: session.locations ?? '',
+    notes: session.notes ?? '',
   };
 }
 
@@ -48,80 +51,80 @@ function NpcCastingBoard({
   }, [allNpcs, query]);
 
   return (
-    <div className="mb-7">
-      <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPCs in this Session</div>
-
-      {/* Assigned NPCs */}
-      {assignedEntries.length === 0 ? (
-        <p className="text-[#5a4a44] text-xs font-serif italic mb-3">No NPCs assigned yet.</p>
-      ) : (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {assignedEntries.map(([npcId, count]) => {
-            const npc = allNpcs.find(n => n.id === npcId);
-            if (!npc) return null;
-            const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
-            const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
-            return (
-              <button
-                key={npcId}
-                onClick={() => onToggle(npcId)}
-                className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border border-[var(--color-gold)]/40 bg-[#2e2825]
-                           hover:border-[#a05050] hover:bg-[#301a1a] transition-colors group"
-                title={`Remove ${npc.name}`}
-              >
-                <div className="w-6 h-6 rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center flex-shrink-0">
-                  {imgUrl
-                    ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
-                    : <span className="text-[0.6rem] text-[var(--color-text-muted)] font-serif">{initial}</span>
-                  }
-                </div>
-                <span className="font-serif text-xs text-[var(--color-text)] whitespace-nowrap">
-                  {npc.name || 'Unnamed'}
-                  {count > 1 && <span className="text-[var(--color-gold)] font-bold ml-1">×{count}</span>}
-                </span>
-                <span className="text-[var(--color-border)] group-hover:text-[#a05050] text-xs ml-0.5 transition-colors">×</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Add NPCs toggle */}
-      {!showAvailable ? (
-        <button
-          onClick={() => setShowAvailable(true)}
-          className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] border border-dashed border-[var(--color-border)]
-                     rounded px-3 py-1.5 hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
-        >
-          + Add NPCs
-        </button>
-      ) : (
-        <div className="border border-[var(--color-border)] rounded bg-[var(--color-surface)] overflow-hidden">
-          {/* Search header */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-border)]">
-            <span className="text-[var(--color-text-muted)] text-sm">⌕</span>
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search NPCs…"
-              autoFocus
-              className="flex-1 bg-transparent border-none text-[var(--color-text)] text-sm outline-none placeholder:text-[var(--color-text-muted)] font-serif"
-            />
-            <button
-              onClick={() => { setShowAvailable(false); setSearch(''); }}
-              className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-xs transition-colors"
-            >
-              Done
-            </button>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-start">
+      {/* Left: NPCs in this Session */}
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
+        <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPCs in this Session</div>
+        {assignedEntries.length === 0 ? (
+          <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs assigned yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {assignedEntries.map(([npcId, count]) => {
+              const npc = allNpcs.find(n => n.id === npcId);
+              if (!npc) return null;
+              const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
+              const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
+              return (
+                <button
+                  key={npcId}
+                  onClick={() => onToggle(npcId)}
+                  className="flex flex-col items-center gap-1 hover:opacity-70 transition-opacity group"
+                  title={`Remove ${npc.name}`}
+                >
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1a1714] border-2 border-[var(--color-gold)]/40 group-hover:border-[#a05050] flex items-center justify-center flex-shrink-0 transition-colors">
+                    {imgUrl
+                      ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
+                      : <span className="text-sm text-[var(--color-text-muted)] font-serif">{initial}</span>
+                    }
+                  </div>
+                  <span className="font-serif text-[0.6rem] text-[var(--color-text-muted)] max-w-[56px] truncate text-center">
+                    {npc.name || 'Unnamed'}
+                    {count > 1 && <span className="text-[var(--color-gold)] font-bold ml-0.5">×{count}</span>}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+        )}
+      </div>
 
-          {/* NPC grid */}
-          <div className="px-2 py-2">
+      {/* Right: NPC Catalog */}
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
+        <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPC Catalog</div>
+        {!showAvailable ? (
+          <button
+            onClick={() => setShowAvailable(true)}
+            className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] border border-dashed border-[var(--color-border)]
+                       rounded px-3 py-1.5 hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
+          >
+            + Add NPCs
+          </button>
+        ) : (
+          <div>
+            {/* Search header */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[var(--color-text-muted)] text-sm">⌕</span>
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search NPCs…"
+                autoFocus
+                className="flex-1 bg-transparent border-none text-[var(--color-text)] text-sm outline-none placeholder:text-[var(--color-text-muted)] font-serif"
+              />
+              <button
+                onClick={() => { setShowAvailable(false); setSearch(''); }}
+                className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-xs transition-colors"
+              >
+                Done
+              </button>
+            </div>
+
+            {/* NPC grid */}
             {available.length === 0 ? (
-              <p className="text-[#5a4a44] text-xs font-serif italic px-2 py-3">No NPCs match &ldquo;{search}&rdquo;</p>
+              <p className="text-[#5a4a44] text-xs font-serif italic py-2">No NPCs match &ldquo;{search}&rdquo;</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+              <div className="grid grid-cols-2 gap-1">
                 {available.map(npc => {
                   const isAssigned = npcIds.includes(npc.id);
                   const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
@@ -155,8 +158,8 @@ function NpcCastingBoard({
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -306,64 +309,22 @@ export default function DmSessionsClient({
           </p>
         ) : (
           <div>
-            {/* Header: #N title / date */}
-            <div className="mb-8 pb-6 border-b border-[var(--color-border)]">
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-[var(--color-gold)] text-3xl font-serif">#{selected.number}</span>
-                <input
-                  type="text"
-                  value={values.title as string}
-                  placeholder="Session Title"
-                  onChange={e => handleChange('title', e.target.value)}
-                  className="bg-transparent border-none text-[var(--color-text)] text-3xl flex-1 outline-none placeholder:text-[var(--color-text-muted)] font-serif"
-                />
-              </div>
-              <input
-                type="text"
-                value={values.date as string}
-                placeholder="Date"
-                onChange={e => handleChange('date', e.target.value)}
-                className="bg-transparent border-none border-b border-transparent focus:border-[var(--color-border)] text-[var(--color-text-muted)] text-sm italic outline-none placeholder:text-[var(--color-border)]"
-              />
-            </div>
-
-            {/* Full-width fields (cols: 1) */}
-            {FIELDS.filter(f => f.cols === 1).map(f => (
-              <div key={f.key} className="mb-7">
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">{f.label}</div>
-                <textarea
-                  rows={f.rows}
-                  value={values[f.key as FieldKey] as string}
-                  placeholder={f.placeholder}
-                  onChange={e => handleChange(f.key, e.target.value)}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
-                />
-              </div>
-            ))}
-
-            {/* Two-column: Locations + Notes */}
+            {/* Scene + Locations side by side */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-start">
-              <div>
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Locations</div>
-                <textarea
-                  rows={5}
-                  value={values.locations as string}
-                  placeholder="Key locations and descriptions…"
-                  onChange={e => handleChange('locations', e.target.value)}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
-                />
-              </div>
-              <div>
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Notes</div>
-                <textarea
-                  rows={4}
-                  value={values.notes as string}
-                  placeholder="Music, atmosphere, misc reminders…"
-                  onChange={e => handleChange('notes', e.target.value)}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
-                />
-              </div>
+              {FIELDS.map(f => (
+                <div key={f.key}>
+                  <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">{f.label}</div>
+                  <textarea
+                    rows={f.rows}
+                    value={values[f.key as FieldKey] as string}
+                    placeholder={f.placeholder}
+                    onChange={e => handleChange(f.key, e.target.value)}
+                    className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
+                  />
+                </div>
+              ))}
             </div>
+
 
             {/* NPC Casting Board */}
             <NpcCastingBoard
