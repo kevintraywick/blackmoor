@@ -15,12 +15,15 @@ export default async function InitiativePage() {
   const [sessions, npcs, playerRows, players] = await Promise.all([
     query<SessionMeta>('SELECT id, number, title, npc_ids, menagerie FROM sessions ORDER BY number ASC'),
     query<Npc>('SELECT * FROM npcs ORDER BY name ASC'),
-    query<Pick<PlayerSheet, 'id' | 'status'>>('SELECT id, status FROM player_sheets'),
+    query<Pick<PlayerSheet, 'id' | 'status' | 'hp'>>('SELECT id, status, hp FROM player_sheets'),
     getPlayers(),
   ]);
 
   const playerStatuses: Record<string, string> = Object.fromEntries(
     playerRows.map(r => [r.id, r.status ?? 'active'])
+  );
+  const playerHp: Record<string, number> = Object.fromEntries(
+    playerRows.map(r => [r.id, parseInt(r.hp, 10) || 0])
   );
 
   return (
@@ -38,7 +41,7 @@ export default async function InitiativePage() {
         />
       </div>
 
-      <InitiativePageClient sessions={sessions} npcs={npcs} playerStatuses={playerStatuses} players={players} />
+      <InitiativePageClient sessions={sessions} npcs={npcs} playerStatuses={playerStatuses} playerHp={playerHp} players={players} />
     </div>
   );
 }

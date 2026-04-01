@@ -67,11 +67,13 @@ export default function InitiativePageClient({
   sessions,
   npcs,
   playerStatuses = {},
+  playerHp = {},
   players = [],
 }: {
   sessions: SessionMeta[];
   npcs: Npc[];
   playerStatuses?: Record<string, string>;
+  playerHp?: Record<string, number>;
   players?: Player[];
 }) {
   const activePlayers = players.filter(p => {
@@ -149,6 +151,7 @@ export default function InitiativePageClient({
 
     activePlayers.forEach(p => {
       const entered = playerInits[p.id] ?? 0;
+      const hp = playerHp[p.id] ?? 0;
       combatants.push({
         id: p.id,
         name: p.character,
@@ -158,6 +161,8 @@ export default function InitiativePageClient({
         rolled: entered === 0,
         img: p.img,
         initial: p.initial,
+        hp,
+        maxHp: hp,
       });
     });
 
@@ -288,6 +293,15 @@ export default function InitiativePageClient({
       }
       saveMenagerie(combatSessionIdRef.current, [...menagerieRef.current]);
     }
+
+    // Write back PC HP changes to player sheet
+    if (c.type === 'player' && c.hp !== undefined) {
+      fetch(`/api/players/${c.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hp: String(c.hp) }),
+      }).catch(() => {});
+    }
   }
 
 
@@ -295,15 +309,12 @@ export default function InitiativePageClient({
   if (results) {
     return (
       <div className="max-w-[1000px] mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none">Combat Order</h2>
-            <span className="text-[0.65rem] uppercase tracking-[0.15em] text-[#5a4a44] mt-1 block">Round {round}</span>
-          </div>
+        <div className="flex justify-center mb-6">
           <button
             onClick={handleReset}
-            className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] border border-[var(--color-border)]
-                       rounded px-3 py-1.5 hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
+            className="rounded-full flex items-center justify-center hover:scale-110 transition-transform font-sans text-[0.7rem] uppercase tracking-[0.15em] text-white font-bold"
+            style={{ width: 60, height: 60, background: 'transparent', border: '1px solid rgba(201,168,76,0.5)' }}
+            title="Reset combat"
           >
             Reset
           </button>
@@ -312,7 +323,7 @@ export default function InitiativePageClient({
         <div className="flex flex-col gap-2">
           {results.map((c, i) => {
             const isActive = i === currentTurn;
-            const isDead = c.hp !== undefined && c.hp <= 0;
+            const isDead = c.type === 'npc' && c.hp !== undefined && c.hp <= 0;
             const imgUrl = c.type === 'npc' && c.imagePath ? resolveImageUrl(c.imagePath) : null;
             const isExpanded = expandedId === `${c.id}-${i}`;
             const hasStats = c.npcData && (c.npcData.attacks || c.npcData.traits || c.npcData.actions);
@@ -326,7 +337,7 @@ export default function InitiativePageClient({
                   } ${
                     isActive
                       ? 'border-[var(--color-gold)] bg-[#1a2535]'
-                      : 'border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[#5a4a44] opacity-70'
+                      : 'border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[#5a4a44]'
                   } ${isExpanded ? 'rounded-t border-b-0' : 'rounded'}`}
                 >
                   {/* Rank */}
@@ -365,8 +376,11 @@ export default function InitiativePageClient({
 
                   {/* Name + sub info */}
                   <div className="flex-1 min-w-0">
-                    <div className={`font-serif text-sm leading-tight ${isDead ? 'line-through' : ''} ${isActive ? 'text-[var(--color-text)]' : 'text-[var(--color-text-muted)]'}`}>
-                      {c.name}
+                    <div
+                      className={`font-serif text-sm leading-tight ${isDead ? 'line-through' : ''} text-[var(--color-text)] ${hasStats ? 'cursor-pointer hover:text-[var(--color-gold)] transition-colors' : ''}`}
+                      onClick={hasStats ? (e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : `${c.id}-${i}`); } : undefined}
+                    >
+                      {c.name} {hasStats && <span className="text-[#5a4a44] text-xs">{isExpanded ? '▾' : '▸'}</span>}
                     </div>
                     {c.subName && (
                       <div className="text-[0.6rem] uppercase tracking-[0.1em] text-[var(--color-border)]">{c.subName}</div>
@@ -399,25 +413,7 @@ export default function InitiativePageClient({
                     </div>
                   )}
 
-                  {/* Expand toggle for NPC stats */}
-                  {hasStats && (
-                    <button
-                      onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : `${c.id}-${i}`); }}
-                      className="w-6 h-6 flex items-center justify-center text-[#5a4a44] hover:text-[var(--color-gold)] transition-colors flex-shrink-0 text-sm"
-                      title="Show stat block"
-                    >
-                      {isExpanded ? '▾' : '▸'}
-                    </button>
-                  )}
 
-                  {/* Type badge */}
-                  <span className={`text-[0.5rem] uppercase tracking-[0.15em] px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
-                    c.type === 'player'
-                      ? 'border-[#2d5a3f] text-[#4a8a65]'
-                      : 'border-[#6a1a1a] text-[#a05050]'
-                  }`}>
-                    {c.type === 'player' ? 'PC' : 'NPC'}
-                  </span>
 
                   {/* Turn done checkbox — marks done and advances turn */}
                   <button
