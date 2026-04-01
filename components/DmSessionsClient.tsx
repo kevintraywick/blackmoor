@@ -29,134 +29,113 @@ function emptyValues(session: Session): Record<string, string | number> {
 function NpcCastingBoard({
   allNpcs,
   npcIds,
-  onToggle,
+  sessions,
+  currentSessionId,
+  onAdd,
 }: {
   allNpcs: Npc[];
   npcIds: string[];
-  onToggle: (id: string) => void;
+  sessions: Session[];
+  currentSessionId: string | null;
+  onAdd: (id: string) => void;
 }) {
-  const [search, setSearch] = useState('');
-  const [showAvailable, setShowAvailable] = useState(false);
+  const [selectedCatalogNpc, setSelectedCatalogNpc] = useState<string | null>(null);
 
-  // Count assigned NPCs (supports duplicates)
-  const counts: Record<string, number> = {};
-  npcIds.forEach(id => { counts[id] = (counts[id] ?? 0) + 1; });
-  const assignedEntries = Object.entries(counts);
+  // NPCs assigned to OTHER sessions
+  const assignedElsewhere = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of sessions) {
+      if (s.id === currentSessionId) continue;
+      const ids = Array.isArray(s.npc_ids) ? s.npc_ids : [];
+      ids.forEach(id => set.add(id));
+    }
+    return set;
+  }, [sessions, currentSessionId]);
 
-  // Filter available NPCs by search
-  const query = search.trim().toLowerCase();
-  const available = useMemo(() => {
-    if (!query) return allNpcs;
-    return allNpcs.filter(n => n.name?.toLowerCase().includes(query));
-  }, [allNpcs, query]);
+  // Unassigned = not in this session AND not in any other session
+  const unassigned = useMemo(() => {
+    return allNpcs.filter(n => !npcIds.includes(n.id) && !assignedElsewhere.has(n.id));
+  }, [allNpcs, npcIds, assignedElsewhere]);
+
+  const assignedNpcs = npcIds.map(id => allNpcs.find(n => n.id === id)).filter(Boolean) as Npc[];
+
+  function handleConfirmAdd() {
+    if (!selectedCatalogNpc) return;
+    onAdd(selectedCatalogNpc);
+    setSelectedCatalogNpc(null);
+  }
+
+  function renderNpcCircle(npc: Npc, opts: { selected?: boolean; onClick: () => void; size?: number }) {
+    const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
+    const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
+    const sz = opts.size ?? 58;
+    return (
+      <button
+        key={npc.id}
+        onClick={opts.onClick}
+        className="flex flex-col items-center gap-1 transition-opacity"
+        title={npc.name}
+      >
+        <div
+          className="rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center flex-shrink-0 transition-all"
+          style={{
+            width: sz, height: sz,
+            border: opts.selected ? '3px solid #2d8a4e' : '2px solid rgba(201,168,76,0.4)',
+            boxShadow: opts.selected ? '0 0 8px rgba(45,138,78,0.5)' : 'none',
+          }}
+        >
+          {imgUrl
+            ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
+            : <span className="text-sm text-[var(--color-text-muted)] font-serif">{initial}</span>
+          }
+        </div>
+        <span className="font-serif text-[0.75rem] text-[var(--color-text-muted)] max-w-[70px] truncate text-center">
+          {npc.name || 'Unnamed'}
+        </span>
+      </button>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-start">
       {/* Left: NPCs in this Session */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
         <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPCs in this Session</div>
-        {assignedEntries.length === 0 ? (
+        {assignedNpcs.length === 0 ? (
           <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs assigned yet.</p>
         ) : (
           <div className="flex flex-wrap gap-3">
-            {assignedEntries.map(([npcId, count]) => {
-              const npc = allNpcs.find(n => n.id === npcId);
-              if (!npc) return null;
-              const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
-              const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
-              return (
-                <button
-                  key={npcId}
-                  onClick={() => onToggle(npcId)}
-                  className="flex flex-col items-center gap-1 hover:opacity-70 transition-opacity group"
-                  title={`Remove ${npc.name}`}
-                >
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1a1714] border-2 border-[var(--color-gold)]/40 group-hover:border-[#a05050] flex items-center justify-center flex-shrink-0 transition-colors">
-                    {imgUrl
-                      ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
-                      : <span className="text-sm text-[var(--color-text-muted)] font-serif">{initial}</span>
-                    }
-                  </div>
-                  <span className="font-serif text-[0.6rem] text-[var(--color-text-muted)] max-w-[56px] truncate text-center">
-                    {npc.name || 'Unnamed'}
-                    {count > 1 && <span className="text-[var(--color-gold)] font-bold ml-0.5">×{count}</span>}
-                  </span>
-                </button>
-              );
-            })}
+            {assignedNpcs.map(npc => renderNpcCircle(npc, { onClick: () => {} }))}
           </div>
         )}
       </div>
 
       {/* Right: NPC Catalog */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
-        <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPC Catalog</div>
-        {!showAvailable ? (
-          <button
-            onClick={() => setShowAvailable(true)}
-            className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] border border-dashed border-[var(--color-border)]
-                       rounded px-3 py-1.5 hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
-          >
-            + Add NPCs
-          </button>
+        <div className="flex items-center justify-between mb-2">
+          {selectedCatalogNpc ? (
+            <button
+              onClick={handleConfirmAdd}
+              className="flex items-center gap-1 text-[#2d8a4e] hover:text-[#5ab87a] transition-colors"
+              title="Add to session"
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d="M10 3L5 8l5 5" />
+              </svg>
+              <span className="text-[0.7rem] uppercase tracking-[0.15em] font-sans">Add to Session</span>
+            </button>
+          ) : (
+            <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">+ Add NPCs</span>
+          )}
+        </div>
+        {unassigned.length === 0 ? (
+          <p className="text-[#5a4a44] text-xs font-serif italic">All NPCs are assigned.</p>
         ) : (
-          <div>
-            {/* Search header */}
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[var(--color-text-muted)] text-sm">⌕</span>
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search NPCs…"
-                autoFocus
-                className="flex-1 bg-transparent border-none text-[var(--color-text)] text-sm outline-none placeholder:text-[var(--color-text-muted)] font-serif"
-              />
-              <button
-                onClick={() => { setShowAvailable(false); setSearch(''); }}
-                className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-xs transition-colors"
-              >
-                Done
-              </button>
-            </div>
-
-            {/* NPC grid */}
-            {available.length === 0 ? (
-              <p className="text-[#5a4a44] text-xs font-serif italic py-2">No NPCs match &ldquo;{search}&rdquo;</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-1">
-                {available.map(npc => {
-                  const isAssigned = npcIds.includes(npc.id);
-                  const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
-                  const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
-                  return (
-                    <button
-                      key={npc.id}
-                      onClick={() => onToggle(npc.id)}
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
-                        isAssigned
-                          ? 'bg-[var(--color-gold)]/10 border border-[var(--color-gold)]/30'
-                          : 'hover:bg-[#2e2825] border border-transparent'
-                      }`}
-                    >
-                      <div className="w-7 h-7 rounded-full overflow-hidden bg-[#1a1714] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
-                        {imgUrl
-                          ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
-                          : <span className="text-[0.65rem] text-[var(--color-text-muted)] font-serif">{initial}</span>
-                        }
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-serif text-xs text-[var(--color-text)] truncate">{npc.name || 'Unnamed'}</div>
-                        {npc.cr && <div className="text-[0.55rem] text-[#5a4a44] uppercase">CR {npc.cr}</div>}
-                      </div>
-                      {isAssigned && (
-                        <span className="text-[var(--color-gold)] text-xs flex-shrink-0">✓</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+          <div className="flex flex-wrap gap-3">
+            {unassigned.map(npc => renderNpcCircle(npc, {
+              selected: selectedCatalogNpc === npc.id,
+              onClick: () => setSelectedCatalogNpc(prev => prev === npc.id ? null : npc.id),
+            }))}
           </div>
         )}
       </div>
@@ -330,7 +309,9 @@ export default function DmSessionsClient({
             <NpcCastingBoard
               allNpcs={allNpcs}
               npcIds={npcIds}
-              onToggle={handleNpcToggle}
+              sessions={sessions}
+              currentSessionId={selectedId}
+              onAdd={handleNpcToggle}
             />
 
             {/* Menagerie HP summary + Long Rest */}
