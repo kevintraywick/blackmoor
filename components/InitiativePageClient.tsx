@@ -506,16 +506,15 @@ export default function InitiativePageClient({
   const visibleNpcs = npcs.filter(n => sessionNpcIds.includes(n.id));
 
   return (
-    <div className="relative z-10 -mt-[84px] max-w-[1000px] mx-auto px-4 pb-16 flex gap-4 items-start">
-
-      {/* Left: session boxes stacked vertically, start 50px below banner */}
-      {sessions.length > 0 && (
-        <div className="flex-shrink-0 w-[96px] pt-[134px] flex flex-col gap-2">
+    <div>
+      {/* Session box row — overlaid on banner */}
+      <div className="relative z-10 -mt-20 px-6 py-4">
+        <div className="max-w-[1000px] mx-auto flex justify-center gap-2.5 overflow-x-auto pb-1">
           {sessions.map(s => (
             <button
               key={s.id}
               onClick={() => setSelectedSessionId(s.id)}
-              className={`w-full rounded px-2 py-2.5 flex flex-col items-center gap-1 transition-colors border ${
+              className={`flex-shrink-0 w-[96px] rounded px-2 py-2.5 flex flex-col items-center gap-1 transition-colors border ${
                 selectedSessionId === s.id
                   ? 'border-[var(--color-gold)] bg-[var(--color-surface)]'
                   : 'border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[#5a4a44]'
@@ -532,23 +531,23 @@ export default function InitiativePageClient({
             </button>
           ))}
         </div>
-      )}
+      </div>
 
-      {/* Right: main pane — overlaps banner */}
-      <div className="flex-1 min-w-0 bg-[var(--color-bg)] rounded-t-2xl pt-6">
+      {/* Main pane */}
+      <div className="max-w-[1000px] mx-auto px-4 pb-16 pt-6">
         <div className="border border-[var(--color-border)] rounded bg-[#1a2535]">
 
           {/* Players */}
           <div className="relative px-6 pt-5 pb-5">
             <div className="flex items-center mb-4">
-              <h2 className="font-serif text-[1.1rem] italic text-[var(--color-text)] leading-none tracking-tight flex-1">Players</h2>
+              <div className="flex-1"></div>
               {/* Wrapper matches InitCounter width so dice centers over the column */}
               <div className="flex items-center gap-1 flex-shrink-0" style={{ width: 'calc(1.75rem + 3rem + 1.75rem + 0.5rem)' }}>
                 <div className="flex-1 flex justify-center">
                   <button
                     onClick={handleGo}
-                    className="w-10 h-10 rounded-full bg-[var(--color-gold)] text-black font-bold text-xl
-                               flex items-center justify-center hover:bg-[#e0bc5a] transition-colors"
+                    className="rounded-full bg-transparent flex items-center justify-center hover:scale-110 transition-transform"
+                    style={{ width: 60, height: 60, fontSize: '1.8rem', border: '1px solid rgba(201,168,76,0.5)' }}
                     title="Roll Initiative"
                   >
                     🎲
