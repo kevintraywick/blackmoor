@@ -20,42 +20,18 @@ function formatSaturday(iso: string): { month: string; day: string } {
   };
 }
 
-// Count consecutive sessions attended (from most recent backward)
-function getStreak(playerId: string, sessionDates: Set<string>, avMap: Map<string, string>): number {
-  // Get all past saturdays from sessionDates, sorted descending
-  const today = new Date().toISOString().slice(0, 10);
-  const pastDates = Array.from(sessionDates)
-    .filter(d => d <= today)
-    .sort((a, b) => b.localeCompare(a));
-
-  let streak = 0;
-  for (const date of pastDates) {
-    const key = `${playerId}:${date}`;
-    const status = avMap.get(key);
-    // Only explicit 'in' counts as attended (default-out model)
-    if (status === 'in') {
-      streak++;
-    } else {
-      break;
-    }
-  }
-  return streak;
-}
-
 // ── types ────────────────────────────────────────────────────────────────────
 
 interface Props {
   players: Player[];
   initialAvailability: Availability[];
   quorum: number;
-  sessionDates: string[];
 }
 
 // ── component ────────────────────────────────────────────────────────────────
 
-export default function CanYouPlayClient({ players, initialAvailability, quorum, sessionDates }: Props) {
+export default function CanYouPlayClient({ players, initialAvailability, quorum }: Props) {
   const saturdays = getNextSaturdays();
-  const sessionDateSet = new Set(sessionDates);
 
   // Build availability map: "playerId:saturday" → status
   const [avMap, setAvMap] = useState<Map<string, string>>(() => {
@@ -66,13 +42,23 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
     return m;
   });
 
-  const getStatus = useCallback((playerId: string, saturday: string): 'in' | 'out' => {
-    return (avMap.get(`${playerId}:${saturday}`) as 'in' | 'out') ?? 'out';
+  const getStatus = useCallback((playerId: string, saturday: string): 'in' | 'maybe' | 'out' | 'unseen' => {
+    return (avMap.get(`${playerId}:${saturday}`) as 'in' | 'maybe' | 'out') ?? 'unseen';
   }, [avMap]);
+
+  const playSound = useCallback((status: 'in' | 'out') => {
+    const src = status === 'in' ? '/audio/swords.mp3' : '/audio/run_away.mp3';
+    const audio = new Audio(src);
+    audio.volume = 0.5;
+    audio.play().catch(() => {});
+  }, []);
 
   const toggle = useCallback(async (playerId: string, saturday: string) => {
     const current = getStatus(playerId, saturday);
-    const next = current === 'in' ? 'out' : 'in';
+    // unseen → in → out → in → out ...
+    const next = current === 'unseen' ? 'in' : current === 'in' ? 'out' : 'in';
+
+    playSound(next);
 
     // Optimistic update
     setAvMap(prev => {
@@ -113,7 +99,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
           Are You In?
         </h1>
         <p className="text-center text-[#8a7d6e] font-sans text-sm mb-4 sm:mb-10">
-          Tap your name for each date you can play
+          Tap your name
         </p>
 
         {/* Saturday columns */}
@@ -126,13 +112,13 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
               <div key={sat} className="flex flex-col items-center">
                 {/* Date */}
                 <div
-                  className="w-16 h-16 rounded-full flex flex-col items-center justify-center mb-4"
-                  style={{ border: '2px solid rgba(201,168,76,0.3)' }}
+                  className="rounded-full flex flex-col items-center justify-center mb-4"
+                  style={{ width: 77, height: 77, border: '2px solid rgba(201,168,76,0.3)', flexShrink: 0 }}
                 >
-                  <div className="font-sans text-[0.7rem] uppercase tracking-[0.15em] text-[#c9a84c] leading-none">
+                  <div className="font-sans uppercase tracking-[0.15em] text-[#c9a84c] leading-none" style={{ fontSize: '0.77rem' }}>
                     {month}
                   </div>
-                  <div className="font-serif text-2xl text-[#e8ddd0] leading-none mt-0.5">
+                  <div className="font-serif text-[#e8ddd0] leading-none mt-0.5" style={{ fontSize: '1.65rem' }}>
                     {day}
                   </div>
                 </div>
@@ -141,8 +127,9 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                 <div className="w-full space-y-2" style={{ marginTop: '10px' }}>
                   {players.map(p => {
                     const status = getStatus(p.id, sat);
+                    const isIn = status === 'in';
                     const isOut = status === 'out';
-                    const streak = getStreak(p.id, sessionDateSet, avMap);
+                    const unseen = status === 'unseen';
 
                     return (
                       <button
@@ -150,17 +137,17 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                         onClick={() => toggle(p.id, sat)}
                         className="w-full flex items-center gap-3 px-3 py-1.5 sm:py-2 rounded transition-all duration-200"
                         style={{
-                          background: isOut ? 'rgba(90,79,70,0.15)' : 'rgba(201,168,76,0.08)',
-                          border: `1px solid ${isOut ? 'rgba(90,79,70,0.2)' : 'rgba(201,168,76,0.15)'}`,
+                          background: unseen ? 'rgba(90,79,70,0.15)' : 'rgba(201,168,76,0.08)',
+                          border: `1px solid ${unseen ? 'rgba(90,79,70,0.2)' : 'rgba(201,168,76,0.15)'}`,
                         }}
                       >
                         {/* Portrait */}
                         <div
                           className="relative w-10 h-10 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 transition-all duration-200"
                           style={{
-                            opacity: isOut ? 0.3 : 1,
-                            filter: isOut ? 'grayscale(1)' : 'none',
-                            border: `2px solid ${isOut ? '#3d3530' : '#8b1a1a'}`,
+                            opacity: unseen ? 0.3 : 1,
+                            filter: unseen ? 'grayscale(1)' : 'none',
+                            border: `2px solid ${unseen ? '#3d3530' : '#8b1a1a'}`,
                           }}
                         >
                           <Image src={p.img} alt={p.character} fill className="object-cover" />
@@ -170,45 +157,36 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                         <span
                           className="font-serif text-base sm:text-sm flex-1 text-left transition-all duration-200"
                           style={{
-                            color: isOut ? '#7a6e63' : '#e8ddd0',
-                            textDecoration: 'none',
+                            color: unseen ? '#7a6e63' : '#e8ddd0',
                           }}
                         >
                           {p.character}
                         </span>
 
-                        {/* Streak runes */}
-                        {streak > 0 && !isOut && (
+                        {/* Two dots: red | green */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
                           <span
-                            className="font-sans text-[0.6rem] tracking-wider text-[#c9a84c]"
-                            title={`${streak} session streak`}
-                            style={{ opacity: 0.6 + Math.min(streak, 5) * 0.08 }}
-                          >
-                            {'▮'.repeat(Math.min(streak, 8))}
-                          </span>
-                        )}
-
-                        {/* Status indicator */}
-                        <span
-                          className="w-5 h-5 sm:w-4 sm:h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[0.6rem]"
-                          style={{
-                            border: isOut ? '1.5px solid #5a4f46' : '1.5px solid #4a7a5a',
-                            background: isOut ? 'transparent' : '#4a7a5a',
-                            color: isOut ? 'transparent' : '#fff',
-                          }}
-                        >
-                          {isOut ? '' : '✓'}
-                        </span>
+                            className="w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-full transition-all duration-200"
+                            style={{
+                              border: '1.5px solid #8b1a1a',
+                              background: isOut ? '#8b1a1a' : 'transparent',
+                              boxShadow: isOut ? '0 0 6px rgba(139,26,26,0.6)' : 'none',
+                            }}
+                          />
+                          <span
+                            className="w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-full transition-all duration-200"
+                            style={{
+                              border: '1.5px solid #2d8a4e',
+                              background: isIn ? '#2d8a4e' : 'transparent',
+                              boxShadow: isIn ? '0 0 6px rgba(45,138,78,0.6)' : 'none',
+                            }}
+                          />
+                        </div>
                       </button>
                     );
                   })}
                 </div>
 
-                {!quorumMet && inCount > 0 && (
-                  <div className="mt-3 font-sans text-xs text-center" style={{ color: '#8a7d6e' }}>
-                    {quorum - inCount === 1 ? '1 more for a game' : `${quorum - inCount} more for a game`}
-                  </div>
-                )}
 
               </div>
             );
