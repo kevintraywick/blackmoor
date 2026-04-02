@@ -35,6 +35,9 @@ export default function InventoryPageClient() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggesting, setSuggesting] = useState(false);
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [promptLoading, setPromptLoading] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
   const fileRef = useRef<File | null>(null);
 
   // Track what we last suggested for to avoid re-calling
@@ -89,6 +92,36 @@ export default function InventoryPageClient() {
 
     return () => clearTimeout(timer);
   }, [fields.title, fields.itemType]);
+
+  // --- Auto-generate MJ image prompt from description ---
+  const lastPromptDescRef = useRef<string>('');
+  useEffect(() => {
+    const desc = fields.description.trim();
+    const name = fields.title.trim();
+    if (desc.length < 10 || !name || desc === lastPromptDescRef.current) return;
+
+    const timer = setTimeout(async () => {
+      if (desc === lastPromptDescRef.current) return;
+      lastPromptDescRef.current = desc;
+      setPromptLoading(true);
+      try {
+        const res = await fetch('/api/items/image-prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, item_type: fields.itemType, description: desc }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.prompt) setImagePrompt(data.prompt);
+      } catch {
+        // Silent
+      } finally {
+        setPromptLoading(false);
+      }
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [fields.description, fields.title, fields.itemType]);
 
   // --- File handling ---
   function handleFileSelected(file: File) {
@@ -145,7 +178,9 @@ export default function InventoryPageClient() {
       if (fields.imagePreview) URL.revokeObjectURL(fields.imagePreview);
       fileRef.current = null;
       lastSuggestRef.current = '';
+      lastPromptDescRef.current = '';
       setFieldsRaw({ ...DEFAULT_FIELDS });
+      setImagePrompt('');
       setEditItem(null);
       setRefreshKey(k => k + 1);
     } catch (err) {
@@ -237,9 +272,51 @@ export default function InventoryPageClient() {
           </button>
         </div>
 
-        {/* Pane 2: Card Preview */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+        {/* Pane 2: Card Preview + Prompt */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           <CardPreview fields={fields} />
+
+          {/* MJ Image Prompt box — stretches to align bottom with Publish */}
+          <div className="w-full border border-[var(--color-border)] rounded-md bg-[#1e1b18] relative flex flex-col"
+            style={{ maxWidth: 340, flex: 1 }}>
+            <div className="px-3 pt-2 pb-1">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">
+                Image Prompt
+              </span>
+            </div>
+            <div className="px-3 pb-3 flex-1 flex">
+              <textarea
+                value={imagePrompt}
+                onChange={e => setImagePrompt(e.target.value)}
+                placeholder={promptLoading ? 'Generating prompt...' : 'Describe your item for Midjourney...'}
+                className="w-full bg-transparent border border-[var(--color-border)] rounded px-2 py-1.5
+                  text-[0.8rem] text-[var(--color-text)] font-sans resize-none flex-1
+                  outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-dim)]"
+              />
+            </div>
+            {/* Copy arrow — right side, vertically centered */}
+            <button
+              onClick={async () => {
+                if (!imagePrompt) return;
+                await navigator.clipboard.writeText(imagePrompt);
+                setPromptCopied(true);
+                setTimeout(() => setPromptCopied(false), 2000);
+              }}
+              disabled={!imagePrompt}
+              className="absolute flex items-center justify-center transition-colors
+                disabled:opacity-30"
+              style={{
+                right: -44, bottom: -16,
+                width: 36, height: 36, borderRadius: '50%',
+                border: '2px solid #4a7a5a',
+                color: promptCopied ? '#5ab87a' : '#4a7a5a',
+                fontSize: 18,
+              }}
+              title={promptCopied ? 'Copied!' : 'Copy prompt to clipboard'}
+            >
+              {promptCopied ? '✓' : '📋'}
+            </button>
+          </div>
         </div>
       </div>
 

@@ -135,7 +135,7 @@ export default function InventoryCreateForm({ fields, setFields, onFileSelected,
             onChange={e => setFields({ title: e.target.value })}
             required
             placeholder="Item Name"
-            className={`${fieldClass} text-xl font-bold text-center pb-1 flex-1`}
+            className={`${fieldClass} text-xl font-bold text-left pb-1 flex-1`}
           />
           {(itemType === 'scroll' || itemType === 'spell') && (
             <div className="flex flex-col items-center gap-0.5" style={{ width: 50, flexShrink: 0 }}>
@@ -202,9 +202,6 @@ export default function InventoryCreateForm({ fields, setFields, onFileSelected,
           <div className="w-full flex flex-col gap-3">
             <div className="flex gap-3">
               <div className="flex flex-col gap-1 flex-1">
-                <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">
-                  School
-                </span>
                 <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                   {SCHOOLS.map(s => (
                     <button
@@ -249,34 +246,35 @@ export default function InventoryCreateForm({ fields, setFields, onFileSelected,
               <input value={duration} onChange={e => setFields({ duration: e.target.value })}
                 placeholder="Instantaneous" className={`${fieldClass} text-sm pb-0.5`} />
             </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] font-sans" style={{ color: '#b91c1c' }}>Risk %</span>
+              <input value={riskPercent} onChange={e => setFields({ riskPercent: e.target.value })}
+                placeholder="auto" className={`${fieldClass} text-sm pb-0.5`} />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans flex items-center gap-1">
+                <img src="/images/inventory/gold_coin.jpg" alt="" className="w-3 h-3 rounded-full" /> Price
+              </span>
+              <input value={price} onChange={e => setFields({ price: e.target.value })}
+                placeholder="0" className={`${fieldClass} text-sm pb-0.5`} />
+            </div>
           </div>
         )}
 
-        {/* Risk + Price row — scrolls and spells */}
-        {(itemType === 'scroll' || itemType === 'spell') && (
-          <div className="w-full flex gap-2">
-            <div className="flex flex-col items-center gap-0.5" style={{ flex: 1, minWidth: 48 }}>
-              <span className="text-[0.6rem] uppercase tracking-[0.12em] font-sans" style={{ color: '#b91c1c' }}>
-                Risk %
-              </span>
-              <input
-                value={riskPercent}
-                onChange={e => setFields({ riskPercent: e.target.value })}
-                placeholder="auto"
-                className={`${fieldClass} text-center text-[1.1rem] w-full pb-0.5`}
-              />
+        {/* Risk + Price row — scrolls only (no spell grid) */}
+        {itemType === 'scroll' && (
+          <div className="w-full grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] font-sans" style={{ color: '#b91c1c' }}>Risk %</span>
+              <input value={riskPercent} onChange={e => setFields({ riskPercent: e.target.value })}
+                placeholder="auto" className={`${fieldClass} text-sm pb-0.5`} />
             </div>
-            <div className="flex flex-col items-center gap-0.5" style={{ flex: 1, minWidth: 48 }}>
+            <div className="flex flex-col gap-0.5">
               <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans flex items-center gap-1">
-                <img src="/images/inventory/gold_coin.jpg" alt="" className="w-3.5 h-3.5 rounded-full" />
-                Price
+                <img src="/images/inventory/gold_coin.jpg" alt="" className="w-3 h-3 rounded-full" /> Price
               </span>
-              <input
-                value={price}
-                onChange={e => setFields({ price: e.target.value })}
-                placeholder="0"
-                className={`${fieldClass} text-center text-[1.1rem] w-full pb-0.5`}
-              />
+              <input value={price} onChange={e => setFields({ price: e.target.value })}
+                placeholder="0" className={`${fieldClass} text-sm pb-0.5`} />
             </div>
           </div>
         )}
@@ -285,7 +283,7 @@ export default function InventoryCreateForm({ fields, setFields, onFileSelected,
         <textarea
           value={description}
           onChange={e => setFields({ description: e.target.value })}
-          rows={2}
+          rows={6}
           placeholder="Description..."
           className={`${fieldClass} w-full text-sm resize-none border border-[var(--color-border)] rounded px-3 py-2
             bg-[var(--color-surface)] placeholder:text-[var(--color-text-dim)]`}
