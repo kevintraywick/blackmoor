@@ -203,6 +203,16 @@ export interface SessionEvent {
   created_at: number;
 }
 
+export interface PlayerChange {
+  id: string;
+  player_id: string;
+  field: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: number;
+  read: boolean;
+}
+
 export type MagicCategory = 'spell' | 'scroll' | 'magic_item' | 'other';
 
 export interface MagicCatalogEntry {

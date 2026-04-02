@@ -12,6 +12,9 @@ const PLAYER_COLUMNS: Record<string, string> = {
   dm_notes: 'dm_notes', status: 'status',
 };
 
+// DM-only fields — don't log changes for these
+const DM_ONLY_FIELDS = new Set(['dm_notes', 'status']);
+
 // Fields that contain JSON arrays and must be serialized before INSERT/UPDATE
 const JSON_COLUMNS = new Set(['gear', 'spells', 'items']);
 
@@ -50,9 +53,39 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       [id]
     );
 
+    // Capture old values before update for change logging
+    const trackableKeys = keys.filter(k => !DM_ONLY_FIELDS.has(k));
+    let oldRow: Record<string, unknown> | undefined;
+    if (trackableKeys.length > 0) {
+      const cols = trackableKeys.map(k => PLAYER_COLUMNS[k]).join(', ');
+      const rows = await query<Record<string, unknown>>(`SELECT ${cols} FROM player_sheets WHERE id = $1`, [id]);
+      oldRow = rows[0];
+    }
+
     const setClauses = keys.map((k, i) => `${PLAYER_COLUMNS[k]} = $${i + 2}`).join(', ');
     const values = keys.map(k => JSON_COLUMNS.has(k) ? JSON.stringify(patch[k]) : patch[k]);
     await query(`UPDATE player_sheets SET ${setClauses} WHERE id = $1`, [id, ...values]);
+
+    // Log actual changes (fire-and-forget, never blocks the response)
+    if (oldRow && trackableKeys.length > 0) {
+      const inserts: { field: string; oldVal: string; newVal: string }[] = [];
+      for (const k of trackableKeys) {
+        const col = PLAYER_COLUMNS[k];
+        const newVal = JSON_COLUMNS.has(k) ? JSON.stringify(patch[k]) : String(patch[k] ?? '');
+        const oldVal = oldRow[col] != null ? String(oldRow[col]) : '';
+        if (oldVal !== newVal) {
+          inserts.push({ field: k, oldVal, newVal });
+        }
+      }
+      if (inserts.length > 0) {
+        const placeholders = inserts.map((_, i) => `($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4})`).join(', ');
+        const params = inserts.flatMap(ins => [id, ins.field, ins.oldVal, ins.newVal]);
+        query(
+          `INSERT INTO player_changes (player_id, field, old_value, new_value) VALUES ${placeholders}`,
+          params
+        ).catch(() => {});
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

@@ -396,6 +396,24 @@ async function _initSchema() {
     ON session_events (session_id, created_at DESC)
   `).catch(() => {});
 
+  // ── Player Change Notifications ─────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS player_changes (
+      id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      player_id   TEXT NOT NULL,
+      field       TEXT NOT NULL,
+      old_value   TEXT,
+      new_value   TEXT,
+      created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      read        BOOLEAN NOT NULL DEFAULT false
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS player_changes_unread_idx
+    ON player_changes (read, created_at DESC)
+  `).catch(() => {});
+
   // Session lifecycle timestamps
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS started_at BIGINT`).catch(() => {});
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS ended_at BIGINT`).catch(() => {});
