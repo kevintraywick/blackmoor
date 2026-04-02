@@ -25,6 +25,7 @@ export interface Item {
   range: string | null;
   components: string | null;
   duration: string | null;
+  risk_percent: number | null;
 }
 
 function statBadgeClass(type: Item['stat_type']): string {

@@ -53,7 +53,7 @@ function LabeledInput({ label, value, onChange, placeholder, width }: {
 
 export default function InventoryCreateForm({ fields, setFields, onFileSelected, onSubmit, saving, error, suggesting }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const { itemType, title, description, price, attack, damage, heal, rarity, attunement, level, school, castingTime, range, components, duration, imagePreview, existingImagePath } = fields;
+  const { itemType, title, description, price, attack, damage, heal, rarity, attunement, level, school, castingTime, range, components, duration, riskPercent, imagePreview, existingImagePath } = fields;
 
   const imgSrc = imagePreview || (existingImagePath ? resolveImageUrl(existingImagePath) : null);
 
@@ -128,14 +128,27 @@ export default function InventoryCreateForm({ fields, setFields, onFileSelected,
           }}
         />
 
-        {/* Title */}
-        <input
-          value={title}
-          onChange={e => setFields({ title: e.target.value })}
-          required
-          placeholder="Item Name"
-          className={`${fieldClass} text-xl font-bold text-center w-full pb-1`}
-        />
+        {/* Title + Level (for scrolls/spells) */}
+        <div className="w-full flex items-end gap-2">
+          <input
+            value={title}
+            onChange={e => setFields({ title: e.target.value })}
+            required
+            placeholder="Item Name"
+            className={`${fieldClass} text-xl font-bold text-center pb-1 flex-1`}
+          />
+          {(itemType === 'scroll' || itemType === 'spell') && (
+            <div className="flex flex-col items-center gap-0.5" style={{ width: 50, flexShrink: 0 }}>
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">Lvl</span>
+              <input
+                value={level}
+                onChange={e => setFields({ level: e.target.value })}
+                placeholder="0"
+                className={`${fieldClass} text-center text-[1.1rem] w-full pb-0.5`}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Type-specific fields */}
         {itemType === 'magic_item' && (
@@ -188,7 +201,6 @@ export default function InventoryCreateForm({ fields, setFields, onFileSelected,
         {(itemType === 'scroll' || itemType === 'spell') && (
           <div className="w-full flex flex-col gap-3">
             <div className="flex gap-3">
-              <LabeledInput label="Level" value={level} onChange={v => setFields({ level: v })} placeholder="0" width={60} />
               <div className="flex flex-col gap-1 flex-1">
                 <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">
                   School
@@ -240,26 +252,20 @@ export default function InventoryCreateForm({ fields, setFields, onFileSelected,
           </div>
         )}
 
-        {/* Description */}
-        <textarea
-          value={description}
-          onChange={e => setFields({ description: e.target.value })}
-          rows={2}
-          placeholder="Description..."
-          className={`${fieldClass} w-full text-sm resize-none border border-[var(--color-border)] rounded px-3 py-2
-            bg-[var(--color-surface)] placeholder:text-[var(--color-text-dim)]`}
-        />
-
-        {/* Bottom stat row */}
-        <div className="w-full border-t border-[var(--color-border)] pt-3">
-          <div className="flex gap-2">
-            {itemType === 'magic_item' && (
-              <>
-                <LabeledInput label="ATK" value={attack} onChange={v => setFields({ attack: v })} placeholder="0" />
-                <LabeledInput label="DMG" value={damage} onChange={v => setFields({ damage: v })} placeholder="0" />
-                <LabeledInput label="HEAL" value={heal} onChange={v => setFields({ heal: v })} placeholder="0" />
-              </>
-            )}
+        {/* Risk + Price row — scrolls and spells */}
+        {(itemType === 'scroll' || itemType === 'spell') && (
+          <div className="w-full flex gap-2">
+            <div className="flex flex-col items-center gap-0.5" style={{ flex: 1, minWidth: 48 }}>
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] font-sans" style={{ color: '#b91c1c' }}>
+                Risk %
+              </span>
+              <input
+                value={riskPercent}
+                onChange={e => setFields({ riskPercent: e.target.value })}
+                placeholder="auto"
+                className={`${fieldClass} text-center text-[1.1rem] w-full pb-0.5`}
+              />
+            </div>
             <div className="flex flex-col items-center gap-0.5" style={{ flex: 1, minWidth: 48 }}>
               <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans flex items-center gap-1">
                 <img src="/images/inventory/gold_coin.jpg" alt="" className="w-3.5 h-3.5 rounded-full" />
@@ -273,7 +279,40 @@ export default function InventoryCreateForm({ fields, setFields, onFileSelected,
               />
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Description */}
+        <textarea
+          value={description}
+          onChange={e => setFields({ description: e.target.value })}
+          rows={2}
+          placeholder="Description..."
+          className={`${fieldClass} w-full text-sm resize-none border border-[var(--color-border)] rounded px-3 py-2
+            bg-[var(--color-surface)] placeholder:text-[var(--color-text-dim)]`}
+        />
+
+        {/* Bottom stat row — magic items only */}
+        {itemType === 'magic_item' && (
+          <div className="w-full border-t border-[var(--color-border)] pt-3">
+            <div className="flex gap-2">
+              <LabeledInput label="ATK" value={attack} onChange={v => setFields({ attack: v })} placeholder="0" />
+              <LabeledInput label="DMG" value={damage} onChange={v => setFields({ damage: v })} placeholder="0" />
+              <LabeledInput label="HEAL" value={heal} onChange={v => setFields({ heal: v })} placeholder="0" />
+              <div className="flex flex-col items-center gap-0.5" style={{ flex: 1, minWidth: 48 }}>
+                <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans flex items-center gap-1">
+                  <img src="/images/inventory/gold_coin.jpg" alt="" className="w-3.5 h-3.5 rounded-full" />
+                  Price
+                </span>
+                <input
+                  value={price}
+                  onChange={e => setFields({ price: e.target.value })}
+                  placeholder="0"
+                  className={`${fieldClass} text-center text-[1.1rem] w-full pb-0.5`}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (

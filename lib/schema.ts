@@ -142,6 +142,7 @@ async function _initSchema() {
   await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS range TEXT`).catch(() => {});
   await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS components TEXT`).catch(() => {});
   await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS duration TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS risk_percent INTEGER`).catch(() => {});
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS npcs (

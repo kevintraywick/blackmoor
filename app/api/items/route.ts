@@ -54,6 +54,12 @@ export async function POST(request: Request) {
     const range = (formData.get('range') as string) || null;
     const components = (formData.get('components') as string) || null;
     const duration = (formData.get('duration') as string) || null;
+    const riskPercentRaw = formData.get('risk_percent') as string | null;
+    // Default risk: 10% per level for levels 1-5, null for 6+ (DM must set)
+    let riskPercent: number | null = riskPercentRaw ? parseInt(riskPercentRaw, 10) : null;
+    if (riskPercent === null && level !== null && level >= 1 && level <= 5) {
+      riskPercent = level * 10;
+    }
 
     let imagePath: string | null = existingImagePath;
 
@@ -75,12 +81,12 @@ export async function POST(request: Request) {
     const rows = await query(
       `INSERT INTO items (title, price, description, image_path, item_type,
         attack, damage, heal, rarity, attunement,
-        level, school, casting_time, range, components, duration)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        level, school, casting_time, range, components, duration, risk_percent)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
        RETURNING *`,
       [title, price, description, imagePath, itemType,
        attack, damage, heal, rarity, attunement,
-       level, school, castingTime, range, components, duration]
+       level, school, castingTime, range, components, duration, riskPercent]
     );
 
     return NextResponse.json(rows[0], { status: 201 });

@@ -18,6 +18,7 @@ export interface CardFields {
   range: string;
   components: string;
   duration: string;
+  riskPercent: string;
   imagePreview: string | null;   // blob URL or resolved path
   existingImagePath: string | null;
 }
@@ -50,7 +51,7 @@ function StatBlock({ label, value }: { label: string; value: string }) {
 }
 
 export default function CardPreview({ fields }: { fields: CardFields }) {
-  const { itemType, title, description, price, attack, damage, heal, rarity, attunement, level, school, castingTime, range, components, duration, imagePreview, existingImagePath } = fields;
+  const { itemType, title, description, price, attack, damage, heal, rarity, attunement, level, school, castingTime, range, components, duration, riskPercent, imagePreview, existingImagePath } = fields;
 
   const imgSrc = imagePreview || (existingImagePath ? resolveImageUrl(existingImagePath) : null);
   const hasTitle = title.trim().length > 0;
@@ -87,13 +88,18 @@ export default function CardPreview({ fields }: { fields: CardFields }) {
           )}
         </div>
 
-        {/* Title */}
+        {/* Title + Level */}
         <h3
           className="text-center font-serif font-bold leading-tight mt-2"
           style={{ fontSize: hasTitle ? 18 : 14, color: hasTitle ? '#2a1f14' : '#a08a6e', maxWidth: '100%' }}
         >
           {hasTitle ? title : 'Name your item...'}
         </h3>
+        {(itemType === 'scroll' || itemType === 'spell') && level && (
+          <span style={{ fontSize: 12, color: '#5a4a36', fontFamily: 'var(--font-serif)', fontStyle: 'italic', marginTop: 2 }}>
+            Level {level}{school ? ` · ${school}` : ''}
+          </span>
+        )}
 
         {/* Type badge */}
         <div
@@ -120,19 +126,29 @@ export default function CardPreview({ fields }: { fields: CardFields }) {
             </>
           )}
 
-          {(itemType === 'scroll' || itemType === 'spell') && (
-            <div className="flex gap-3 items-center" style={{ fontSize: 12, color: '#5a4a36', fontFamily: 'var(--font-serif)' }}>
-              {level && <span>Level {level}</span>}
-              {school && <span style={{ fontStyle: 'italic' }}>{school}</span>}
-            </div>
-          )}
-
           {itemType === 'spell' && (castingTime || range || components || duration) && (
             <div className="w-full mt-1 grid gap-x-3 gap-y-0.5" style={{ gridTemplateColumns: '1fr 1fr', fontSize: 10, color: '#6b5c4a', fontFamily: 'var(--font-sans)' }}>
               {castingTime && <div><span className="font-bold">Cast:</span> {castingTime}</div>}
               {range && <div><span className="font-bold">Range:</span> {range}</div>}
               {components && <div><span className="font-bold">Comp:</span> {components}</div>}
               {duration && <div><span className="font-bold">Dur:</span> {duration}</div>}
+            </div>
+          )}
+
+          {/* Risk & Price stat line — scrolls and spells */}
+          {(itemType === 'scroll' || itemType === 'spell') && (riskPercent || priceNum > 0) && (
+            <div className="flex gap-4 mt-2 items-center" style={{ fontSize: 11, fontFamily: 'var(--font-sans)' }}>
+              {riskPercent && (
+                <span style={{ color: '#8b1a1a', fontWeight: 700 }}>
+                  Risk: {riskPercent}%
+                </span>
+              )}
+              {priceNum > 0 && (
+                <span className="flex items-center gap-1" style={{ color: '#5a4a36', fontWeight: 700 }}>
+                  <img src="/images/inventory/gold_coin.jpg" alt="" className="rounded-full" style={{ width: 12, height: 12 }} />
+                  {priceNum}
+                </span>
+              )}
             </div>
           )}
 
@@ -156,13 +172,15 @@ export default function CardPreview({ fields }: { fields: CardFields }) {
           )}
         </div>
 
-        {/* Price at bottom */}
-        <div className="flex items-center gap-1 mt-auto pt-2">
-          <img src="/images/inventory/gold_coin.jpg" alt="" className="rounded-full" style={{ width: 16, height: 16 }} />
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#3a2e22', fontFamily: 'var(--font-serif)' }}>
-            {priceNum > 0 ? priceNum : '—'}
-          </span>
-        </div>
+        {/* Price at bottom — magic items only (scrolls/spells show price in stat line) */}
+        {itemType === 'magic_item' && (
+          <div className="flex items-center gap-1 mt-auto pt-2">
+            <img src="/images/inventory/gold_coin.jpg" alt="" className="rounded-full" style={{ width: 16, height: 16 }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#3a2e22', fontFamily: 'var(--font-serif)' }}>
+              {priceNum > 0 ? priceNum : '—'}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

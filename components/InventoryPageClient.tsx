@@ -21,6 +21,7 @@ const DEFAULT_FIELDS: CardFields = {
   range: '',
   components: '',
   duration: '',
+  riskPercent: '',
   imagePreview: null,
   existingImagePath: null,
 };
@@ -77,6 +78,7 @@ export default function InventoryPageClient() {
           range: prev.range || data.range || '',
           components: prev.components || data.components || '',
           duration: prev.duration || data.duration || '',
+          riskPercent: prev.riskPercent || (data.risk_percent != null ? String(data.risk_percent) : ''),
         }));
       } catch {
         // Silent failure
@@ -117,6 +119,7 @@ export default function InventoryPageClient() {
     if (fields.itemType === 'scroll' || fields.itemType === 'spell') {
       fd.set('level', fields.level || '0');
       fd.set('school', fields.school);
+      if (fields.riskPercent) fd.set('risk_percent', fields.riskPercent);
     }
     if (fields.itemType === 'spell') {
       fd.set('casting_time', fields.castingTime);
@@ -176,6 +179,7 @@ export default function InventoryPageClient() {
       range: item.range ?? '',
       components: item.components ?? '',
       duration: item.duration ?? '',
+      riskPercent: item.risk_percent != null ? String(item.risk_percent) : '',
       imagePreview: null,
       existingImagePath: item.image_path,
     });

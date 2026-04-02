@@ -6,8 +6,8 @@ type ItemType = (typeof ALLOWED_TYPES)[number];
 
 const FIELD_SCHEMAS: Record<ItemType, string> = {
   magic_item: '{ "description": string, "attack": number, "damage": number, "heal": number, "rarity": "Common"|"Uncommon"|"Rare"|"Very Rare"|"Legendary", "attunement": boolean, "price": number }',
-  scroll: '{ "description": string, "level": number (0=cantrip), "school": "Abjuration"|"Conjuration"|"Divination"|"Enchantment"|"Evocation"|"Illusion"|"Necromancy"|"Transmutation", "price": number }',
-  spell: '{ "description": string, "level": number (0=cantrip), "school": "Abjuration"|"Conjuration"|"Divination"|"Enchantment"|"Evocation"|"Illusion"|"Necromancy"|"Transmutation", "casting_time": string, "range": string, "components": string, "duration": string, "price": number }',
+  scroll: '{ "description": string, "level": number (0=cantrip), "school": "Abjuration"|"Conjuration"|"Divination"|"Enchantment"|"Evocation"|"Illusion"|"Necromancy"|"Transmutation", "risk_percent": number (default 10*level for levels 1-5; suggest a value for 6+), "price": number }',
+  spell: '{ "description": string, "level": number (0=cantrip), "school": "Abjuration"|"Conjuration"|"Divination"|"Enchantment"|"Evocation"|"Illusion"|"Necromancy"|"Transmutation", "casting_time": string, "range": string, "components": string, "duration": string, "risk_percent": number (default 10*level for levels 1-5; suggest a value for 6+), "price": number }',
 };
 
 export async function POST(request: Request) {
