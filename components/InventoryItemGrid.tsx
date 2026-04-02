@@ -13,6 +13,18 @@ export interface Item {
   image_path: string | null;
   in_marketplace: boolean;
   marketplace_qty: number;
+  item_type: 'magic_item' | 'scroll' | 'spell' | null;
+  attack: number;
+  damage: number;
+  heal: number;
+  rarity: string | null;
+  attunement: boolean;
+  level: number | null;
+  school: string | null;
+  casting_time: string | null;
+  range: string | null;
+  components: string | null;
+  duration: string | null;
 }
 
 function statBadgeClass(type: Item['stat_type']): string {
@@ -21,6 +33,26 @@ function statBadgeClass(type: Item['stat_type']): string {
   if (type === 'attack') return 'bg-neutral-800 text-red-400';
   if (type === 'damage') return 'bg-orange-800 text-orange-200';
   return '';
+}
+
+const TYPE_COLORS: Record<string, string> = {
+  magic_item: '#7b2d8e',
+  scroll: '#6b4f0e',
+  spell: '#a88a3a',
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  magic_item: 'M',
+  scroll: 'S',
+  spell: '✦',
+};
+
+function buildStatLine(item: Item): string {
+  const parts: string[] = [];
+  if (item.attack > 0) parts.push(`ATK +${item.attack}`);
+  if (item.damage > 0) parts.push(`DMG +${item.damage}`);
+  if (item.heal > 0) parts.push(`HEAL +${item.heal}`);
+  return parts.join(' · ');
 }
 
 interface Props {
@@ -88,8 +120,18 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
               <span className="relative text-[9px] font-bold text-black drop-shadow-sm">{item.price}</span>
             </div>
 
-            {/* Stat badge — bottom-RIGHT */}
-            {item.stat_type && item.stat_value !== null && (
+            {/* Type badge — bottom-RIGHT */}
+            {item.item_type && TYPE_COLORS[item.item_type] && (
+              <div className="absolute -bottom-1 -right-1 w-[22px] h-[22px] rounded-full
+                              flex items-center justify-center text-[9px] font-bold text-white
+                              border border-[var(--color-bg)] z-10"
+                style={{ backgroundColor: TYPE_COLORS[item.item_type] }}>
+                {TYPE_LABELS[item.item_type]}
+              </div>
+            )}
+
+            {/* Legacy stat badge — bottom-RIGHT, only if no item_type */}
+            {!item.item_type && item.stat_type && item.stat_value !== null && (
               item.stat_type === 'heal' ? (
                 <div className="absolute -bottom-1 -right-1 w-[26px] h-[26px] flex items-center justify-center z-10">
                   <svg viewBox="0 0 24 24" className="absolute inset-0 w-full h-full drop-shadow-sm" fill="#b91c1c">
@@ -110,6 +152,18 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
           <p className="text-[0.65rem] text-center text-[var(--color-text)] mt-1 w-24 leading-tight line-clamp-2">
             {item.title}
           </p>
+          {/* Stat line for items with multiple bonuses */}
+          {item.item_type === 'magic_item' && buildStatLine(item) && (
+            <p className="text-[0.5rem] text-center text-[var(--color-text-muted)] w-24 leading-tight">
+              {buildStatLine(item)}
+            </p>
+          )}
+          {/* Level for scrolls/spells */}
+          {(item.item_type === 'scroll' || item.item_type === 'spell') && item.level !== null && (
+            <p className="text-[0.5rem] text-center text-[var(--color-text-muted)] w-24 leading-tight">
+              Lvl {item.level}{item.school ? ` · ${item.school}` : ''}
+            </p>
+          )}
         </div>
       ))}
     </div>

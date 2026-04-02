@@ -129,6 +129,20 @@ async function _initSchema() {
     WHERE in_marketplace = true AND marketplace_qty = 0
   `);
 
+  // Item type + type-specific columns
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS item_type TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS attack INTEGER DEFAULT 0`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS damage INTEGER DEFAULT 0`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS heal INTEGER DEFAULT 0`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS rarity TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS attunement BOOLEAN DEFAULT false`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS level INTEGER`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS school TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS casting_time TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS range TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS components TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS duration TEXT`).catch(() => {});
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS npcs (
       id         TEXT PRIMARY KEY,

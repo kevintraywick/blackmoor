@@ -1,17 +1,187 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import InventoryCreateForm from './InventoryCreateForm';
 import InventoryItemGrid, { type Item } from './InventoryItemGrid';
+import CardPreview, { type CardFields } from './CardPreview';
+
+const DEFAULT_FIELDS: CardFields = {
+  itemType: 'magic_item',
+  title: '',
+  description: '',
+  price: '',
+  attack: '',
+  damage: '',
+  heal: '',
+  rarity: '',
+  attunement: false,
+  level: '',
+  school: '',
+  castingTime: '',
+  range: '',
+  components: '',
+  duration: '',
+  imagePreview: null,
+  existingImagePath: null,
+};
 
 export default function InventoryPageClient() {
+  const [fields, setFieldsRaw] = useState<CardFields>({ ...DEFAULT_FIELDS });
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [editItem, setEditItem] = useState<Item | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
+  const fileRef = useRef<File | null>(null);
 
+  // Track what we last suggested for to avoid re-calling
+  const lastSuggestRef = useRef<string>('');
+
+  function setFields(update: Partial<CardFields>) {
+    setFieldsRaw(prev => ({ ...prev, ...update }));
+  }
+
+  // --- Auto-fill via AI ---
+  useEffect(() => {
+    const key = `${fields.itemType}::${fields.title.trim().toLowerCase()}`;
+    if (fields.title.trim().length < 2 || key === lastSuggestRef.current) return;
+
+    const timer = setTimeout(async () => {
+      if (key === lastSuggestRef.current) return;
+      lastSuggestRef.current = key;
+      setSuggesting(true);
+      try {
+        const res = await fetch('/api/items/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: fields.title.trim(), item_type: fields.itemType }),
+        });
+        if (!res.ok) return; // 503 = no key, just skip
+        const data = await res.json();
+
+        // Apply suggested values — only fill fields that are currently empty
+        setFieldsRaw(prev => ({
+          ...prev,
+          description: prev.description || data.description || '',
+          price: prev.price || String(data.price ?? ''),
+          attack: prev.attack || String(data.attack ?? ''),
+          damage: prev.damage || String(data.damage ?? ''),
+          heal: prev.heal || String(data.heal ?? ''),
+          rarity: prev.rarity || data.rarity || '',
+          attunement: prev.attunement || data.attunement || false,
+          level: prev.level || String(data.level ?? ''),
+          school: prev.school || data.school || '',
+          castingTime: prev.castingTime || data.casting_time || '',
+          range: prev.range || data.range || '',
+          components: prev.components || data.components || '',
+          duration: prev.duration || data.duration || '',
+        }));
+      } catch {
+        // Silent failure
+      } finally {
+        setSuggesting(false);
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [fields.title, fields.itemType]);
+
+  // --- File handling ---
+  function handleFileSelected(file: File) {
+    fileRef.current = file;
+    if (fields.imagePreview) URL.revokeObjectURL(fields.imagePreview);
+    setFields({ imagePreview: URL.createObjectURL(file) });
+  }
+
+  // --- Publish ---
+  async function handlePublish() {
+    if (saving || !fields.title.trim()) return;
+    setSaving(true);
+    setError(null);
+
+    const fd = new FormData();
+    fd.set('title', fields.title);
+    fd.set('description', fields.description);
+    fd.set('item_type', fields.itemType);
+    fd.set('price', fields.price || '0');
+
+    if (fields.itemType === 'magic_item') {
+      fd.set('attack', fields.attack || '0');
+      fd.set('damage', fields.damage || '0');
+      fd.set('heal', fields.heal || '0');
+      fd.set('rarity', fields.rarity);
+      fd.set('attunement', String(fields.attunement));
+    }
+    if (fields.itemType === 'scroll' || fields.itemType === 'spell') {
+      fd.set('level', fields.level || '0');
+      fd.set('school', fields.school);
+    }
+    if (fields.itemType === 'spell') {
+      fd.set('casting_time', fields.castingTime);
+      fd.set('range', fields.range);
+      fd.set('components', fields.components);
+      fd.set('duration', fields.duration);
+    }
+
+    if (fileRef.current) {
+      fd.set('image', fileRef.current);
+    }
+    if (fields.existingImagePath) {
+      fd.set('existing_image_path', fields.existingImagePath);
+    }
+
+    try {
+      const res = await fetch('/api/items', { method: 'POST', body: fd });
+      if (!res.ok) {
+        const { error: errMsg } = await res.json();
+        throw new Error(errMsg ?? 'Failed to create item');
+      }
+      // Reset
+      if (fields.imagePreview) URL.revokeObjectURL(fields.imagePreview);
+      fileRef.current = null;
+      lastSuggestRef.current = '';
+      setFieldsRaw({ ...DEFAULT_FIELDS });
+      setEditItem(null);
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // --- Edit / Select / Delete ---
   function handleSelect(item: Item) {
     setSelectedItem(prev => prev?.id === item.id ? null : item);
+  }
+
+  function handleEdit() {
+    if (!selectedItem) return;
+    const item = selectedItem;
+    setFieldsRaw({
+      itemType: (item.item_type as CardFields['itemType']) ?? 'magic_item',
+      title: item.title,
+      description: item.description ?? '',
+      price: String(item.price),
+      attack: String(item.attack ?? ''),
+      damage: String(item.damage ?? ''),
+      heal: String(item.heal ?? ''),
+      rarity: item.rarity ?? '',
+      attunement: item.attunement ?? false,
+      level: String(item.level ?? ''),
+      school: item.school ?? '',
+      castingTime: item.casting_time ?? '',
+      range: item.range ?? '',
+      components: item.components ?? '',
+      duration: item.duration ?? '',
+      imagePreview: null,
+      existingImagePath: item.image_path,
+    });
+    lastSuggestRef.current = `${item.item_type ?? 'magic_item'}::${item.title.trim().toLowerCase()}`;
+    setEditItem(item);
+    setSelectedItem(null);
   }
 
   async function sendToMarketplace() {
@@ -25,12 +195,6 @@ export default function InventoryPageClient() {
     setRefreshKey(k => k + 1);
   }
 
-  function handleEdit() {
-    if (!selectedItem) return;
-    setEditItem(selectedItem);
-    setSelectedItem(null);
-  }
-
   async function handleDeleteConfirmed() {
     if (!selectedItem) return;
     await fetch(`/api/items/${selectedItem.id}`, { method: 'DELETE' });
@@ -41,13 +205,38 @@ export default function InventoryPageClient() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Create pane */}
-      <div className="border border-[var(--color-border)] rounded bg-[#2e3a4a]">
-        <InventoryCreateForm
-          key={editItem?.id ?? 'new'}
-          onCreated={() => { setRefreshKey(k => k + 1); setEditItem(null); }}
-          editItem={editItem}
-        />
+      {/* Builder + Preview — side by side */}
+      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+        {/* Pane 1: Card Builder + Publish */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: 480, flexShrink: 0 }}>
+          <InventoryCreateForm
+            fields={fields}
+            setFields={setFields}
+            onFileSelected={handleFileSelected}
+            onSubmit={handlePublish}
+            saving={saving}
+            error={error}
+            suggesting={suggesting}
+          />
+          {/* Publish button */}
+          <button
+            onClick={handlePublish}
+            disabled={saving || !fields.title.trim()}
+            className="w-full py-3 rounded font-serif text-[1.05rem] font-bold transition-colors
+                       disabled:opacity-40"
+            style={{
+              backgroundColor: '#c9a84c',
+              color: '#1a1614',
+            }}
+          >
+            {saving ? 'Publishing...' : 'Publish to Inventory'}
+          </button>
+        </div>
+
+        {/* Pane 2: Card Preview */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <CardPreview fields={fields} />
+        </div>
       </div>
 
       {/* Inventory pane */}
