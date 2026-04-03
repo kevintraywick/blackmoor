@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAutosave } from '@/lib/useAutosave';
+import type { DmMessage } from '@/lib/types';
 
 type PlayerStatus = 'active' | 'away' | 'removed';
 
@@ -28,7 +29,15 @@ export default function DmPlayerBox({
   const [dmMessage, setDmMessage]     = useState('');
   const [sending, setSending]         = useState(false);
   const [sent, setSent]               = useState(false);
+  const [messages, setMessages]       = useState<DmMessage[]>([]);
   const sentTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    fetch(`/api/dm-messages?player_id=${playerId}`)
+      .then(r => r.json())
+      .then((rows: DmMessage[]) => setMessages(rows))
+      .catch(() => {});
+  }, [playerId]);
 
   const { save } = useAutosave(`/api/players/${playerId}`);
 
@@ -55,11 +64,13 @@ export default function DmPlayerBox({
     if (!dmMessage.trim() || sending) return;
     setSending(true);
     try {
-      await fetch('/api/dm-messages', {
+      const res = await fetch('/api/dm-messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ player_id: playerId, message: dmMessage.trim() }),
       });
+      const row: DmMessage = await res.json();
+      setMessages(prev => [row, ...prev]);
       setDmMessage('');
       setSent(true);
       clearTimeout(sentTimer.current);
@@ -67,6 +78,16 @@ export default function DmPlayerBox({
     } finally {
       setSending(false);
     }
+  }
+
+  function formatTime(epoch: number) {
+    const d = new Date(epoch * 1000);
+    const mon = d.toLocaleString('en-US', { month: 'short' });
+    const day = d.getDate();
+    const h = d.getHours();
+    const m = d.getMinutes().toString().padStart(2, '0');
+    const ampm = h >= 12 ? 'pm' : 'am';
+    return `${mon} ${day} · ${h % 12 || 12}:${m}${ampm}`;
   }
 
   const dotColor: Record<PlayerStatus, string> = {
@@ -142,21 +163,48 @@ export default function DmPlayerBox({
       </div>
 
       {/* Red pane: DM's DMs */}
-      <div className="relative border border-[#7a3a3a] rounded bg-[#1d1616]" style={{ width: 220 }}>
-        <textarea
-          value={dmMessage}
-          onChange={e => setDmMessage(e.target.value)}
-          placeholder={`Message ${playerName}…`}
-          className="w-full h-full bg-transparent rounded text-[var(--color-text-body)] text-[0.82rem] leading-relaxed px-3 py-2.5 resize-none outline-none placeholder:text-[#5a3a3a] font-serif"
-        />
-        <button
-          onClick={sendDmMessage}
-          disabled={!dmMessage.trim() || sending}
-          className="absolute bottom-2 text-base bg-transparent border-none disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-opacity hover:scale-110" style={{ right: '20px' }}
-          title="Send message"
-        >
-          {sent ? '✓' : '📨'}
-        </button>
+      <div className="border border-[#7a3a3a] rounded bg-[#1d1616] flex flex-col" style={{ width: 280 }}>
+        {/* Compose area */}
+        <div className="relative" style={{ minHeight: 80 }}>
+          <textarea
+            value={dmMessage}
+            onChange={e => setDmMessage(e.target.value)}
+            placeholder={`Message ${playerName}…`}
+            rows={2}
+            className="w-full bg-transparent text-[var(--color-text-body)] text-[0.82rem] leading-relaxed px-3 py-2.5 resize-none outline-none placeholder:text-[#5a3a3a] font-serif"
+          />
+          <button
+            onClick={sendDmMessage}
+            disabled={!dmMessage.trim() || sending}
+            className="absolute bottom-2 text-base bg-transparent border-none disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-opacity hover:scale-110" style={{ right: '12px' }}
+            title="Send message"
+          >
+            {sent ? '✓' : '📨'}
+          </button>
+        </div>
+
+        {/* Sent messages */}
+        {messages.length > 0 && (
+          <div className="border-t border-[#3a2222] px-3 py-2">
+            <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#6a4a4a] mb-1.5">Sent</div>
+            {messages.map(m => (
+              <div key={m.id} className="mb-2 last:mb-0">
+                <div className="flex items-start gap-1.5">
+                  <div
+                    style={{ width: 7, height: 7, borderRadius: '50%', marginTop: 5, flexShrink: 0,
+                      backgroundColor: m.read ? '#3a2e2e' : '#dc2626',
+                    }}
+                    title={m.read ? 'Read' : 'Unread'}
+                  />
+                  <div className={`text-[0.78rem] leading-snug font-serif ${m.read ? 'text-[#6a5a5a]' : 'text-[var(--color-text-body)]'}`}>
+                    {m.message}
+                  </div>
+                </div>
+                <div className="text-[0.6rem] text-[#5a3a3a] ml-[13px] mt-0.5">{formatTime(m.created_at)}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
     </div>
