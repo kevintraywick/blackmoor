@@ -554,8 +554,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
               style={{ width: `${Math.max(charName.length + 1, 4)}ch`, marginRight: 16 }}
             />
             <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 60, width: 80, marginRight: 16 }} />
-            <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 60, width: 80, marginRight: 16 }} />
-            <input value={values.discord} placeholder="Discord…" onChange={e => setField('discord', e.target.value)} className={fi} style={{ flex: 1, minWidth: 80 }} />
+            <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 60, width: 80 }} />
           </div>
 
           {/* Mobile: stacked layout */}
