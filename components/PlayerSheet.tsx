@@ -5,7 +5,7 @@ import Image from 'next/image';
 import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, MarketplaceItem, Player, PlayerBoon } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import type { SaveStatus } from '@/lib/useAutosave';
-import { lookupWeaponPrice } from '@/lib/srd-weapons';
+import { autoFillWeapon, lookupWeapon } from '@/lib/srd-weapons';
 
 // ── Boon list — clickable ☐/☑ lines parsed from stored text ─────────────────
 function BoonList({ value, onChange, columns = 1, emptyText }: { value: string; onChange: (v: string) => void; columns?: number; emptyText?: string }) {
@@ -93,11 +93,17 @@ function WeaponList({
   onAdd,
   onDelete,
   onUpdate,
+  scores,
+  level,
+  className,
 }: {
   weapons: WeaponItem[];
   onAdd: (w: Omit<WeaponItem, 'id'>) => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, field: keyof WeaponItem, value: string) => void;
+  scores: { str: string; dex: string };
+  level: string;
+  className: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
@@ -107,8 +113,11 @@ function WeaponList({
 
   function submit() {
     if (!name.trim()) return;
-    const finalPrice = price.trim() || lookupWeaponPrice(name) || '';
-    onAdd({ name: name.trim(), attack_bonus: atk.trim(), damage: dmg.trim(), price: finalPrice });
+    const srd = autoFillWeapon(name, scores, level, className);
+    const finalPrice = price.trim() || srd?.price || '';
+    const finalAtk = atk.trim() || srd?.toHit || '';
+    const finalDmg = dmg.trim() || srd?.damage || '';
+    onAdd({ name: name.trim(), attack_bonus: finalAtk, damage: finalDmg, price: finalPrice });
     setName(''); setAtk(''); setDmg(''); setPrice('');
     setEditing(false);
   }
@@ -401,9 +410,39 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
   const [loadingMessages, setLoadingMessages] = useState(false);
   const { save: autosave, saveNow, status: saveStatus } = useAutosave(`/api/players/${playerId}`);
 
+  const RECALC_KEYS = new Set(['str', 'dex', 'level', 'class']);
+
+  function recalcWeapons(prev: PlayerSheetType, changedKey: string, changedValue: string): WeaponItem[] | null {
+    if (!RECALC_KEYS.has(changedKey)) return null;
+    const updated = { ...prev, [changedKey]: changedValue };
+    const gear = updated.gear;
+    if (!gear || gear.length === 0) return null;
+
+    let changed = false;
+    const newGear = gear.map(w => {
+      if (!lookupWeapon(w.name)) return w; // not an SRD weapon — leave it alone
+      const fill = autoFillWeapon(w.name, { str: updated.str, dex: updated.dex }, updated.level, updated.class);
+      if (!fill) return w;
+      if (w.attack_bonus === fill.toHit && w.damage === fill.damage) return w; // already correct
+      changed = true;
+      return { ...w, attack_bonus: fill.toHit, damage: fill.damage };
+    });
+    return changed ? newGear : null;
+  }
+
   function setField(key: keyof PlayerSheetType, value: PlayerSheetType[keyof PlayerSheetType]) {
-    setValues(prev => ({ ...prev, [key]: value }));
-    autosave({ [key]: value });
+    setValues(prev => {
+      const next = { ...prev, [key]: value };
+      // Recalc SRD weapon stats when ability scores, level, or class change
+      const newGear = recalcWeapons(prev, key, value as string);
+      if (newGear) {
+        next.gear = newGear;
+        autosave({ [key]: value, gear: newGear });
+        return next;
+      }
+      autosave({ [key]: value });
+      return next;
+    });
   }
 
   // Weapon helpers
@@ -659,7 +698,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
         {/* 1: Weapons */}
         <div className="sm:border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0, overflow: 'hidden', minHeight: 160, background: '#282220' }}>
           <div className={sh} style={{ fontSize: '0.78rem' }}>Weapons</div>
-          <WeaponList weapons={values.gear} onAdd={addWeapon} onDelete={deleteWeapon} onUpdate={updateWeapon} />
+          <WeaponList weapons={values.gear} onAdd={addWeapon} onDelete={deleteWeapon} onUpdate={updateWeapon} scores={{ str: values.str, dex: values.dex }} level={values.level} className={values.class} />
         </div>
 
         {/* 2: Cantrips and Spells */}
