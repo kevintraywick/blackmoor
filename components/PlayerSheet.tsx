@@ -319,12 +319,8 @@ function SpellList({
   );
 }
 
-// ── A single stat with ± buttons ──────────────────────────────────────────────
+// ── A single stat field ──────────────────────────────────────────────────────
 function Stat({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  function adjust(delta: number) {
-    const n = parseFloat(value) || 0;
-    onChange(String(n + delta));
-  }
   return (
     <div className="flex flex-col items-center gap-0.5 flex-1 min-w-[48px] sm:min-w-[60px]">
       <div className="text-[0.62rem] sm:text-[0.68rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
@@ -337,17 +333,6 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
         onChange={e => onChange(e.target.value)}
         className="bg-transparent border-none border-b border-[var(--color-border)] text-[var(--color-text)] text-[1.1rem] text-center outline-none w-full focus:border-b-[var(--color-gold)] placeholder:text-[#8a7452] font-serif pb-0.5"
       />
-      <div className="flex gap-0.5 sm:gap-0.5 mt-0.5">
-        {[-1, 1].map(d => (
-          <button
-            key={d}
-            onClick={() => adjust(d)}
-            className="w-8 h-8 sm:w-[22px] sm:h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] active:bg-[#3a3020] transition-colors"
-          >
-            {d === -1 ? '−' : '+'}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -513,27 +498,19 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 60, width: 80, marginRight: 12 }} />
             <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 60, width: 80 }} />
 
-            {/* HP + Gold group */}
-            <div className="flex items-center" style={{ gap: 20, marginLeft: 'auto' }}>
+            {/* HP + Gold group — dead center */}
+            <div className="flex items-center" style={{ gap: 20, margin: '0 auto' }}>
               {/* HP */}
               <div className="flex flex-col items-center">
                 <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 18, height: 18 }}>
                   <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
                 <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.95rem] text-center outline-none font-serif" style={{ width: 36 }} />
-                <div className="flex gap-0.5 mt-0.5">
-                  <button onClick={() => setField('hp', String((parseFloat(values.hp) || 0) - 1))} className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">−</button>
-                  <button onClick={() => setField('hp', String((parseFloat(values.hp) || 0) + 1))} className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">+</button>
-                </div>
               </div>
               {/* Gold */}
               <div className="flex flex-col items-center">
                 <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 18, height: 18 }} className="rounded-full" />
                 <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.95rem] text-center outline-none font-serif" style={{ width: 36 }} />
-                <div className="flex gap-0.5 mt-0.5">
-                  <button onClick={() => setField('gold', String((parseFloat(values.gold) || 0) - 1))} className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">−</button>
-                  <button onClick={() => setField('gold', String((parseFloat(values.gold) || 0) + 1))} className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">+</button>
-                </div>
               </div>
             </div>
 
@@ -591,27 +568,19 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             <div className="flex items-center justify-center gap-2 mt-1">
               <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={`${fi} min-w-[50px] w-[70px]`} />
               <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={`${fi} min-w-[50px] w-[70px]`} />
-              {/* HP + Gold group */}
-              <div className="flex items-center" style={{ gap: 16, marginLeft: 'auto' }}>
+              {/* HP + Gold group — dead center */}
+              <div className="flex items-center" style={{ gap: 16, margin: '0 auto' }}>
                 {/* HP */}
                 <div className="flex flex-col items-center">
                   <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 16, height: 16 }}>
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                   </svg>
                   <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.85rem] text-center outline-none font-serif" style={{ width: 32 }} />
-                  <div className="flex gap-0.5 mt-0.5">
-                    <button onClick={() => setField('hp', String((parseFloat(values.hp) || 0) - 1))} className="w-8 h-8 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">−</button>
-                    <button onClick={() => setField('hp', String((parseFloat(values.hp) || 0) + 1))} className="w-8 h-8 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">+</button>
-                  </div>
                 </div>
                 {/* Gold */}
                 <div className="flex flex-col items-center">
                   <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 16, height: 16 }} className="rounded-full" />
                   <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.85rem] text-center outline-none font-serif" style={{ width: 32 }} />
-                  <div className="flex gap-0.5 mt-0.5">
-                    <button onClick={() => setField('gold', String((parseFloat(values.gold) || 0) - 1))} className="w-8 h-8 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">−</button>
-                    <button onClick={() => setField('gold', String((parseFloat(values.gold) || 0) + 1))} className="w-8 h-8 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">+</button>
-                  </div>
                 </div>
               </div>
               {/* Action circles */}
