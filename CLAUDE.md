@@ -38,6 +38,9 @@ This is a tool for heroes and the people who run their world. It should feel lik
 
 ## Gotchas
 
+- **Never paste API keys in chat.** If the user provides a key in conversation, warn them immediately and recommend rotating it. Guide them to add keys via their editor or `! echo` prefix instead.
+- **Tailwind v4 flex layout unreliable.** `flex flex-col sm:flex-row` may not kick in at expected breakpoints. Use inline `style={{ display: 'flex' }}` for critical side-by-side layouts.
+- **Tailwind v4 classes break in Safari production.** Tailwind v4 uses `@property` CSS declarations that Safari may not process correctly. Components that work locally can be invisible in production. For any layout-critical element (navbars, primary containers), use inline `style={{}}` for flex, sticky, gap, and background — not Tailwind classes.
 - **Image uploads are capped at 4MB.** Midjourney outputs (typically 2048x2048 PNG, ~6MB) will be rejected by the upload API. Resize with `magick <file> -resize 1024x1024 <file>` before uploading or committing to `public/`.
 - **`autoFocus` on inputs causes page scroll.** If an input with `autoFocus` renders on page load (even inside a conditionally-shown panel that defaults open), the browser scrolls to it. Default panels to closed (`useState(false)`) when they contain autoFocus inputs.
 - **`ensureSchema` is memoized.** After adding new DDL (tables/columns), the dev server must be restarted — the schema won't re-run on refresh.

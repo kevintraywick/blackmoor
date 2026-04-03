@@ -27,7 +27,7 @@ Living document for UI/UX decisions and constraints. Review before making visual
 - **Mobile-first with Tailwind breakpoints.** Default styles target mobile; `sm:` (640px+) targets desktop. One component, not separate pages.
 - **Touch targets**: Minimum `py-3` padding on tappable rows, portraits at `w-10 h-10`, checkmarks at `w-5 h-5` on mobile. +/- buttons expand to `w-8 h-8` on mobile (32px touch targets).
 - **Stacking**: Multi-column grids collapse to single column on mobile (`grid-cols-1 sm:grid-cols-3`).
-- **Player selector circles**: `w-14 h-14` on mobile, `w-20 h-20` on desktop.
+- **Player selector circles**: `w-14 h-14` on mobile, `w-20 h-20` on desktop. On DM Players page, circles accept drag-and-drop image upload (green border + scale on hover). Uploaded images stored in `/data/uploads/players/`, served via `/api/uploads/players/[filename]`.
 - **Stats row**: Two rows on mobile (HP/AC/Level/Gold + XP/Speed/Size), single row on desktop.
 - **Header**: Stacked on mobile (name row + fields row, Discord hidden), single inline row on desktop.
 
@@ -37,7 +37,7 @@ Living document for UI/UX decisions and constraints. Review before making visual
 - **DM context**: Forest green (`#4a7a5a` bg, white text) for the DM nav bar and DM-only UI surfaces.
 - **Magic categories**: Gold (spell), brown (scroll), purple (magic item), green (other).
 - **Poison context**: Green (`#4a7a5a` for active indicators, `#7ac28a` for text). Nav tab pulses green when active.
-- **DM message dot**: Bright red `#dc2626` dot, no label.
+- **DM message dot**: Bright red `#dc2626` dot, no label. DM sees sent message history in the red pane with read/unread indicators (red dot = unread `#dc2626`, dimmed dot = read `#3a2e2e`).
 - **Boon dot**: White `#ffffff` with subtle glow (`boxShadow: 0 0 6px rgba(255,255,255,0.5)`). Pulses until player opens it, then stays solid until expired/cancelled.
 - **Indicator layout**: All three indicators (boon, poison, DM) in a flex container at `right: 16` in the header. Order left-to-right: boon (white) | poison (🤢) | DM (red). Dots only, no text labels.
 - **Combat panes** (Weapons, Cantrips/Spells): Warmer background `#282220` to visually elevate above other panes.
@@ -73,3 +73,16 @@ All list panes (Weapons, Gear, Cantrips, Magic Items) use an inline `[+] Add ite
 - Italic placeholder text in `text-[var(--color-text-dim)]`
 - Click opens an inline input; Enter confirms, Escape cancels
 - No separate "Add" button or section divider
+
+## Inventory Card Builder
+
+- **Layout**: Side-by-side — card builder (left, 480px max), card preview (right, flexible). Inline `style={{ display: 'flex' }}` not Tailwind flex classes.
+- **Card types**: Magic Item (purple `#7b2d8e`), Scroll (brown `#6b4f0e`), Spell (gold `#a88a3a`). Type selector buttons at top.
+- **Card preview**: `card_bg.png` parchment background, 340×480. Item image circle, title, type badge, stats, description overlaid. Read-only.
+- **Risk %**: Red label (`#b91c1c`). Scrolls/spells only. In the 2-column stat grid alongside Price for spells, own row for scrolls.
+- **Spell stat grid**: 2-column — Cast Time / Range / Components / Duration / Risk % / Price. No individual stat labels that are self-explanatory (e.g., "School" label removed from school buttons).
+- **Title + Level**: Same row for scrolls/spells. Title left-aligned, Lvl right-aligned (50px).
+- **Description**: 6-row textarea.
+- **Publish button**: Below builder, full width, gold bg `#c9a84c`, serif font.
+- **Image Prompt box**: Below card preview, stretches to align bottom with Publish. Auto-generates MJ prompt from description. 📋 copy button (green `#4a7a5a` border) bottom-right outside the box.
+- **AI auto-fill**: Debounced 800ms on title+type change. Fills only empty fields. Silent no-op without API key.

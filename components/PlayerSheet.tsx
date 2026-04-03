@@ -325,18 +325,9 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
     const n = parseFloat(value) || 0;
     onChange(String(n + delta));
   }
-  const icon = label === 'GOLD'
-    ? <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute top-1/2 -translate-y-1/2 w-[22px] h-[22px] rounded-full pointer-events-none" style={{ right: '100%', marginRight: '4px', marginTop: '-2px' }} />
-    : label === 'HP'
-    ? <svg viewBox="0 0 24 24" fill="#b91c1c" className="absolute top-1/2 -translate-y-1/2 w-[26px] h-[26px] pointer-events-none" style={{ right: '100%', marginRight: '5px', marginTop: '-1px' }}>
-        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-      </svg>
-    : null;
-
   return (
     <div className="flex flex-col items-center gap-0.5 flex-1 min-w-[48px] sm:min-w-[60px]">
-      <div className="relative text-[0.62rem] sm:text-[0.68rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-        {icon}
+      <div className="text-[0.62rem] sm:text-[0.68rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
         {label}
       </div>
       <input
@@ -361,40 +352,6 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
   );
 }
 
-// ── Desktop header indicators — flex row, right-aligned ─────────────────────
-function DesktopIndicators({ unread, messages, poisonCount, boonCount, boonsSeen, toggleMessages, toggleBoons }: {
-  unread: number; messages: { id: string }[]; poisonCount: number; boonCount: number; boonsSeen: boolean;
-  toggleMessages: () => void; toggleBoons: () => void;
-}) {
-  return (
-    <div className="absolute hidden sm:flex items-center gap-3" style={{ right: 16, top: '50%', transform: 'translateY(-50%)' }}>
-      {/* Boon — white dot (leftmost) */}
-      {boonCount > 0 && (
-        <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`}
-          title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}>
-          <div style={{ width: 16, height: 16, backgroundColor: '#ffffff', borderRadius: '50%', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} />
-        </div>
-      )}
-      {/* Poison — green (middle) */}
-      {poisonCount > 0 && (
-        <div className="animate-pulse flex items-center gap-1.5 cursor-default" title="Poisoned!">
-          <span style={{ fontSize: '18px', lineHeight: 1 }}>🤢</span>
-        </div>
-      )}
-      {/* DM messages — red (rightmost) */}
-      {unread > 0 && (
-        <div onClick={toggleMessages} className="animate-pulse cursor-pointer flex items-center gap-1.5"
-          title={`${unread} unread message${unread > 1 ? 's' : ''}`}>
-          <div style={{ width: 18, height: 18, backgroundColor: '#dc2626', borderRadius: '50%' }} />
-        </div>
-      )}
-      {unread === 0 && messages.length > 0 && (
-        <div onClick={toggleMessages} className="cursor-pointer rounded-full opacity-40 hover:opacity-70 transition-opacity"
-          style={{ width: 14, height: 14, backgroundColor: '#5a4f46' }} title="View messages" />
-      )}
-    </div>
-  );
-}
 
 // ── Full player sheet form ────────────────────────────────────────────────────
 export function Sheet({ playerId, playerName, character, initial, img, data, unreadCount = 0, poisonCount = 0, boonCount = 0, boonUnseen = 0 }: { playerId: string; playerName: string; character: string; initial: string; img?: string; data: PlayerSheetType; unreadCount?: number; poisonCount?: number; boonCount?: number; boonUnseen?: number }) {
@@ -534,8 +491,8 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             )}
           </div>
 
-          {/* Desktop: single row with name + fields + indicators */}
-          <div className="hidden sm:flex items-baseline flex-1 min-w-0">
+          {/* Desktop: single row with name + fields + HP/Gold + action circles */}
+          <div className="hidden sm:flex items-center justify-center flex-1 min-w-0">
             <input
               value={charName}
               onChange={e => {
@@ -553,12 +510,65 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
               className="text-[var(--color-text)] text-xl font-bold font-serif bg-transparent border-none outline-none min-w-0"
               style={{ width: `${Math.max(charName.length + 1, 4)}ch`, marginRight: 16 }}
             />
-            <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 60, width: 80, marginRight: 16 }} />
+            <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 60, width: 80, marginRight: 12 }} />
             <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 60, width: 80 }} />
+
+            {/* HP + Gold group */}
+            <div className="flex items-center" style={{ gap: 20, marginLeft: 'auto' }}>
+              {/* HP */}
+              <div className="flex flex-col items-center">
+                <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 18, height: 18 }}>
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+                <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.95rem] text-center outline-none font-serif" style={{ width: 36 }} />
+                <div className="flex gap-0.5 mt-0.5">
+                  <button onClick={() => setField('hp', String((parseFloat(values.hp) || 0) - 1))} className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">−</button>
+                  <button onClick={() => setField('hp', String((parseFloat(values.hp) || 0) + 1))} className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">+</button>
+                </div>
+              </div>
+              {/* Gold */}
+              <div className="flex flex-col items-center">
+                <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 18, height: 18 }} className="rounded-full" />
+                <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.95rem] text-center outline-none font-serif" style={{ width: 36 }} />
+                <div className="flex gap-0.5 mt-0.5">
+                  <button onClick={() => setField('gold', String((parseFloat(values.gold) || 0) - 1))} className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">−</button>
+                  <button onClick={() => setField('gold', String((parseFloat(values.gold) || 0) + 1))} className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">+</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Action circles — 3 dots group */}
+            <div className="flex items-center" style={{ gap: 5, marginLeft: 20 }}>
+              {boonCount > 0 ? (
+                <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}>
+                  <div style={{ width: 14, height: 14, backgroundColor: '#ffffff', borderRadius: '50%', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} />
+                </div>
+              ) : (
+                <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1px solid #3d3530' }} />
+              )}
+              {poisonCount > 0 ? (
+                <div className="animate-pulse cursor-default" title="Poisoned!">
+                  <div style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#4a7a5a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '9px', lineHeight: 1 }}>🤢</span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1px solid #3d3530' }} />
+              )}
+              {unread > 0 ? (
+                <div onClick={toggleMessages} className="animate-pulse cursor-pointer" title={`${unread} unread message${unread > 1 ? 's' : ''}`}>
+                  <div style={{ width: 14, height: 14, backgroundColor: '#dc2626', borderRadius: '50%' }} />
+                </div>
+              ) : messages.length > 0 ? (
+                <div onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#3a2e2e' }} title="View messages" />
+              ) : (
+                <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1px solid #3d3530' }} />
+              )}
+            </div>
           </div>
 
           {/* Mobile: stacked layout */}
-          <div className="flex flex-col flex-1 min-w-0 sm:hidden">
+          <div className="flex flex-col items-center flex-1 min-w-0 sm:hidden">
             <div className="flex items-center gap-2">
               <input
                 value={charName}
@@ -577,30 +587,62 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                 className="text-[var(--color-text)] text-lg font-bold font-serif bg-transparent border-none outline-none min-w-0"
                 style={{ width: `${Math.max(charName.length + 1, 4)}ch` }}
               />
-              {boonCount > 0 && (<div onClick={toggleBoons} className={`cursor-pointer flex items-center gap-1 ${!boonsSeen ? 'animate-pulse' : ''}`} title="Boon active"><div style={{ width: 12, height: 12, backgroundColor: '#e8ddd0', borderRadius: '50%' }} /></div>)}
-              {poisonCount > 0 && (
-                <div className="animate-pulse flex items-center gap-1 cursor-default" title="Poisoned!">
-                  <span style={{ fontSize: '16px', lineHeight: 1 }}>🤢</span>
-                </div>
-              )}
-              {unread > 0 && (
-                <div onClick={toggleMessages} className="animate-pulse cursor-pointer flex items-center gap-1" title={`${unread} unread message${unread > 1 ? 's' : ''}`}>
-                  <div style={{ width: 16, height: 16, minWidth: 16, minHeight: 16, backgroundColor: '#dc2626', borderRadius: '50%' }} />
-                </div>
-              )}
-              {unread === 0 && messages.length > 0 && (
-                <div onClick={toggleMessages} className="cursor-pointer rounded-full opacity-40 hover:opacity-70 transition-opacity flex-shrink-0" style={{ width: 12, height: 12, backgroundColor: '#5a4f46' }} title="View messages" />
-              )}
             </div>
-            <div className="flex items-baseline gap-2 mt-1">
+            <div className="flex items-center justify-center gap-2 mt-1">
               <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={`${fi} min-w-[50px] w-[70px]`} />
               <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={`${fi} min-w-[50px] w-[70px]`} />
+              {/* HP + Gold group */}
+              <div className="flex items-center" style={{ gap: 16, marginLeft: 'auto' }}>
+                {/* HP */}
+                <div className="flex flex-col items-center">
+                  <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 16, height: 16 }}>
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                  </svg>
+                  <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.85rem] text-center outline-none font-serif" style={{ width: 32 }} />
+                  <div className="flex gap-0.5 mt-0.5">
+                    <button onClick={() => setField('hp', String((parseFloat(values.hp) || 0) - 1))} className="w-8 h-8 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">−</button>
+                    <button onClick={() => setField('hp', String((parseFloat(values.hp) || 0) + 1))} className="w-8 h-8 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">+</button>
+                  </div>
+                </div>
+                {/* Gold */}
+                <div className="flex flex-col items-center">
+                  <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 16, height: 16 }} className="rounded-full" />
+                  <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.85rem] text-center outline-none font-serif" style={{ width: 32 }} />
+                  <div className="flex gap-0.5 mt-0.5">
+                    <button onClick={() => setField('gold', String((parseFloat(values.gold) || 0) - 1))} className="w-8 h-8 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">−</button>
+                    <button onClick={() => setField('gold', String((parseFloat(values.gold) || 0) + 1))} className="w-8 h-8 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm text-[0.85rem] leading-none hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors">+</button>
+                  </div>
+                </div>
+              </div>
+              {/* Action circles */}
+              <div className="flex items-center" style={{ gap: 5, marginLeft: 16 }}>
+                {boonCount > 0 ? (
+                  <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} title="Boon active">
+                    <div style={{ width: 11, height: 11, backgroundColor: '#ffffff', borderRadius: '50%', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} />
+                  </div>
+                ) : (
+                  <div style={{ width: 11, height: 11, borderRadius: '50%', border: '1px solid #3d3530' }} />
+                )}
+                {poisonCount > 0 ? (
+                  <div className="animate-pulse cursor-default" title="Poisoned!">
+                    <div style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#4a7a5a' }} />
+                  </div>
+                ) : (
+                  <div style={{ width: 11, height: 11, borderRadius: '50%', border: '1px solid #3d3530' }} />
+                )}
+                {unread > 0 ? (
+                  <div onClick={toggleMessages} className="animate-pulse cursor-pointer" title={`${unread} unread`}>
+                    <div style={{ width: 11, height: 11, backgroundColor: '#dc2626', borderRadius: '50%' }} />
+                  </div>
+                ) : messages.length > 0 ? (
+                  <div onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#3a2e2e' }} title="View messages" />
+                ) : (
+                  <div style={{ width: 11, height: 11, borderRadius: '50%', border: '1px solid #3d3530' }} />
+                )}
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Desktop indicators — order from right: DM | Poison | Boon (white dot) */}
-        <DesktopIndicators unread={unread} messages={messages} poisonCount={poisonCount} boonCount={boonCount} boonsSeen={boonsSeen} toggleMessages={toggleMessages} toggleBoons={toggleBoons} />
       </div>
 
       {/* Boon detail pane */}
@@ -661,24 +703,10 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
 
       {/* Stats row — 2 rows on mobile, single row on desktop */}
       <div className="bg-[#1e1b18] border border-[var(--color-border)] border-t-0 border-b-0 px-3 sm:px-4 py-2.5">
-        {/* Desktop: all 7 in one row */}
-        <div className="hidden sm:flex gap-2">
-          {(['level','hp','xp','speed','size','ac','gold'] as const).map(key => (
+        <div className="flex gap-2">
+          {(['level','xp','speed','size','ac','align'] as const).map(key => (
             <Stat key={key} label={key.toUpperCase()} value={values[key]} onChange={v => setField(key, v)} />
           ))}
-        </div>
-        {/* Mobile: top row (4), bottom row (3) */}
-        <div className="flex flex-col gap-2 sm:hidden">
-          <div className="flex gap-1.5">
-            {(['hp','ac','level','gold'] as const).map(key => (
-              <Stat key={key} label={key.toUpperCase()} value={values[key]} onChange={v => setField(key, v)} />
-            ))}
-          </div>
-          <div className="flex gap-1.5 justify-center">
-            {(['xp','speed','size'] as const).map(key => (
-              <Stat key={key} label={key.toUpperCase()} value={values[key]} onChange={v => setField(key, v)} />
-            ))}
-          </div>
         </div>
       </div>
 

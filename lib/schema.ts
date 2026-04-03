@@ -434,6 +434,8 @@ async function _initSchema() {
     await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS ${ab} TEXT NOT NULL DEFAULT ''`).catch(() => {});
   }
 
+  await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS align TEXT NOT NULL DEFAULT ''`).catch(() => {});
+
   // Session lifecycle timestamps
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS started_at BIGINT`).catch(() => {});
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS ended_at BIGINT`).catch(() => {});

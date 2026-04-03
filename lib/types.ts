@@ -64,6 +64,7 @@ export interface PlayerSheet {
   int: string;
   wis: string;
   cha: string;
+  align: string;            // Alignment (e.g. 'CG', 'LN')
   dm_notes: string;        // DM-only notes (not shown to player)
   status: string;          // 'active' | 'away' | 'removed'
 }
