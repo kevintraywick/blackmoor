@@ -13,6 +13,7 @@ export interface WeaponItem {
   name: string;
   attack_bonus: string;
   damage: string;
+  price: string;
 }
 
 export interface SpellItem {
@@ -57,6 +58,12 @@ export interface PlayerSheet {
   gear: WeaponItem[];      // "Weapons" in UI — stored as JSONB
   spells: SpellItem[];     // "Magic Spells or Items" — stored as JSONB
   items: MarketplaceItem[]; // Purchased marketplace items — stored as JSONB, transferable
+  str: string;             // Ability scores
+  dex: string;
+  con: string;
+  int: string;
+  wis: string;
+  cha: string;
   dm_notes: string;        // DM-only notes (not shown to player)
   status: string;          // 'active' | 'away' | 'removed'
 }

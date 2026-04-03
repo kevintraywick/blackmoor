@@ -5,6 +5,7 @@ import Image from 'next/image';
 import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, MarketplaceItem, Player, PlayerBoon } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import type { SaveStatus } from '@/lib/useAutosave';
+import { lookupWeaponPrice } from '@/lib/srd-weapons';
 
 // ── Boon list — clickable ☐/☑ lines parsed from stored text ─────────────────
 function BoonList({ value, onChange, columns = 1, emptyText }: { value: string; onChange: (v: string) => void; columns?: number; emptyText?: string }) {
@@ -102,21 +103,25 @@ function WeaponList({
   const [name, setName] = useState('');
   const [atk, setAtk]   = useState('');
   const [dmg, setDmg]   = useState('');
+  const [price, setPrice] = useState('');
 
   function submit() {
     if (!name.trim()) return;
-    onAdd({ name: name.trim(), attack_bonus: atk.trim(), damage: dmg.trim() });
-    setName(''); setAtk(''); setDmg('');
+    const finalPrice = price.trim() || lookupWeaponPrice(name) || '';
+    onAdd({ name: name.trim(), attack_bonus: atk.trim(), damage: dmg.trim(), price: finalPrice });
+    setName(''); setAtk(''); setDmg(''); setPrice('');
     setEditing(false);
   }
 
+  const cols = '1fr 50px 50px 86px';
   const rowIn = 'bg-transparent border-none outline-none font-serif text-[1.05rem] w-full';
 
   return (
     <div>
       {/* Column headers */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 50px 86px', gap: '4px' }} className="text-[0.6rem] uppercase tracking-[0.1em] text-[#6a5a50] pb-1 border-b border-[var(--color-surface-raised)] mb-1.5 font-sans">
+      <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '4px' }} className="text-[0.6rem] uppercase tracking-[0.1em] text-[#6a5a50] pb-1 border-b border-[var(--color-surface-raised)] mb-1.5 font-sans">
         <span>Weapon</span>
+        <span className="text-right">Price</span>
         <span className="text-right">To Hit</span>
         <span className="text-right">Damage</span>
       </div>
@@ -125,8 +130,9 @@ function WeaponList({
         <p className="text-[0.8rem] italic text-[#8a7d6e] py-1">No weapons yet</p>
       )}
       {weapons.map(w => (
-        <div key={w.id} style={{ display: 'grid', gridTemplateColumns: '1fr 50px 86px', gap: '4px' }} className="items-center py-[3px]">
+        <div key={w.id} style={{ display: 'grid', gridTemplateColumns: cols, gap: '4px' }} className="items-center py-[3px]">
           <input value={w.name}         onChange={e => onUpdate(w.id, 'name', e.target.value)}         className={`${rowIn} text-[var(--color-text-body)] truncate`} />
+          <input value={w.price ?? ''}  onChange={e => onUpdate(w.id, 'price', e.target.value)}        className={`${rowIn} text-[var(--color-gold)] text-right`} />
           <input value={w.attack_bonus} onChange={e => onUpdate(w.id, 'attack_bonus', e.target.value)} className={`${rowIn} text-[var(--color-gold)] text-right`} />
           <input value={w.damage}       onChange={e => onUpdate(w.id, 'damage', e.target.value)}       className={`${rowIn} text-[var(--color-text-body)] text-right`} />
         </div>
@@ -134,29 +140,36 @@ function WeaponList({
 
       {/* Inline add row */}
       {editing ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 50px 86px', gap: '4px' }} className="items-center py-[3px]">
+        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '4px' }} className="items-center py-[3px]">
           <input
             value={name}
             onChange={e => setName(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') submit();
-              if (e.key === 'Escape') { setEditing(false); setName(''); setAtk(''); setDmg(''); }
+              if (e.key === 'Escape') { setEditing(false); setName(''); setAtk(''); setDmg(''); setPrice(''); }
             }}
             placeholder=""
             className={`${rowIn} text-[var(--color-text-body)] border-b border-[var(--color-surface-raised)] focus:border-[var(--color-gold)]`}
             autoFocus
           />
           <input
+            value={price}
+            onChange={e => setPrice(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setEditing(false); setName(''); setAtk(''); setDmg(''); setPrice(''); } }}
+            placeholder="0"
+            className={`${rowIn} text-[var(--color-gold)] text-right placeholder:text-[#8a7452]`}
+          />
+          <input
             value={atk}
             onChange={e => setAtk(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setEditing(false); setName(''); setAtk(''); setDmg(''); } }}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setEditing(false); setName(''); setAtk(''); setDmg(''); setPrice(''); } }}
             placeholder="+0"
             className={`${rowIn} text-[var(--color-gold)] text-right placeholder:text-[#8a7452]`}
           />
           <input
             value={dmg}
             onChange={e => setDmg(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setEditing(false); setName(''); setAtk(''); setDmg(''); } }}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setEditing(false); setName(''); setAtk(''); setDmg(''); setPrice(''); } }}
             placeholder="1d8+0"
             className={`${rowIn} text-[var(--color-text-body)] text-right placeholder:text-[#8a7452]`}
           />
@@ -628,6 +641,15 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
               <Stat key={key} label={key.toUpperCase()} value={values[key]} onChange={v => setField(key, v)} />
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Abilities row — same format as stats */}
+      <div className="bg-[#1e1b18] border border-[var(--color-border)] border-t-0 border-b-0 px-3 sm:px-4 py-2.5">
+        <div className="flex gap-2">
+          {(['str','dex','con','int','wis','cha'] as const).map(key => (
+            <Stat key={key} label={key.toUpperCase()} value={values[key]} onChange={v => setField(key, v)} />
+          ))}
         </div>
       </div>
 

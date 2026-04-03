@@ -16,6 +16,7 @@ async function getSheets(playerIds: string[]): Promise<Record<string, PlayerShee
     discord: '', species: '', class: '', level: '', hp: '', xp: '',
     speed: '', size: '', ac: '', gold: '', boons: '', class_features: '',
     species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [], items: [],
+    str: '', dex: '', con: '', int: '', wis: '', cha: '',
     dm_notes: '', status: 'active',
   };
 

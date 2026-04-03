@@ -429,6 +429,11 @@ async function _initSchema() {
     ON player_changes (read, created_at DESC)
   `).catch(() => {});
 
+  // Ability scores — the six core D&D attributes
+  for (const ab of ['str', 'dex', 'con', 'int', 'wis', 'cha']) {
+    await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS ${ab} TEXT NOT NULL DEFAULT ''`).catch(() => {});
+  }
+
   // Session lifecycle timestamps
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS started_at BIGINT`).catch(() => {});
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS ended_at BIGINT`).catch(() => {});
