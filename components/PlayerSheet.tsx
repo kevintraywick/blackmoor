@@ -77,7 +77,7 @@ function BoonList({ value, onChange, columns = 1, emptyText }: { value: string; 
           onClick={() => setEditing(true)}
         >
           <span className="text-lg leading-none flex-shrink-0 text-[#6a5a50] group-hover:text-[var(--color-gold)] transition-colors border border-[#3d3530] rounded w-5 h-5 flex items-center justify-center">+</span>
-          <span className="font-serif text-[1.05rem] italic text-[var(--color-text-dim)]">Add item...</span>
+          <span className="font-serif text-[1.05rem] italic text-[#8a7d6e]">Add item...</span>
         </div>
       )}
 
@@ -117,12 +117,12 @@ function WeaponList({
       {/* Column headers */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 50px 86px', gap: '4px' }} className="text-[0.6rem] uppercase tracking-[0.1em] text-[#6a5a50] pb-1 border-b border-[var(--color-surface-raised)] mb-1.5 font-sans">
         <span>Weapon</span>
-        <span className="text-right">Atk</span>
+        <span className="text-right">To Hit</span>
         <span className="text-right">Damage</span>
       </div>
 
       {weapons.length === 0 && !editing && (
-        <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">No weapons yet</p>
+        <p className="text-[0.8rem] italic text-[#8a7d6e] py-1">No weapons yet</p>
       )}
       {weapons.map(w => (
         <div key={w.id} style={{ display: 'grid', gridTemplateColumns: '1fr 50px 86px', gap: '4px' }} className="items-center py-[3px]">
@@ -167,7 +167,7 @@ function WeaponList({
           onClick={() => setEditing(true)}
         >
           <span className="text-lg leading-none flex-shrink-0 text-[#6a5a50] group-hover:text-[var(--color-gold)] transition-colors border border-[#3d3530] rounded w-5 h-5 flex items-center justify-center">+</span>
-          <span className="font-serif text-[1.05rem] italic text-[var(--color-text-dim)]">Add weapon...</span>
+          <span className="font-serif text-[1.05rem] italic text-[#8a7d6e]">Add weapon...</span>
         </div>
       )}
     </div>
@@ -188,29 +188,23 @@ function ItemList({
   };
   return (
     <div>
+      {/* Column headers */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 50px 86px', gap: '4px' }} className="text-[0.6rem] uppercase tracking-[0.1em] text-[#6a5a50] pb-1 border-b border-[var(--color-surface-raised)] mb-1.5 font-sans">
+        <span>Item</span>
+        <span className="text-right">Price</span>
+        <span className="text-right">Effect</span>
+      </div>
+
       {items.length === 0 && (
-        <p className="text-[0.8rem] italic text-[var(--color-text-dim)] py-1">Visit the Marketplace to acquire items</p>
+        <p className="text-[0.8rem] italic text-[#8a7d6e] py-1">Visit the Marketplace to acquire items</p>
       )}
-      {items.map((item, i) => (
-        <div key={item.id}>
-          {i > 0 && <div className="h-px bg-[var(--color-surface-raised)] my-1.5" />}
-          <div className="flex items-baseline gap-1.5 min-w-0">
-            <span className="text-[1.05rem] text-[var(--color-text-body)] font-serif min-w-0 truncate">{item.name}</span>
-            <span className="text-[0.8rem] text-[#6a5a50] font-serif flex-shrink-0">{item.price}gp</span>
-            <span className="flex-1" />
-            {effect(item) && (
-              <span className="text-[1.05rem] text-[var(--color-gold)] font-serif flex-shrink-0 text-right">{effect(item)}</span>
-            )}
-          </div>
+      {items.map(item => (
+        <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 50px 86px', gap: '4px' }} className="items-center py-[3px]">
+          <span className="text-[1.05rem] text-[var(--color-text-body)] font-serif truncate">{item.name}</span>
+          <span className="text-[1.05rem] text-[var(--color-gold)] font-serif text-right">{item.price}gp</span>
+          <span className="text-[1.05rem] text-[var(--color-gold)] font-serif text-right">{effect(item)}</span>
         </div>
       ))}
-      <div
-        className="flex items-center gap-2 py-1 cursor-pointer select-none group mt-1"
-        onClick={() => window.location.href = '/dm/marketplace'}
-      >
-        <span className="text-lg leading-none flex-shrink-0 text-[#6a5a50] group-hover:text-[var(--color-gold)] transition-colors border border-[#3d3530] rounded w-5 h-5 flex items-center justify-center">+</span>
-        <span className="font-serif text-[1.05rem] italic text-[var(--color-text-dim)]">Marketplace...</span>
-      </div>
     </div>
   );
 }
@@ -296,7 +290,7 @@ function SpellList({
           onClick={() => setShowForm(true)}
         >
           <span className="text-lg leading-none flex-shrink-0 text-[#6a5a50] group-hover:text-[var(--color-gold)] transition-colors border border-[#3d3530] rounded w-5 h-5 flex items-center justify-center">+</span>
-          <span className="font-serif text-[1.05rem] italic text-[var(--color-text-dim)]">Add spell...</span>
+          <span className="font-serif text-[1.05rem] italic text-[#8a7d6e]">Add spell...</span>
         </div>
       )}
     </div>
@@ -457,7 +451,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
   const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[var(--color-text-muted)]';
 
   const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[var(--color-gold)] mb-2 pb-1.5 border-b border-[var(--color-border)] font-sans';
-  const ta = 'w-full bg-transparent border-none text-[var(--color-text-body)] font-serif text-[1.05rem] leading-[1.6] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452] overflow-hidden';
+  const ta = 'w-full bg-transparent border-none text-[#ddd4c8] font-serif text-[1.05rem] leading-[1.6] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452] overflow-hidden';
   const taScroll = 'w-full bg-transparent border-none text-[var(--color-text-body)] font-serif text-[1.05rem] leading-[1.6] resize-none outline-none placeholder:text-[#8a7452] overflow-y-auto focus-scrollbar';
   const fi = 'bg-transparent border-none border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-lg font-bold outline-none focus:border-b-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5';
 
