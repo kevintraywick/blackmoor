@@ -1,86 +1,61 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import type { Item } from './InventoryItemGrid';
+import { useRef } from 'react';
+import type { CardFields } from './CardPreview';
 import { resolveImageUrl } from '@/lib/imageUrl';
 
 interface Props {
-  onCreated: () => void;
-  editItem?: Item | null;
+  fields: CardFields;
+  setFields: (update: Partial<CardFields>) => void;
+  onFileSelected: (file: File) => void;
+  onSubmit: () => void;
+  saving: boolean;
+  error: string | null;
+  suggesting: boolean;
 }
 
-const STAT_OPTIONS = [
-  { value: 'magic',  label: 'Magic' },
-  { value: 'attack', label: 'Attack' },
-  { value: 'damage', label: 'Damage' },
-  { value: 'heal',   label: 'Healing' },
+type ItemType = 'magic_item' | 'scroll' | 'spell';
+
+const ITEM_TYPES: { value: ItemType; label: string; color: string; activeBg: string }[] = [
+  { value: 'magic_item', label: 'Magic Item', color: '#9b59b6', activeBg: '#7b2d8e' },
+  { value: 'scroll',     label: 'Scroll',     color: '#8b6914', activeBg: '#6b4f0e' },
+  { value: 'spell',      label: 'Spell',      color: '#c9a84c', activeBg: '#a88a3a' },
 ];
 
-function StepCounter({
-  label,
-  name,
-  value,
-  onChange,
-}: {
-  label: string;
-  name: string;
-  value: number;
-  onChange: (v: number) => void;
+const RARITIES = ['Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary'];
+
+const SCHOOLS = [
+  'Abjuration', 'Conjuration', 'Divination', 'Enchantment',
+  'Evocation', 'Illusion', 'Necromancy', 'Transmutation',
+];
+
+const fieldClass = `bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif
+  outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452]`;
+
+function LabeledInput({ label, value, onChange, placeholder, width }: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; width?: number;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 flex-shrink-0">
-      <p className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">{label}</p>
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => onChange(Math.max(0, value - 1))}
-          className="w-7 h-7 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]
-                     flex items-center justify-center hover:border-[var(--color-gold)] hover:text-[var(--color-text)]
-                     transition-colors text-base leading-none"
-        >
-          −
-        </button>
-        <input
-          name={name}
-          inputMode="numeric"
-          value={value === 0 ? '' : String(value)}
-          placeholder="0"
-          onChange={e => {
-            const n = parseInt(e.target.value, 10);
-            onChange(isNaN(n) || n < 0 ? 0 : n);
-          }}
-          className="w-14 bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-2 py-2
-                     text-[var(--color-text)] text-base focus:outline-none focus:border-[var(--color-gold)]
-                     text-center placeholder:text-[var(--color-text-dim)]"
-        />
-        <button
-          type="button"
-          onClick={() => onChange(value + 1)}
-          className="w-7 h-7 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]
-                     flex items-center justify-center hover:border-[var(--color-gold)] hover:text-[var(--color-text)]
-                     transition-colors text-base leading-none"
-        >
-          +
-        </button>
-      </div>
+    <div className="flex flex-col items-center gap-0.5" style={width ? { width } : { flex: 1, minWidth: 48 }}>
+      <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">
+        {label}
+      </span>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder ?? '—'}
+        className={`${fieldClass} text-center text-[1.1rem] w-full pb-0.5`}
+      />
     </div>
   );
 }
 
-export default function InventoryCreateForm({ onCreated, editItem }: Props) {
-  const [preview, setPreview] = useState<string | null>(() => editItem?.image_path ? resolveImageUrl(editItem.image_path) : null);
-  const [statType, setStatType] = useState(editItem?.stat_type ?? '');
-  const [price, setPrice] = useState(editItem?.price ?? 0);
-  const [statValue, setStatValue] = useState(editItem?.stat_value ?? 0);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+export default function InventoryCreateForm({ fields, setFields, onFileSelected, onSubmit, saving, error, suggesting }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
+  const { itemType, title, description, price, attack, damage, heal, rarity, attunement, level, school, castingTime, range, components, duration, riskPercent, imagePreview, existingImagePath } = fields;
 
-  function handleFile(file: File) {
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(URL.createObjectURL(file));
-  }
+  const imgSrc = imagePreview || (existingImagePath ? resolveImageUrl(existingImagePath) : null);
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
@@ -91,153 +66,256 @@ export default function InventoryCreateForm({ onCreated, editItem }: Props) {
         dt.items.add(file);
         fileRef.current.files = dt.files;
       }
-      handleFile(file);
-    }
-  }
-
-  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (saving) return;
-    setSaving(true);
-    setError(null);
-
-    const form = formRef.current;
-    if (!form) return;
-    const fd = new FormData(form);
-
-    // Don't submit stat_value if no stat type is selected
-    if (!statType) fd.delete('stat_value');
-
-    try {
-      const res = await fetch('/api/items', { method: 'POST', body: fd });
-      if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error ?? 'Failed to create item');
-      }
-      form.reset();
-      setPreview(null);
-      setStatType('');
-      setPrice(0);
-      setStatValue(0);
-      onCreated();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
-    } finally {
-      setSaving(false);
+      onFileSelected(file);
     }
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="px-6 pt-5 pb-6 relative">
-      {/* Submit button — top-right corner */}
-      <button
-        type="submit"
-        disabled={saving}
-        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[var(--color-gold)] text-black text-xl
-                   font-bold flex items-center justify-center hover:bg-[#e0bc5a]
-                   disabled:opacity-50 transition-colors"
-      >
-        +
-      </button>
+    <div className="border border-[var(--color-border)] rounded-md bg-[#1e1b18] relative">
+      {/* Suggesting indicator */}
+      {suggesting && (
+        <div className="absolute inset-0 rounded-md border-2 border-[var(--color-gold)] animate-pulse pointer-events-none z-20" />
+      )}
 
-      {/* Header */}
-      <div className="flex items-baseline gap-3 mb-4 pr-12">
-        <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none tracking-tight">
-          Create Item
-        </h2>
-        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-          Add a new item to inventory
-        </p>
+      {/* Type selector */}
+      <div className="flex gap-2 px-4 pt-4 pb-3">
+        {ITEM_TYPES.map(t => (
+          <button
+            key={t.value}
+            type="button"
+            onClick={() => setFields({ itemType: t.value })}
+            className="px-3 py-1.5 rounded text-xs font-sans uppercase tracking-wider transition-colors"
+            style={{
+              backgroundColor: itemType === t.value ? t.activeBg : 'transparent',
+              border: `1px solid ${t.color}`,
+              color: itemType === t.value ? '#fff' : t.color,
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
-      <div className="border-t border-[var(--color-border)] mb-4" />
 
-      <div className="flex gap-6 items-center flex-wrap">
-        {/* Drop zone — gold border, vertically centered */}
+      <div className="border-t border-[var(--color-border)]" />
+
+      {/* Card body */}
+      <div className="flex flex-col items-center px-5 pt-5 pb-4 gap-4">
+        {/* Drop image circle */}
         <div
           onDragOver={e => e.preventDefault()}
           onDrop={handleDrop}
           onClick={() => fileRef.current?.click()}
-          className="w-24 h-24 rounded-full border-2 border-dashed border-[var(--color-gold)]
+          className="w-28 h-28 rounded-full border-2 border-dashed border-[var(--color-gold)]
                      flex items-center justify-center cursor-pointer overflow-hidden
-                     hover:border-[#e0bc5a] transition-colors flex-shrink-0"
+                     hover:border-[#e0bc5a] transition-colors"
         >
-          {preview ? (
-            <img src={preview} alt="preview" className="w-full h-full object-cover" />
+          {imgSrc ? (
+            <img src={imgSrc} alt="preview" className="w-full h-full object-cover" />
           ) : (
             <span className="text-[var(--color-gold)] text-[0.6rem] text-center leading-tight px-2">
               Drop image
             </span>
           )}
         </div>
-        {/* Preserve original image path when not replaced */}
-        {editItem?.image_path && (
-          <input type="hidden" name="existing_image_path" value={editItem.image_path} />
-        )}
         <input
           ref={fileRef}
           type="file"
-          name="image"
           accept="image/*"
           className="hidden"
-          onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) onFileSelected(file);
+          }}
         />
 
-        {/* Fields */}
-        <div className="flex flex-col gap-3 flex-1 min-w-[200px]">
-          {/* Row 1: Title + Price (gold) */}
-          <div className="flex gap-3 items-end">
-            <input
-              name="title"
-              required
-              placeholder="Title"
-              defaultValue={editItem?.title ?? ''}
-              className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2
-                         text-[var(--color-text)] text-sm placeholder:text-[var(--color-text-dim)] focus:outline-none
-                         focus:border-[var(--color-gold)]"
-            />
-            <StepCounter label="Price (gold)" name="price" value={price} onChange={setPrice} />
-          </div>
-
-          {/* Row 2: Increases radio buttons + Increase (points) counter */}
-          <div className="flex gap-3 items-end">
-            <div className="flex gap-1.5 flex-1">
-              {STAT_OPTIONS.map(opt => (
-                <label key={opt.value} className="flex-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="stat_type"
-                    value={opt.value}
-                    checked={statType === opt.value}
-                    onChange={() => setStatType(statType === opt.value ? '' : opt.value)}
-                    className="sr-only"
-                  />
-                  <span className={`w-full flex items-center justify-center py-2 rounded text-xs border transition-colors
-                    ${statType === opt.value
-                      ? 'bg-[var(--color-gold)] text-black border-[var(--color-gold)]'
-                      : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] border-[var(--color-border)] hover:border-[var(--color-gold)] hover:text-[var(--color-text)]'}`}>
-                    {opt.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-            <StepCounter label="Increase (points)" name="stat_value" value={statValue} onChange={setStatValue} />
-          </div>
-
-          <textarea
-            name="description"
-            rows={2}
-            placeholder="Description (shown on hover)"
-            defaultValue={editItem?.description ?? ''}
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-1.5
-                       text-[var(--color-text)] text-sm placeholder:text-[var(--color-text-dim)] focus:outline-none
-                       focus:border-[var(--color-gold)] resize-none"
+        {/* Title + Level (for scrolls/spells) */}
+        <div className="w-full flex items-end gap-2">
+          <input
+            value={title}
+            onChange={e => setFields({ title: e.target.value })}
+            required
+            placeholder="Item Name"
+            className={`${fieldClass} text-xl font-bold text-left pb-1 flex-1`}
           />
+          {(itemType === 'scroll' || itemType === 'spell') && (
+            <div className="flex flex-col items-center gap-0.5" style={{ width: 50, flexShrink: 0 }}>
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">Lvl</span>
+              <input
+                value={level}
+                onChange={e => setFields({ level: e.target.value })}
+                placeholder="0"
+                className={`${fieldClass} text-center text-[1.1rem] w-full pb-0.5`}
+              />
+            </div>
+          )}
         </div>
+
+        {/* Type-specific fields */}
+        {itemType === 'magic_item' && (
+          <div className="w-full flex flex-col gap-3">
+            {/* Rarity */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">
+                Rarity
+              </span>
+              <div className="flex gap-1 flex-wrap">
+                {RARITIES.map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setFields({ rarity: rarity === r ? '' : r })}
+                    className="px-2.5 py-1 rounded text-[0.65rem] font-sans transition-colors"
+                    style={{
+                      backgroundColor: rarity === r ? '#4a7a5a' : 'transparent',
+                      border: `1px solid ${rarity === r ? '#4a7a5a' : '#5a4f46'}`,
+                      color: rarity === r ? '#fff' : '#a89882',
+                    }}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Attunement toggle */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setFields({ attunement: !attunement })}
+                className="flex items-center justify-center transition-colors"
+                style={{
+                  width: 20, height: 20, borderRadius: '50%',
+                  border: `2px solid ${attunement ? '#4a7a5a' : '#5a4f46'}`,
+                  backgroundColor: attunement ? '#4a7a5a' : 'transparent',
+                  color: '#fff', fontSize: '0.7rem',
+                }}
+              >
+                {attunement ? '✓' : ''}
+              </button>
+              <span className="text-[0.7rem] text-[var(--color-text-muted)] font-sans">
+                Requires Attunement
+              </span>
+            </div>
+          </div>
+        )}
+
+        {(itemType === 'scroll' || itemType === 'spell') && (
+          <div className="w-full flex flex-col gap-3">
+            <div className="flex gap-3">
+              <div className="flex flex-col gap-1 flex-1">
+                <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                  {SCHOOLS.map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setFields({ school: school === s ? '' : s })}
+                      className="py-1 rounded text-[0.55rem] font-sans transition-colors text-center"
+                      style={{
+                        backgroundColor: school === s ? '#4a7a5a' : 'transparent',
+                        border: `1px solid ${school === s ? '#4a7a5a' : '#5a4f46'}`,
+                        color: school === s ? '#fff' : '#a89882',
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {itemType === 'spell' && (
+          <div className="w-full grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">Cast Time</span>
+              <input value={castingTime} onChange={e => setFields({ castingTime: e.target.value })}
+                placeholder="1 action" className={`${fieldClass} text-sm pb-0.5`} />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">Range</span>
+              <input value={range} onChange={e => setFields({ range: e.target.value })}
+                placeholder="120 ft" className={`${fieldClass} text-sm pb-0.5`} />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">Components</span>
+              <input value={components} onChange={e => setFields({ components: e.target.value })}
+                placeholder="V, S, M" className={`${fieldClass} text-sm pb-0.5`} />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">Duration</span>
+              <input value={duration} onChange={e => setFields({ duration: e.target.value })}
+                placeholder="Instantaneous" className={`${fieldClass} text-sm pb-0.5`} />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] font-sans" style={{ color: '#b91c1c' }}>Risk %</span>
+              <input value={riskPercent} onChange={e => setFields({ riskPercent: e.target.value })}
+                placeholder="auto" className={`${fieldClass} text-sm pb-0.5`} />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans flex items-center gap-1">
+                <img src="/images/inventory/gold_coin.jpg" alt="" className="w-3 h-3 rounded-full" /> Price
+              </span>
+              <input value={price} onChange={e => setFields({ price: e.target.value })}
+                placeholder="0" className={`${fieldClass} text-sm pb-0.5`} />
+            </div>
+          </div>
+        )}
+
+        {/* Risk + Price row — scrolls only (no spell grid) */}
+        {itemType === 'scroll' && (
+          <div className="w-full grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] font-sans" style={{ color: '#b91c1c' }}>Risk %</span>
+              <input value={riskPercent} onChange={e => setFields({ riskPercent: e.target.value })}
+                placeholder="auto" className={`${fieldClass} text-sm pb-0.5`} />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans flex items-center gap-1">
+                <img src="/images/inventory/gold_coin.jpg" alt="" className="w-3 h-3 rounded-full" /> Price
+              </span>
+              <input value={price} onChange={e => setFields({ price: e.target.value })}
+                placeholder="0" className={`${fieldClass} text-sm pb-0.5`} />
+            </div>
+          </div>
+        )}
+
+        {/* Description */}
+        <textarea
+          value={description}
+          onChange={e => setFields({ description: e.target.value })}
+          rows={6}
+          placeholder="Description..."
+          className={`${fieldClass} w-full text-sm resize-none border border-[var(--color-border)] rounded px-3 py-2
+            bg-[var(--color-surface)] placeholder:text-[var(--color-text-dim)]`}
+        />
+
+        {/* Bottom stat row — magic items only */}
+        {itemType === 'magic_item' && (
+          <div className="w-full border-t border-[var(--color-border)] pt-3">
+            <div className="flex gap-2">
+              <LabeledInput label="ATK" value={attack} onChange={v => setFields({ attack: v })} placeholder="0" />
+              <LabeledInput label="DMG" value={damage} onChange={v => setFields({ damage: v })} placeholder="0" />
+              <LabeledInput label="HEAL" value={heal} onChange={v => setFields({ heal: v })} placeholder="0" />
+              <div className="flex flex-col items-center gap-0.5" style={{ flex: 1, minWidth: 48 }}>
+                <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans flex items-center gap-1">
+                  <img src="/images/inventory/gold_coin.jpg" alt="" className="w-3.5 h-3.5 rounded-full" />
+                  Price
+                </span>
+                <input
+                  value={price}
+                  onChange={e => setFields({ price: e.target.value })}
+                  placeholder="0"
+                  className={`${fieldClass} text-center text-[1.1rem] w-full pb-0.5`}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
-        <p className="mt-3 text-red-400 text-xs">{error}</p>
+        <p className="px-5 pb-3 text-red-400 text-xs">{error}</p>
       )}
-    </form>
+    </div>
   );
 }

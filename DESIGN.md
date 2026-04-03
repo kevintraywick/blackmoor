@@ -6,6 +6,8 @@ Living document for UI/UX decisions and constraints. Review before making visual
 
 **Immediate understanding.** Every page should be understood at a glance. No learning curve, no hidden state, no progressive disclosure. If a user lands on a page, they should know what it is, what it shows, and what they can do — instantly.
 
+**Never a blank canvas.** Creation flows should start with something, not nothing. When AI is available, auto-fill forms with reasonable defaults so the DM tweaks rather than writes from scratch. The starting point is a draft, not an empty form.
+
 ## Layout
 
 - **Player sheets**: `max-w-[860px]` — this is the design minimum for content pages.
@@ -52,6 +54,16 @@ Living document for UI/UX decisions and constraints. Review before making visual
 - **Section headers**: `text-[0.7rem] uppercase tracking-[0.15em]` in gold. Combat pane headers slightly larger (`0.78rem`).
 - **Pane body text**: `text-[1.05rem]` — unified across all player sheet panes.
 - **Stat values**: `text-[1.1rem]` in the stats row.
+
+## Session Control Bar
+
+- **5 circles** between session boxes and content pane: START, LONG REST, ROLL INIT, BOON, PAUSE. 64px, transparent bg, `1px solid rgba(201,168,76,0.4)`, white text `0.55rem` uppercase sans.
+- **State machine**: START → green pulse when running → PAUSE → RESUME / END SESSION? → ENDED (red pulse). After resume, START shows green ✓ (`text-xl text-[#5ab87a]`).
+- **Long Rest UI**: Three phases — confirm ("Long Rest?" with Grant Rest / Not Yet circles), resting (pulsing "Resting..."), summary ("Rested" with staggered result lines). Replaces control circles during flow.
+- **Long Rest confirm buttons**: Grant Rest = 64px circle, green bg `#2d5a3f`, white border. Not Yet = 64px circle, black bg `#1a1614`, white border.
+- **Combat count badge**: Gold `#c9a84c` circle (18px) on ROLL INIT, `-top-1 -right-1`.
+- **Return to Session**: "← Session" link (`0.65rem` uppercase muted sans) top-right on Initiative and Boons pages, links to `/dm`.
+- **Roll Initiative**: Links to `/dm/initiative?fresh=1` — clears saved combat state so setup view shows.
 
 ## Inline Add Pattern
 
