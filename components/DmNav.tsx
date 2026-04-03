@@ -96,13 +96,13 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
 
   return (
     <>
-      <nav className="sticky top-0 bg-[#161d18] backdrop-blur border-b border-[#4a7a5a]/40 px-8 py-2.5 flex items-center z-10 text-sm font-serif relative">
+      <nav style={{ position: 'sticky', top: 0, display: 'flex', alignItems: 'center', zIndex: 10, background: '#161d18', borderBottom: '1px solid rgba(74,122,90,0.4)', padding: '10px 32px', fontSize: '0.875rem' }} className="font-serif relative">
         <Link href="/" className="flex items-center text-[#4a8a5a] hover:text-[#5ab87a] transition-colors no-underline flex-shrink-0">
           <div className="relative rounded-full border border-[#4a7a5a] overflow-hidden flex-shrink-0" style={{ width: 30, height: 30 }}>
             <Image src="/images/dm.png" alt="" fill className="object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           </div>
         </Link>
-        <div className="flex-1 flex justify-center flex-wrap" style={{ gap: 16, marginLeft: 16 }}>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 16, marginLeft: 16 }}>
         {LINKS.map(link => {
           const href = link.key === 'maps' && sessionId ? `/dm/maps?session=${sessionId}` : link.href;
           const isPoisonGlow = link.key === 'poisons' && poisonCount > 0 && current !== 'poisons';
