@@ -1,10 +1,21 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Player } from '@/lib/types';
+import { useSSE } from '@/lib/useSSE';
 
-export default function SplashNav({ players }: { players: Player[] }) {
+export default function SplashNav({ players, onlinePlayers: initialOnline = [] }: { players: Player[]; onlinePlayers?: string[] }) {
+  const [online, setOnline] = useState<Set<string>>(new Set(initialOnline));
+
+  // Listen for presence changes via SSE and refetch the online list
+  useSSE('presence', useCallback(() => {
+    fetch('/api/presence').then(r => r.json()).then(data => {
+      if (data.online) setOnline(new Set(data.online));
+    }).catch(() => {});
+  }, []));
+
   return (
     <>
       {/* Desktop layout — single row */}
@@ -42,6 +53,20 @@ export default function SplashNav({ players }: { players: Player[] }) {
                 className="object-cover absolute inset-0"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
+              {/* Online presence dot */}
+              {online.has(p.id) && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: 2,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  backgroundColor: '#2d8a4e',
+                  border: '2px solid #2e2825',
+                }} />
+              )}
             </div>
           </Link>
         ))}
@@ -69,6 +94,20 @@ export default function SplashNav({ players }: { players: Player[] }) {
                   className="object-cover absolute inset-0"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
+                {/* Online presence dot */}
+                {online.has(p.id) && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 1,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    backgroundColor: '#2d8a4e',
+                    border: '2px solid #2e2825',
+                  }} />
+                )}
               </div>
             </Link>
           ))}

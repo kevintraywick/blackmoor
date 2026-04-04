@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, MarketplaceItem, Player, PlayerBoon } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
@@ -351,6 +351,18 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
   const [unread, setUnread] = useState(unreadCount);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const { save: autosave, saveNow, status: saveStatus } = useAutosave(`/api/players/${playerId}`);
+
+  // ── Presence heartbeat — tells the splash page this player is online ───────
+  useEffect(() => {
+    const beat = () => fetch('/api/presence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId }),
+    }).catch(() => {});
+    beat(); // immediate first beat
+    const id = setInterval(beat, 30_000);
+    return () => clearInterval(id);
+  }, [playerId]);
 
   const RECALC_KEYS = new Set(['str', 'dex', 'level', 'class']);
 

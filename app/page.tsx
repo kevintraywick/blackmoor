@@ -4,10 +4,17 @@ import Image from 'next/image';
 import SplashNav from '@/components/SplashNav';
 import { ensureSchema } from '@/lib/schema';
 import { getPlayers } from '@/lib/getPlayers';
+import { query } from '@/lib/db';
 
 export default async function HomePage() {
   await ensureSchema();
-  const players = await getPlayers();
+  const [players, presenceRows] = await Promise.all([
+    getPlayers(),
+    query<{ player_id: string }>(
+      `SELECT player_id FROM player_presence WHERE last_seen > NOW() - INTERVAL '90 seconds'`
+    ),
+  ]);
+  const onlinePlayers = presenceRows.map(r => r.player_id);
 
   return (
     <div className="min-h-screen bg-[#2a3140] relative">
@@ -33,7 +40,7 @@ export default async function HomePage() {
       </div>
       {/* Nav floats above the image */}
       <div className="relative z-10">
-        <SplashNav players={players} />
+        <SplashNav players={players} onlinePlayers={onlinePlayers} />
       </div>
     </div>
   );

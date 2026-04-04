@@ -429,6 +429,14 @@ async function _initSchema() {
     ON player_changes (read, created_at DESC)
   `).catch(() => {});
 
+  // ── Player Presence (online indicator) ──────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS player_presence (
+      player_id  TEXT PRIMARY KEY,
+      last_seen  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `).catch(() => {});
+
   // Ability scores — the six core D&D attributes
   for (const ab of ['str', 'dex', 'con', 'int', 'wis', 'cha']) {
     await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS ${ab} TEXT NOT NULL DEFAULT ''`).catch(() => {});
