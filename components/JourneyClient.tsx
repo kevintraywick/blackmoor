@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
 import { useRef, useState, useCallback } from 'react';
 import type { Session } from '@/lib/types';
@@ -32,18 +31,21 @@ interface Props {
 
 export default function JourneyClient({ sessions, imageMap: initialImageMap = {} }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const journalRef = useRef<HTMLDivElement>(null);
   const [imageMap, setImageMap] = useState<Record<string, string>>(initialImageMap);
   const [dragTarget, setDragTarget] = useState<string | null>(null);
+  const [openJournal, setOpenJournal] = useState<number | null>(null);
+  const [journalVisible, setJournalVisible] = useState(false);
 
   // Box dimensions — contiguous, no gaps
-  const boxW = 160;
+  const boxW = 200;
   const boxH = 500;
-  const totalW = sessions.length * boxW + 100;
-  const circleR = 48; // radius of session circles (96px diameter)
+  const totalW = sessions.length * boxW;
+  const circleR = 60; // radius of session circles (120px diameter)
 
   // Generate path points — weave up and down
   const pathPoints = sessions.map((_, i) => {
-    const x = 50 + i * boxW + boxW / 2;
+    const x = i * boxW + boxW / 2;
     const y = i % 2 === 0 ? boxH * 0.65 : boxH * 0.3;
     return { x, y };
   });
@@ -119,15 +121,15 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
       {/* Journey map — horizontal scroll */}
       <div
         ref={scrollRef}
-        className="overflow-x-auto pb-4 px-4 pt-4"
-        style={{ scrollbarColor: '#5a4f46 transparent' }}
+        className="overflow-x-auto pb-4"
+        style={{ scrollbarColor: '#5a4f46 transparent', paddingLeft: 0, paddingRight: 0 }}
       >
         <div className="relative" style={{ width: totalW, height: boxH + 40 }}>
 
           {/* Terrain boxes — contiguous, top to bottom */}
           {sessions.map((session, i) => {
             const terrain = TERRAIN_STYLES[session.terrain] ?? TERRAIN_STYLES.woods;
-            const x = 50 + i * boxW;
+            const x = i * boxW;
             const boxBg = BOX_BLUES[i % BOX_BLUES.length];
             const bgKey = `s${session.number}_bg`;
             const bgImage = imageMap[bgKey];
@@ -197,17 +199,30 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             const circleImage = imageMap[circleKey];
             const isDragOver = dragTarget === circleKey;
             const hasStarted = !!session.started_at;
+            const isOpen = openJournal === session.number;
+            const canOpen = hasStarted && !!session.journal_public;
 
             return (
-              <Link
+              <div
                 key={session.id}
-                href="/dm"
-                className="absolute no-underline group"
+                className="absolute group"
                 style={{
                   left: pt.x - circleR,
                   top: pt.y - circleR,
+                  cursor: canOpen ? 'pointer' : 'default',
                 }}
                 title={hasStarted ? (session.title || `Session ${session.number}`) : `Session ${session.number}`}
+                onClick={() => {
+                  if (!canOpen) return;
+                  if (isOpen) {
+                    setJournalVisible(false);
+                    setTimeout(() => setOpenJournal(null), 500);
+                  } else {
+                    setOpenJournal(session.number);
+                    requestAnimationFrame(() => setJournalVisible(true));
+                    setTimeout(() => journalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                  }
+                }}
               >
                 <div
                   className="rounded-full flex flex-col items-center justify-center overflow-hidden transition-all group-hover:scale-110 relative"
@@ -215,7 +230,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                     width: circleR * 2,
                     height: circleR * 2,
                     background: hasStarted ? 'rgba(255,255,255,0.9)' : 'rgba(200,200,220,0.4)',
-                    border: isDragOver ? '2px solid #4a7a5a' : '2px solid rgba(180,200,220,0.5)',
+                    border: isDragOver ? '2px solid #4a7a5a' : isOpen ? '2px solid rgba(201,168,76,0.7)' : '3px solid #000000',
                     transform: isDragOver ? 'scale(1.1)' : undefined,
                   }}
                   onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(circleKey); }}
@@ -249,12 +264,67 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                     />
                   )}
                 </div>
-              </Link>
+              </div>
             );
           })}
 
         </div>
       </div>
+
+      {/* Journal pane — scroll unroll animation */}
+      {openJournal !== null && (() => {
+        const session = sessions.find(s => s.number === openJournal);
+        if (!session) return null;
+        return (
+          <div
+            ref={journalRef}
+            style={{
+              opacity: journalVisible ? 1 : 0,
+              transform: journalVisible ? 'translateY(0)' : 'translateY(-20px)',
+              transition: 'opacity 0.4s ease-out, transform 0.4s ease-out',
+            }}
+          >
+            <div className="max-w-[700px] mx-auto px-6 py-8">
+              <div
+                style={{
+                  fontFamily: 'var(--font-serif, EB Garamond, serif)',
+                  color: 'rgba(200,190,170,0.9)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <h2 style={{ fontFamily: 'var(--font-serif, EB Garamond, serif)', fontSize: '1.4rem', color: 'rgba(201,168,76,0.85)', margin: 0 }}>
+                    {session.title || `Session ${session.number}`}
+                  </h2>
+                  <button
+                    onClick={() => { setJournalVisible(false); setTimeout(() => setOpenJournal(null), 500); }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'rgba(200,190,170,0.5)',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-sans, Geist, sans-serif)',
+                      fontSize: '0.7rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+                <div
+                  style={{
+                    fontSize: '1.05rem',
+                    lineHeight: 1.75,
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {session.journal_public}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
