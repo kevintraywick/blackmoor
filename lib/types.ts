@@ -94,6 +94,7 @@ export interface Session {
   last_modified: number;
   started_at: number | null;
   ended_at: number | null;
+  journal: string;
 }
 
 export type GridType = 'square' | 'hex';

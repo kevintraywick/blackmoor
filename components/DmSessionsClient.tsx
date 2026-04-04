@@ -8,8 +8,8 @@ import { resolveImageUrl } from '@/lib/imageUrl';
 
 // Fields to render in the detail panel — npcs replaced by NPC checkboxes
 const FIELDS = [
-  { key: 'scenes', label: 'Scene',  rows: 10, placeholder: 'Goal, encounters, locations, beats, traps, treasure, exits…' },
-  { key: 'notes',  label: 'Notes',  rows: 10, placeholder: 'Music, atmosphere, misc reminders…' },
+  { key: 'scenes', label: 'Scene',  rows: 7, placeholder: 'Scene — goal, encounters, locations, beats, traps, treasure, exits…' },
+  { key: 'notes',  label: 'Notes',  rows: 7, placeholder: 'Notes — music, atmosphere, misc reminders…' },
 ] as const;
 
 type FieldKey = (typeof FIELDS)[number]['key'];
@@ -23,6 +23,7 @@ function emptyValues(session: Session): Record<string, string | number> {
     date:  session.date,
     scenes: combined,
     notes: session.notes ?? '',
+    journal: session.journal ?? '',
   };
 }
 
@@ -383,7 +384,7 @@ function NpcCastingBoard({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-start">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-stretch">
       {/* Left: NPCs in this Session */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
         <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPCs in this Session</div>
@@ -615,9 +616,6 @@ export default function DmSessionsClient({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-start">
               {FIELDS.map(f => (
                 <div key={f.key}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">{f.label}</div>
-                  </div>
                   <textarea
                     rows={f.rows}
                     value={values[f.key as FieldKey] as string}
@@ -640,6 +638,17 @@ export default function DmSessionsClient({
               onAdd={handleNpcToggle}
             />
 
+            {/* Journal — full width */}
+            <div className="mb-7">
+              <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Journal</div>
+              <textarea
+                rows={6}
+                value={values.journal as string}
+                placeholder="After-session notes, what happened, what surprised you…"
+                onChange={e => handleChange('journal', e.target.value)}
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
+              />
+            </div>
 
             {/* Save status */}
             <div className={`text-xs text-right mt-2 h-4 transition-opacity duration-200 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} ${statusColor}`}>
