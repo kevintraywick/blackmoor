@@ -512,8 +512,9 @@ export default function InitiativePageClient({
 
   return (
     <div>
-      {/* Session box row — overlaid on banner */}
-      <div className="relative z-10 px-6 pb-2" style={{ marginTop: -37 }}>
+      {/* Session box row — at top of banner */}
+      <div className="relative z-10" style={{ marginTop: -241 }}>
+        <div className="px-6 pb-2">
         <div className="max-w-[1000px] mx-auto flex justify-center gap-2.5 overflow-x-auto pb-1">
           {sessions.map(s => (
             <button
@@ -536,6 +537,7 @@ export default function InitiativePageClient({
             </button>
           ))}
         </div>
+        </div>
       </div>
 
       {/* Return to Session */}
@@ -548,22 +550,26 @@ export default function InitiativePageClient({
         </Link>
       </div>
 
+      {/* Roll dice */}
+      <div className="max-w-[1000px] mx-auto px-4 py-8" style={{ marginTop: -25 }}>
+        <div className="flex justify-center">
+          <button
+            onClick={handleGo}
+            className="rounded-full bg-transparent flex items-center justify-center hover:scale-110 transition-transform"
+            style={{ width: 60, height: 60, fontSize: '1.8rem', border: '1px solid rgba(201,168,76,0.5)' }}
+            title="Roll Initiative"
+          >
+            🎲
+          </button>
+        </div>
+      </div>
+
       {/* Main pane */}
-      <div className="max-w-[1000px] mx-auto px-4 pb-16 pt-3">
+      <div className="max-w-[1000px] mx-auto px-4 pb-16">
         <div className="border border-[var(--color-border)] rounded bg-[#1a2535]">
 
           {/* Players */}
           <div className="relative px-6 pt-5 pb-5">
-            <div className="flex justify-center mb-4">
-              <button
-                onClick={handleGo}
-                className="rounded-full bg-transparent flex items-center justify-center hover:scale-110 transition-transform"
-                style={{ width: 60, height: 60, fontSize: '1.8rem', border: '1px solid rgba(201,168,76,0.5)' }}
-                title="Roll Initiative"
-              >
-                🎲
-              </button>
-            </div>
             <div className="flex flex-col gap-4">
               {activePlayers.map(p => (
                 <div key={p.id} className="flex items-center gap-3">

@@ -286,14 +286,6 @@ function SessionControlBar({
                 }`}>
                   {btn.label}
                 </span>
-                {btn.badge != null && (
-                  <span
-                    className="absolute -top-1 -right-1 bg-[#c9a84c] text-[#1a1614] text-[0.55rem] font-bold font-sans rounded-full flex items-center justify-center"
-                    style={{ width: 18, height: 18 }}
-                  >
-                    {btn.badge}
-                  </span>
-                )}
               </button>
             );
 
