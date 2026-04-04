@@ -31,11 +31,13 @@ interface Props {
 
 export default function JourneyClient({ sessions, imageMap: initialImageMap = {} }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const journalRef = useRef<HTMLDivElement>(null);
   const [imageMap, setImageMap] = useState<Record<string, string>>(initialImageMap);
   const [dragTarget, setDragTarget] = useState<string | null>(null);
-  const [openJournal, setOpenJournal] = useState<number | null>(null);
-  const [journalVisible, setJournalVisible] = useState(false);
+
+  // Find completed sessions and default to the last one
+  const completedSessions = sessions.filter(s => !!s.started_at && !!s.journal_public);
+  const lastCompleted = completedSessions.length > 0 ? completedSessions[completedSessions.length - 1].number : null;
+  const [activeJournal, setActiveJournal] = useState<number | null>(lastCompleted);
 
   // Box dimensions — contiguous, no gaps
   const boxW = 200;
@@ -173,6 +175,24 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 ) : null}
+                {/* Session title at bottom of active terrain box */}
+                {activeJournal === session.number && session.journal_public && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 12,
+                    left: 0,
+                    right: 0,
+                    textAlign: 'center',
+                  }}>
+                    <span style={{
+                      fontFamily: 'var(--font-serif, EB Garamond, serif)',
+                      fontSize: '1.1rem',
+                      color: 'rgba(201,168,76,0.85)',
+                    }}>
+                      {session.title || `Session ${session.number}`}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -199,7 +219,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             const circleImage = imageMap[circleKey];
             const isDragOver = dragTarget === circleKey;
             const hasStarted = !!session.started_at;
-            const isOpen = openJournal === session.number;
+            const isActive = activeJournal === session.number;
             const canOpen = hasStarted && !!session.journal_public;
 
             return (
@@ -214,14 +234,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                 title={hasStarted ? (session.title || `Session ${session.number}`) : `Session ${session.number}`}
                 onClick={() => {
                   if (!canOpen) return;
-                  if (isOpen) {
-                    setJournalVisible(false);
-                    setTimeout(() => setOpenJournal(null), 500);
-                  } else {
-                    setOpenJournal(session.number);
-                    requestAnimationFrame(() => setJournalVisible(true));
-                    setTimeout(() => journalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-                  }
+                  setActiveJournal(isActive ? null : session.number);
                 }}
               >
                 <div
@@ -230,7 +243,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                     width: circleR * 2,
                     height: circleR * 2,
                     background: hasStarted ? 'rgba(255,255,255,0.9)' : 'rgba(200,200,220,0.4)',
-                    border: isDragOver ? '2px solid #4a7a5a' : isOpen ? '2px solid rgba(201,168,76,0.7)' : '3px solid #000000',
+                    border: isDragOver ? '2px solid #4a7a5a' : isActive ? '3px solid rgba(201,168,76,0.7)' : '3px solid #000000',
                     transform: isDragOver ? 'scale(1.1)' : undefined,
                   }}
                   onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(circleKey); }}
@@ -271,55 +284,30 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
         </div>
       </div>
 
-      {/* Journal pane — scroll unroll animation */}
-      {openJournal !== null && (() => {
-        const session = sessions.find(s => s.number === openJournal);
-        if (!session) return null;
+      {/* Journal text — aligned to active session's terrain column */}
+      {activeJournal !== null && (() => {
+        const session = sessions.find(s => s.number === activeJournal);
+        const sessionIndex = sessions.findIndex(s => s.number === activeJournal);
+        if (!session || sessionIndex < 0) return null;
+        const leftOffset = sessionIndex * boxW + 10;
         return (
           <div
-            ref={journalRef}
             style={{
-              opacity: journalVisible ? 1 : 0,
-              transform: journalVisible ? 'translateY(0)' : 'translateY(-20px)',
-              transition: 'opacity 0.4s ease-out, transform 0.4s ease-out',
+              paddingLeft: leftOffset,
+              marginTop: -46,
+              paddingBottom: 32,
+              transition: 'padding-left 0.3s ease-out',
             }}
           >
-            <div className="max-w-[700px] mx-auto px-6 py-8">
-              <div
-                style={{
-                  fontFamily: 'var(--font-serif, EB Garamond, serif)',
-                  color: 'rgba(200,190,170,0.9)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <h2 style={{ fontFamily: 'var(--font-serif, EB Garamond, serif)', fontSize: '1.4rem', color: 'rgba(201,168,76,0.85)', margin: 0 }}>
-                    {session.title || `Session ${session.number}`}
-                  </h2>
-                  <button
-                    onClick={() => { setJournalVisible(false); setTimeout(() => setOpenJournal(null), 500); }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'rgba(200,190,170,0.5)',
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-sans, Geist, sans-serif)',
-                      fontSize: '0.7rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.1em',
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
-                <div
-                  style={{
-                    fontSize: '1.05rem',
-                    lineHeight: 1.75,
-                    whiteSpace: 'pre-wrap',
-                  }}
-                >
-                  {session.journal_public}
-                </div>
+            <div style={{ maxWidth: 500, paddingRight: 24 }}>
+              <div style={{
+                fontFamily: 'var(--font-serif, EB Garamond, serif)',
+                fontSize: '1.05rem',
+                lineHeight: 1.75,
+                color: 'rgba(200,190,170,0.9)',
+                whiteSpace: 'pre-wrap',
+              }}>
+                {session.journal_public}
               </div>
             </div>
           </div>
