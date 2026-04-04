@@ -50,6 +50,7 @@ This is a tool for heroes and the people who run their world. It should feel lik
 - **Safari ignores `scrollbar-width: none` on textareas.** Use a wrapper `overflow-hidden` div with the textarea sized wider to clip the native scrollbar off-screen.
 - **Linter/formatter reverts file edits.** When editing `PlayerSheet.tsx` or other large components, changes to props/state declarations get silently reverted between edits. Commit immediately after making working changes to prevent loss.
 - **Player IDs are not character names.** Player IDs (`ashton`, `brandon`, etc.) are in the `players` table; character names are display-only. Routes use IDs: `/players/ashton`, not `/players/ash`.
+- **`next/image` rejects query strings on local paths.** Next.js 16 throws if an `<Image>` src has a `?t=...` cache-buster. Use plain `<img>` tags for uploaded/API-served images.
 
 ## Local Dev Server
 When making changes that need a server restart (new DDL, cache issues, etc.), handle it directly — kill port 3000 and restart with `npx next dev -p 3000` using the Bash tool. Run the server in the background. Don't ask the user to do it.

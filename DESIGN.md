@@ -61,7 +61,7 @@ Living document for UI/UX decisions and constraints. Review before making visual
 - **State machine**: START → green pulse when running → PAUSE → RESUME / END SESSION? → ENDED (red pulse). After resume, START shows green ✓ (`text-xl text-[#5ab87a]`).
 - **Long Rest UI**: Three phases — confirm ("Long Rest?" with Grant Rest / Not Yet circles), resting (pulsing "Resting..."), summary ("Rested" with staggered result lines). Replaces control circles during flow.
 - **Long Rest confirm buttons**: Grant Rest = 64px circle, green bg `#2d5a3f`, white border. Not Yet = 64px circle, black bg `#1a1614`, white border.
-- **Combat count badge**: Gold `#c9a84c` circle (18px) on ROLL INIT, `-top-1 -right-1`.
+- **Combat count badge**: Removed.
 - **Return to Session**: "← Session" link (`0.65rem` uppercase muted sans) top-right on Initiative and Boons pages, links to `/dm`.
 - **Roll Initiative**: Links to `/dm/initiative?fresh=1` — clears saved combat state so setup view shows.
 
@@ -86,3 +86,27 @@ All list panes (Weapons, Gear, Cantrips, Magic Items) use an inline `[+] Add ite
 - **Publish button**: Below builder, full width, gold bg `#c9a84c`, serif font.
 - **Image Prompt box**: Below card preview, stretches to align bottom with Publish. Auto-generates MJ prompt from description. 📋 copy button (green `#4a7a5a` border) bottom-right outside the box.
 - **AI auto-fill**: Debounced 800ms on title+type change. Fills only empty fields. Silent no-op without API key.
+
+## DM Sessions Layout
+
+- **Row 1**: Scene | Notes — side by side, labels as inline placeholder text (no separate headers).
+- **Row 2**: NPCs in this Session | Add NPCs — equal height (`items-stretch`).
+- **Row 3**: Journal — Private | Journal — Public — side by side. Private is DM-only, Public is what players see on the Journey page.
+
+## Journey Page
+
+- **Session images**: Two per session — circle (`s{n}_circle.*`) and background (`s{n}_bg.*`). Stored in `DATA_DIR/uploads/journey/`, served via `/api/uploads/journey/[filename]`.
+- **Drag-and-drop**: DM can drop images onto circles or background boxes. Green border on drag-over. Uploaded images replace previous.
+- **Fallback**: No image = session number/title in circle, blue-tinted box for background.
+- **Image format**: Use `<img>` tags (not `next/image`) for uploaded journey images — Next.js 16 rejects query strings on local image paths.
+
+## Initiative Page
+
+- **Session boxes**: Positioned at top of banner image (`marginTop: -241`), overlaying the artwork.
+- **Dice button**: 60px circle with 🎲 emoji, centered between session boxes and roll pane, `marginTop: -25` to tighten spacing.
+- **Roll pane**: Below dice, contains player rows and NPC rows with initiative counters.
+
+## Player Nav Bar
+
+- **Links**: Home (dice icon) | Player / Character | All Players | Marketplace | *The story so far…* (italic, links to Journey).
+- **All links** use `text-[var(--color-text)]` for consistent brightness, `hover:text-[var(--color-gold)]`.
