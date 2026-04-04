@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRef } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import type { Session } from '@/lib/types';
 
 // Terrain color/style map for the tall boxes
@@ -27,10 +27,13 @@ const BOX_BLUES = [
 
 interface Props {
   sessions: Session[];
+  imageMap?: Record<string, string>;
 }
 
-export default function JourneyClient({ sessions }: Props) {
+export default function JourneyClient({ sessions, imageMap: initialImageMap = {} }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [imageMap, setImageMap] = useState<Record<string, string>>(initialImageMap);
+  const [dragTarget, setDragTarget] = useState<string | null>(null);
 
   // Box dimensions — contiguous, no gaps
   const boxW = 160;
@@ -58,6 +61,48 @@ export default function JourneyClient({ sessions }: Props) {
     return d;
   }
 
+  // Upload handler for drag-and-drop
+  const handleDrop = useCallback(async (sessionNumber: number, slot: 'circle' | 'bg', file: File) => {
+    const formData = new FormData();
+    formData.append('session_number', String(sessionNumber));
+    formData.append('slot', slot);
+    formData.append('image', file);
+
+    try {
+      const res = await fetch('/api/uploads/journey', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.path) {
+        setImageMap(prev => ({ ...prev, [`s${sessionNumber}_${slot}`]: data.path + '?t=' + Date.now() }));
+      }
+    } catch {
+      // silent fail
+    }
+    setDragTarget(null);
+  }, []);
+
+  const onDragOver = (e: React.DragEvent, key: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragTarget(key);
+  };
+
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragTarget(null);
+  };
+
+  const onDrop = (e: React.DragEvent, sessionNumber: number, slot: 'circle' | 'bg') => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      handleDrop(sessionNumber, slot, file);
+    } else {
+      setDragTarget(null);
+    }
+  };
+
   return (
     <div className="max-w-full mx-auto">
       {/* Banner */}
@@ -83,8 +128,10 @@ export default function JourneyClient({ sessions }: Props) {
           {sessions.map((session, i) => {
             const terrain = TERRAIN_STYLES[session.terrain] ?? TERRAIN_STYLES.woods;
             const x = 50 + i * boxW;
-            const boxImage = `/images/journey/journey_box_${i + 1}.png`;
             const boxBg = BOX_BLUES[i % BOX_BLUES.length];
+            const bgKey = `s${session.number}_bg`;
+            const bgImage = imageMap[bgKey];
+            const isDragOver = dragTarget === bgKey;
 
             return (
               <div
@@ -96,24 +143,33 @@ export default function JourneyClient({ sessions }: Props) {
                   width: boxW,
                   height: boxH,
                   background: boxBg,
-                  borderLeft: i === 0 ? 'none' : `1px solid rgba(150,180,210,0.15)`,
+                  borderLeft: i === 0 ? 'none' : '1px solid rgba(150,180,210,0.15)',
                   borderRight: 'none',
+                  border: isDragOver ? '2px solid #4a7a5a' : undefined,
+                  transform: isDragOver ? 'scale(1.02)' : undefined,
+                  transition: 'border 0.15s, transform 0.15s',
                 }}
+                onDragOver={(e) => onDragOver(e, bgKey)}
+                onDragLeave={onDragLeave}
+                onDrop={(e) => onDrop(e, session.number, 'bg')}
               >
                 {/* Box background image */}
-                <Image
-                  src={boxImage}
-                  alt={terrain.label}
-                  fill
-                  className="object-cover opacity-30"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-                {/* Terrain label at bottom */}
-                <div className="absolute bottom-3 left-0 right-0 text-center">
-                  <span className="font-sans text-[0.5rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] opacity-50">
-                    {terrain.label}
-                  </span>
-                </div>
+                {bgImage ? (
+                  <img
+                    src={bgImage}
+                    alt={terrain.label}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <Image
+                    src={`/images/journey/journey_box_${i + 1}.png`}
+                    alt={terrain.label}
+                    fill
+                    className="object-cover opacity-30"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                )}
               </div>
             );
           })}
@@ -133,10 +189,12 @@ export default function JourneyClient({ sessions }: Props) {
             />
           </svg>
 
-          {/* Session stop circles — 3x size (72px) */}
+          {/* Session stop circles */}
           {sessions.map((session, i) => {
             const pt = pathPoints[i];
-            const stopImage = `/images/journey/stop_${session.number}.png`;
+            const circleKey = `s${session.number}_circle`;
+            const circleImage = imageMap[circleKey];
+            const isDragOver = dragTarget === circleKey;
 
             return (
               <Link
@@ -150,20 +208,34 @@ export default function JourneyClient({ sessions }: Props) {
                 title={session.title || `Session ${session.number}`}
               >
                 <div
-                  className="rounded-full border-2 border-[rgba(180,200,220,0.5)] flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-[var(--color-gold)] group-hover:scale-110 relative"
-                  style={{ width: circleR * 2, height: circleR * 2, background: 'rgba(255,255,255,0.9)' }}
+                  className="rounded-full flex flex-col items-center justify-center overflow-hidden transition-all group-hover:scale-110 relative"
+                  style={{
+                    width: circleR * 2,
+                    height: circleR * 2,
+                    background: 'rgba(255,255,255,0.9)',
+                    border: isDragOver ? '2px solid #4a7a5a' : '2px solid rgba(180,200,220,0.5)',
+                    transform: isDragOver ? 'scale(1.1)' : undefined,
+                  }}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(circleKey); }}
+                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); }}
+                  onDrop={(e) => { e.preventDefault(); e.stopPropagation(); const file = e.dataTransfer.files[0]; if (file && file.type.startsWith('image/')) { handleDrop(session.number, 'circle', file); } else { setDragTarget(null); } }}
                 >
-                  <span className="text-[#2a3140] font-serif text-2xl select-none z-10 leading-none">{session.number}</span>
-                  <span className="text-[#4a5568] font-serif text-[0.45rem] select-none z-10 leading-tight text-center px-1.5 mt-0.5" style={{ maxWidth: circleR * 2 - 8 }}>
-                    {session.title || `Session ${session.number}`}
-                  </span>
-                  <Image
-                    src={stopImage}
-                    alt={`Session ${session.number}`}
-                    fill
-                    className="object-cover absolute inset-0 opacity-70"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
+                  {!circleImage && (
+                    <>
+                      <span className="text-[#2a3140] font-serif text-2xl select-none z-10 leading-none">{session.number}</span>
+                      <span className="text-[#4a5568] font-serif text-[0.45rem] select-none z-10 leading-tight text-center px-1.5 mt-0.5" style={{ maxWidth: circleR * 2 - 8 }}>
+                        {session.title || `Session ${session.number}`}
+                      </span>
+                    </>
+                  )}
+                  {circleImage && (
+                    <img
+                      src={circleImage}
+                      alt={`Session ${session.number}`}
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  )}
                 </div>
               </Link>
             );

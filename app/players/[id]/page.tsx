@@ -55,9 +55,11 @@ export default async function PlayerPage({ params }: Props) {
         <span className="text-[var(--color-border)]">/</span>
         <span className="text-[var(--color-text)]">{player.character}</span>
         <span className="text-[var(--color-border)]">|</span>
-        <Link href="/" className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] no-underline">All Players</Link>
+        <Link href="/" className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline">All Players</Link>
         <span className="text-[var(--color-border)]">|</span>
-        <Link href={`/dm/marketplace?player=${player.id}`} className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] no-underline">Marketplace</Link>
+        <Link href={`/dm/marketplace?player=${player.id}`} className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline">Marketplace</Link>
+        <span className="text-[var(--color-border)]">|</span>
+        <Link href="/dm/journey" className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline italic">The story so far…</Link>
       </div>
 
       <WolfHowl playerId={player.id} />

@@ -51,5 +51,8 @@ This is a tool for heroes and the people who run their world. It should feel lik
 - **Linter/formatter reverts file edits.** When editing `PlayerSheet.tsx` or other large components, changes to props/state declarations get silently reverted between edits. Commit immediately after making working changes to prevent loss.
 - **Player IDs are not character names.** Player IDs (`ashton`, `brandon`, etc.) are in the `players` table; character names are display-only. Routes use IDs: `/players/ashton`, not `/players/ash`.
 
+## Local Dev Server
+When making changes that need a server restart (new DDL, cache issues, etc.), handle it directly — kill port 3000 and restart with `npx next dev -p 3000` using the Bash tool. Run the server in the background. Don't ask the user to do it.
+
 ## GITHUB
 Alert the user on a local push or commit if the change has not been pushed to Github.

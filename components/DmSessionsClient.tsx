@@ -8,8 +8,8 @@ import { resolveImageUrl } from '@/lib/imageUrl';
 
 // Fields to render in the detail panel — npcs replaced by NPC checkboxes
 const FIELDS = [
-  { key: 'scenes',    label: 'Scene',     rows: 10, placeholder: 'Goal, encounters, beats, traps, treasure, exits…',  cols: 2 },
-  { key: 'locations', label: 'Locations', rows: 10, placeholder: 'Key locations and descriptions…',                   cols: 2 },
+  { key: 'scenes', label: 'Scene',  rows: 10, placeholder: 'Goal, encounters, locations, beats, traps, treasure, exits…' },
+  { key: 'notes',  label: 'Notes',  rows: 10, placeholder: 'Music, atmosphere, misc reminders…' },
 ] as const;
 
 type FieldKey = (typeof FIELDS)[number]['key'];
@@ -22,7 +22,6 @@ function emptyValues(session: Session): Record<string, string | number> {
     title: session.title,
     date:  session.date,
     scenes: combined,
-    locations: session.locations ?? '',
     notes: session.notes ?? '',
   };
 }
@@ -40,16 +39,9 @@ function SessionControlBar({
   onLongRest: () => void;
   onSessionUpdate: (s: Session) => void;
 }) {
-  const [combatCount, setCombatCount] = useState(0);
   const [longRestPhase, setLongRestPhase] = useState<'idle' | 'confirm' | 'resting' | 'summary'>('idle');
   const [longRestResult, setLongRestResult] = useState<{ restored_npcs: number; expired_boons: number; cleared_poisons: number } | null>(null);
 
-  useEffect(() => {
-    fetch(`/api/sessions/${sessionId}/events?type=combat_start`)
-      .then(r => r.json())
-      .then((events: unknown[]) => setCombatCount(events.length))
-      .catch(() => {});
-  }, [sessionId]);
 
   const isStarted = !!session.started_at;
   const isPaused = !!session.ended_at;
@@ -113,7 +105,6 @@ function SessionControlBar({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event_type: 'combat_start' }),
     });
-    setCombatCount(prev => prev + 1);
     try { localStorage.setItem('blackmoor-last-session', sessionId); } catch { /* silent */ }
   }
 
@@ -152,7 +143,6 @@ function SessionControlBar({
       href: '/dm/initiative?fresh=1',
       onClick: handleRollInitiative,
       style: circleBase,
-      badge: combatCount > 0 ? combatCount : null,
     },
     {
       label: 'BOON',
