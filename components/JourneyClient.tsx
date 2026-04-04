@@ -132,6 +132,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             const bgKey = `s${session.number}_bg`;
             const bgImage = imageMap[bgKey];
             const isDragOver = dragTarget === bgKey;
+            const hasStarted = !!session.started_at;
 
             return (
               <div
@@ -153,15 +154,15 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                 onDragLeave={onDragLeave}
                 onDrop={(e) => onDrop(e, session.number, 'bg')}
               >
-                {/* Box background image */}
-                {bgImage ? (
+                {/* Box background image — only show for started sessions */}
+                {hasStarted && bgImage ? (
                   <img
                     src={bgImage}
                     alt={terrain.label}
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }}
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
-                ) : (
+                ) : hasStarted ? (
                   <Image
                     src={`/images/journey/journey_box_${i + 1}.png`}
                     alt={terrain.label}
@@ -169,7 +170,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                     className="object-cover opacity-30"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
-                )}
+                ) : null}
               </div>
             );
           })}
@@ -195,6 +196,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             const circleKey = `s${session.number}_circle`;
             const circleImage = imageMap[circleKey];
             const isDragOver = dragTarget === circleKey;
+            const hasStarted = !!session.started_at;
 
             return (
               <Link
@@ -205,14 +207,14 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                   left: pt.x - circleR,
                   top: pt.y - circleR,
                 }}
-                title={session.title || `Session ${session.number}`}
+                title={hasStarted ? (session.title || `Session ${session.number}`) : `Session ${session.number}`}
               >
                 <div
                   className="rounded-full flex flex-col items-center justify-center overflow-hidden transition-all group-hover:scale-110 relative"
                   style={{
                     width: circleR * 2,
                     height: circleR * 2,
-                    background: 'rgba(255,255,255,0.9)',
+                    background: hasStarted ? 'rgba(255,255,255,0.9)' : 'rgba(200,200,220,0.4)',
                     border: isDragOver ? '2px solid #4a7a5a' : '2px solid rgba(180,200,220,0.5)',
                     transform: isDragOver ? 'scale(1.1)' : undefined,
                   }}
@@ -220,20 +222,30 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                   onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); }}
                   onDrop={(e) => { e.preventDefault(); e.stopPropagation(); const file = e.dataTransfer.files[0]; if (file && file.type.startsWith('image/')) { handleDrop(session.number, 'circle', file); } else { setDragTarget(null); } }}
                 >
-                  {!circleImage && (
+                  {hasStarted ? (
                     <>
-                      <span className="text-[#2a3140] font-serif text-2xl select-none z-10 leading-none">{session.number}</span>
-                      <span className="text-[#4a5568] font-serif text-[0.45rem] select-none z-10 leading-tight text-center px-1.5 mt-0.5" style={{ maxWidth: circleR * 2 - 8 }}>
-                        {session.title || `Session ${session.number}`}
-                      </span>
+                      {!circleImage && (
+                        <>
+                          <span className="text-[#2a3140] font-serif text-2xl select-none z-10 leading-none">{session.number}</span>
+                          <span className="text-[#4a5568] font-serif text-[0.45rem] select-none z-10 leading-tight text-center px-1.5 mt-0.5" style={{ maxWidth: circleR * 2 - 8 }}>
+                            {session.title || `Session ${session.number}`}
+                          </span>
+                        </>
+                      )}
+                      {circleImage && (
+                        <img
+                          src={circleImage}
+                          alt={`Session ${session.number}`}
+                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      )}
                     </>
-                  )}
-                  {circleImage && (
+                  ) : (
                     <img
-                      src={circleImage}
-                      alt={`Session ${session.number}`}
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      src="/images/journey/moon.png"
+                      alt="Unknown"
+                      style={{ position: 'absolute', inset: '-5%', width: '110%', height: '110%', objectFit: 'cover', opacity: 0.6 }}
                     />
                   )}
                 </div>
