@@ -44,7 +44,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
   // Generate path points — weave up and down
   const pathPoints = sessions.map((_, i) => {
     const x = 50 + i * boxW + boxW / 2;
-    const y = i % 2 === 0 ? boxH * 0.3 : boxH * 0.65;
+    const y = i % 2 === 0 ? boxH * 0.65 : boxH * 0.3;
     return { x, y };
   });
 
