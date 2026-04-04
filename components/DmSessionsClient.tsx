@@ -24,6 +24,7 @@ function emptyValues(session: Session): Record<string, string | number> {
     scenes: combined,
     notes: session.notes ?? '',
     journal: session.journal ?? '',
+    journal_public: session.journal_public ?? '',
   };
 }
 
@@ -638,16 +639,28 @@ export default function DmSessionsClient({
               onAdd={handleNpcToggle}
             />
 
-            {/* Journal — full width */}
-            <div className="mb-7">
-              <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Journal</div>
-              <textarea
-                rows={6}
-                value={values.journal as string}
-                placeholder="After-session notes, what happened, what surprised you…"
-                onChange={e => handleChange('journal', e.target.value)}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
-              />
+            {/* Journal — Private | Public side by side */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7">
+              <div>
+                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Journal — Private</div>
+                <textarea
+                  rows={6}
+                  value={values.journal as string}
+                  placeholder="DM-only notes — what happened, what surprised you…"
+                  onChange={e => handleChange('journal', e.target.value)}
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
+                />
+              </div>
+              <div>
+                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Journal — Public</div>
+                <textarea
+                  rows={6}
+                  value={values.journal_public as string}
+                  placeholder="What players see on the Journey page…"
+                  onChange={e => handleChange('journal_public', e.target.value)}
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
+                />
+              </div>
             </div>
 
             {/* Save status */}
