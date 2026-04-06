@@ -54,6 +54,11 @@ export async function PATCH(req: Request) {
       vals.push(body.background.trim());
     }
 
+    if (typeof body.narrative_notes === 'string') {
+      sets.push(`narrative_notes = $${vals.length + 1}`);
+      vals.push(body.narrative_notes.trim());
+    }
+
     await query(
       `UPDATE campaign SET ${sets.join(', ')} WHERE id = 'default'`,
       vals

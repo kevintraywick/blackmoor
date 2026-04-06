@@ -96,6 +96,7 @@ export interface Session {
   ended_at: number | null;
   journal: string;
   journal_public: string;
+  narrative_notes: string;
 }
 
 export type GridType = 'square' | 'hex';
@@ -137,6 +138,7 @@ export interface Campaign {
   quorum_notified: string[];
   description: string;
   background: string;
+  narrative_notes: string;
 }
 
 export interface Invitation {

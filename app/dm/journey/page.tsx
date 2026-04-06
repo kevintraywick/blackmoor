@@ -15,7 +15,7 @@ async function getJourneyImages(): Promise<Record<string, string>> {
     const files = await readdir(UPLOAD_DIR);
     const images: Record<string, string> = {};
     for (const f of files) {
-      const m = f.match(/^(s\d+_(circle|bg)|campaign_bg)\.\w+$/);
+      const m = f.match(/^(s\d+_(circle|bg)|campaign_bg|journal_bg)\.\w+$/);
       if (m) images[m[1]] = `/api/uploads/journey/${f}`;
     }
     return images;

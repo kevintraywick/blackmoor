@@ -8,6 +8,7 @@ const SESSION_COLUMNS: Record<string, string> = {
   npcs: 'npcs', locations: 'locations', loose_ends: 'loose_ends', notes: 'notes',
   npc_ids: 'npc_ids', menagerie: 'menagerie',
   started_at: 'started_at', ended_at: 'ended_at',
+  journal: 'journal', journal_public: 'journal_public', narrative_notes: 'narrative_notes',
 };
 
 // JSONB columns need JSON.stringify before passing to pg

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export type NavSection = 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative' | 'maps' | 'magic' | 'marketplace' | 'poisons' | 'inventory' | 'boons' | 'journey';
+export type NavSection = 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative' | 'maps' | 'magic' | 'marketplace' | 'poisons' | 'inventory' | 'boons' | 'journey' | 'journal';
 
 interface PlayerChangeRow {
   player_id: string;
@@ -33,6 +33,7 @@ function groupByPlayer(changes: PlayerChangeRow[]): Record<string, PlayerChangeR
 
 const LINKS: { key: NavSection; label: string; href: string }[] = [
   { key: 'campaign',    label: 'Campaign',         href: '/dm/campaign' },
+  { key: 'journal',     label: 'Journal',         href: '/dm/journal' },
   { key: 'sessions',    label: 'Sessions',        href: '/dm' },
   { key: 'players',     label: 'Players',         href: '/dm/players' },
   { key: 'npcs',        label: 'NPCs',            href: '/dm/npcs' },

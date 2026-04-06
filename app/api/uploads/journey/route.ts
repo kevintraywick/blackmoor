@@ -14,7 +14,7 @@ export async function GET() {
     const images: Record<string, string> = {};
     for (const f of files) {
       // Match s{n}_circle.*, s{n}_bg.*, or campaign_bg.*
-      const m = f.match(/^(s\d+_(circle|bg)|campaign_bg)\.\w+$/);
+      const m = f.match(/^(s\d+_(circle|bg)|campaign_bg|journal_bg)\.\w+$/);
       if (m) images[m[1]] = `/api/uploads/journey/${f}`;
     }
     return NextResponse.json({ images });
@@ -39,8 +39,8 @@ export async function POST(request: Request) {
     const slot = formData.get('slot') as string;
 
     let fileKey: string;
-    if (namedKey === 'campaign_bg') {
-      fileKey = 'campaign_bg';
+    if (namedKey === 'campaign_bg' || namedKey === 'journal_bg') {
+      fileKey = namedKey;
     } else {
       if (!sessionNumber || !slot) return NextResponse.json({ error: 'session_number and slot required' }, { status: 400 });
       if (!['circle', 'bg'].includes(slot)) return NextResponse.json({ error: 'slot must be "circle" or "bg"' }, { status: 400 });
