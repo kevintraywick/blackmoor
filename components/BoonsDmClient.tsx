@@ -64,6 +64,7 @@ export default function BoonsDmClient({ players, initialTemplates, initialActive
     const et = expiryType[templateId] || 'permanent';
     const mins = et === 'timer' ? parseInt(timerInputs[templateId] || '0', 10) : 0;
 
+    const sessionId = typeof window !== 'undefined' ? localStorage.getItem('blackmoor-last-session') : null;
     const res = await fetch('/api/boons', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -72,6 +73,7 @@ export default function BoonsDmClient({ players, initialTemplates, initialActive
         player_id: selectedPlayer,
         expiry_type: et,
         expiry_minutes: mins,
+        session_id: sessionId,
       }),
     });
     if (res.ok) {

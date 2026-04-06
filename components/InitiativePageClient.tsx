@@ -253,6 +253,14 @@ export default function InitiativePageClient({
       return 0;
     });
 
+    // Log combat_start event with player IDs
+    const playerIds = combatants.filter(c => c.type === 'player').map(c => c.id);
+    fetch(`/api/sessions/${selectedSession.id}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: 'combat_start', payload: { player_ids: playerIds } }),
+    }).catch(() => {});
+
     const initialDone = new Array(combatants.length).fill(false);
     setResults(combatants);
     setCurrentTurn(0);
@@ -300,6 +308,15 @@ export default function InitiativePageClient({
         }
       }
       saveMenagerie(combatSessionIdRef.current, [...menagerieRef.current]);
+    }
+
+    // Log NPC killed when HP reaches 0
+    if (c.type === 'npc' && c.hp === 0 && results[idx].hp !== undefined && results[idx].hp! > 0 && combatSessionIdRef.current) {
+      fetch(`/api/sessions/${combatSessionIdRef.current}/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_type: 'npc_killed', payload: { npc_name: c.name, npc_id: c.id } }),
+      }).catch(() => {});
     }
 
     // Write back PC HP changes to player sheet

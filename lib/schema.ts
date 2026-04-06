@@ -444,6 +444,10 @@ async function _initSchema() {
 
   await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS align TEXT NOT NULL DEFAULT ''`).catch(() => {});
 
+  // Session tracking — link boons/poisons to sessions
+  await pool.query(`ALTER TABLE player_boons ADD COLUMN IF NOT EXISTS session_id TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE poison_status ADD COLUMN IF NOT EXISTS session_id TEXT`).catch(() => {});
+
   // Session lifecycle timestamps
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS started_at BIGINT`).catch(() => {});
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS ended_at BIGINT`).catch(() => {});

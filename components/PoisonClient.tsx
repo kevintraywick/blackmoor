@@ -51,10 +51,11 @@ export default function PoisonClient({ players, initialPoisons }: Props) {
 
   const poisonPlayer = useCallback(async (playerId: string, duration: string) => {
     const label = poisonLabels[playerId]?.trim() || 'Poisoned';
+    const sessionId = typeof window !== 'undefined' ? localStorage.getItem('blackmoor-last-session') : null;
     const res = await fetch('/api/poison', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ player_id: playerId, poison_type: label, duration }),
+      body: JSON.stringify({ player_id: playerId, poison_type: label, duration, session_id: sessionId }),
     });
     const row: PoisonStatus = await res.json();
     setPoisons(prev => [...prev, row]);

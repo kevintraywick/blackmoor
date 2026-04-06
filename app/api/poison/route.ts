@@ -23,11 +23,11 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   await ensureSchema();
   try {
-    const { player_id, poison_type, duration } = await req.json();
+    const { player_id, poison_type, duration, session_id = null } = await req.json();
     const id = crypto.randomUUID();
     await query(
-      `INSERT INTO poison_status (id, player_id, poison_type, duration) VALUES ($1, $2, $3, $4)`,
-      [id, player_id, poison_type || 'Poisoned', duration || 'long_rest']
+      `INSERT INTO poison_status (id, player_id, poison_type, duration, session_id) VALUES ($1, $2, $3, $4, $5)`,
+      [id, player_id, poison_type || 'Poisoned', duration || 'long_rest', session_id]
     );
     const rows = await query<PoisonStatus>('SELECT * FROM poison_status WHERE id = $1', [id]);
     return NextResponse.json(rows[0]);

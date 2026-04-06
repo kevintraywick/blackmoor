@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await ensureSchema();
-    const { template_id, player_id, expiry_type = 'permanent', expiry_minutes = 0 } = await req.json();
+    const { template_id, player_id, expiry_type = 'permanent', expiry_minutes = 0, session_id = null } = await req.json();
 
     if (!template_id || !player_id) {
       return NextResponse.json({ error: 'template_id and player_id required' }, { status: 400 });
@@ -47,9 +47,9 @@ export async function POST(req: NextRequest) {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
     await query(
-      `INSERT INTO player_boons (id, player_id, template_id, name, category, description, effect, action_type, range, components, duration_text, grants_advantage, expiry_type, expiry_minutes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-      [id, player_id, template_id, t.name, t.category, t.description, t.effect, t.action_type, t.range, t.components, t.duration, t.grants_advantage, expiry_type, expiry_minutes]
+      `INSERT INTO player_boons (id, player_id, template_id, name, category, description, effect, action_type, range, components, duration_text, grants_advantage, expiry_type, expiry_minutes, session_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+      [id, player_id, template_id, t.name, t.category, t.description, t.effect, t.action_type, t.range, t.components, t.duration, t.grants_advantage, expiry_type, expiry_minutes, session_id]
     );
 
     return NextResponse.json({ ok: true, id });
