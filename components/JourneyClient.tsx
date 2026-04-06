@@ -43,7 +43,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
 
   // Box dimensions — contiguous, no gaps
   const boxW = 200;
-  const boxH = 500;
+  const boxH = 450;
   const totalW = sessions.length * boxW;
   const circleR = 60; // radius of session circles (120px diameter)
 
