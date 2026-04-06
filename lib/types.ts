@@ -136,6 +136,7 @@ export interface Campaign {
   dm_email: string;
   quorum_notified: string[];
   description: string;
+  background: string;
 }
 
 export interface Invitation {

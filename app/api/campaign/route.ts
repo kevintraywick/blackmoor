@@ -49,6 +49,11 @@ export async function PATCH(req: Request) {
       vals.push(body.description.trim().slice(0, 300));
     }
 
+    if (typeof body.background === 'string') {
+      sets.push(`background = $${vals.length + 1}`);
+      vals.push(body.background.trim());
+    }
+
     await query(
       `UPDATE campaign SET ${sets.join(', ')} WHERE id = 'default'`,
       vals

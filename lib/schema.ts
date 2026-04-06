@@ -357,6 +357,11 @@ async function _initSchema() {
     ALTER TABLE campaign ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''
   `).catch(() => {});
 
+  // Campaign background / backstory
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS background TEXT NOT NULL DEFAULT ''
+  `).catch(() => {});
+
   // ── Invitations (shareable availability polls) ─────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS invitations (

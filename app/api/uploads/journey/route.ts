@@ -13,8 +13,8 @@ export async function GET() {
     const files = await readdir(UPLOAD_DIR);
     const images: Record<string, string> = {};
     for (const f of files) {
-      // Match s{n}_circle.* or s{n}_bg.*
-      const m = f.match(/^(s\d+_(circle|bg))\.\w+$/);
+      // Match s{n}_circle.*, s{n}_bg.*, or campaign_bg.*
+      const m = f.match(/^(s\d+_(circle|bg)|campaign_bg)\.\w+$/);
       if (m) images[m[1]] = `/api/uploads/journey/${f}`;
     }
     return NextResponse.json({ images });
@@ -27,20 +27,30 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const sessionNumber = formData.get('session_number') as string;
-    const slot = formData.get('slot') as string;
     const image = formData.get('image') as File | null;
 
-    if (!sessionNumber || !slot) return NextResponse.json({ error: 'session_number and slot required' }, { status: 400 });
-    if (!['circle', 'bg'].includes(slot)) return NextResponse.json({ error: 'slot must be "circle" or "bg"' }, { status: 400 });
     if (!image || image.size === 0) return NextResponse.json({ error: 'image required' }, { status: 400 });
     if (!ALLOWED_MIME.includes(image.type)) return NextResponse.json({ error: 'Image must be png, jpeg, webp, or gif' }, { status: 400 });
     if (image.size > MAX_IMAGE_BYTES) return NextResponse.json({ error: 'Image must be 4 MB or smaller' }, { status: 400 });
 
+    // Determine file key — either session-based or a named key (e.g. campaign_bg)
+    const namedKey = formData.get('key') as string | null;
+    const sessionNumber = formData.get('session_number') as string;
+    const slot = formData.get('slot') as string;
+
+    let fileKey: string;
+    if (namedKey === 'campaign_bg') {
+      fileKey = 'campaign_bg';
+    } else {
+      if (!sessionNumber || !slot) return NextResponse.json({ error: 'session_number and slot required' }, { status: 400 });
+      if (!['circle', 'bg'].includes(slot)) return NextResponse.json({ error: 'slot must be "circle" or "bg"' }, { status: 400 });
+      fileKey = `s${sessionNumber}_${slot}`;
+    }
+
     await mkdir(UPLOAD_DIR, { recursive: true });
 
-    // Delete any existing file for this slot (handles extension changes)
-    const prefix = `s${sessionNumber}_${slot}.`;
+    // Delete any existing file for this key (handles extension changes)
+    const prefix = `${fileKey}.`;
     const existing = await readdir(UPLOAD_DIR);
     for (const f of existing) {
       if (f.startsWith(prefix)) {
@@ -49,7 +59,7 @@ export async function POST(request: Request) {
     }
 
     const ext = extname(image.name) || '.png';
-    const filename = `s${sessionNumber}_${slot}${ext}`;
+    const filename = `${fileKey}${ext}`;
     const buffer = Buffer.from(await image.arrayBuffer());
     await writeFile(join(UPLOAD_DIR, filename), buffer);
 

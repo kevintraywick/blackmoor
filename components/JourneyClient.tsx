@@ -65,7 +65,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
     return d;
   }
 
-  // Upload handler for drag-and-drop
+  // Upload handler for drag-and-drop (session images)
   const handleDrop = useCallback(async (sessionNumber: number, slot: 'circle' | 'bg', file: File) => {
     const formData = new FormData();
     formData.append('session_number', String(sessionNumber));
@@ -77,6 +77,24 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
       const data = await res.json();
       if (data.path) {
         setImageMap(prev => ({ ...prev, [`s${sessionNumber}_${slot}`]: data.path + '?t=' + Date.now() }));
+      }
+    } catch {
+      // silent fail
+    }
+    setDragTarget(null);
+  }, []);
+
+  // Upload handler for named keys (e.g. campaign_bg)
+  const handleKeyDrop = useCallback(async (key: string, file: File) => {
+    const formData = new FormData();
+    formData.append('key', key);
+    formData.append('image', file);
+
+    try {
+      const res = await fetch('/api/uploads/journey', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.path) {
+        setImageMap(prev => ({ ...prev, [key]: data.path + '?t=' + Date.now() }));
       }
     } catch {
       // silent fail
@@ -110,7 +128,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
   return (
     <div className="max-w-full mx-auto">
       {/* Banner */}
-      <div className="relative w-full h-[200px] overflow-hidden">
+      <div className="relative w-full h-[200px] overflow-hidden" style={{ display: 'flex', alignItems: 'center' }}>
         <Image
           src="/images/journey/journey_splash.png"
           alt="Journey"
@@ -118,6 +136,51 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
           className="object-cover object-center"
           priority
         />
+        {/* Campaign background circle — drop zone */}
+        {(() => {
+          const key = 'campaign_bg';
+          const img = imageMap[key];
+          const isDragOver = dragTarget === key;
+          return (
+            <div
+              className="absolute z-10 rounded-full overflow-hidden"
+              style={{
+                left: boxW / 2 - circleR,
+                width: circleR * 2,
+                height: circleR * 2,
+                border: isDragOver ? '3px solid #4a7a5a' : '3px solid #000000',
+                background: 'rgba(200,200,220,0.4)',
+                transform: isDragOver ? 'scale(1.1)' : undefined,
+                transition: 'border 0.15s, transform 0.15s',
+                cursor: 'default',
+              }}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(key); }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                  handleKeyDrop(key, file);
+                } else {
+                  setDragTarget(null);
+                }
+              }}
+            >
+              {img ? (
+                <img
+                  src={img}
+                  alt="Campaign"
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                  <span className="text-[#4a5568] font-serif text-[0.5rem] select-none uppercase tracking-wider">Drop image</span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Journey map — horizontal scroll */}
