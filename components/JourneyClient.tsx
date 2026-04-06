@@ -201,7 +201,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
         >
           <div
             style={{
-              background: 'rgba(0,0,0,0.55)',
+              background: 'rgba(255,255,255,0.70)',
               backdropFilter: 'blur(10px)',
               borderRadius: 8,
               padding: '20px 28px',
@@ -209,8 +209,8 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             }}
           >
             <div
-              className="font-serif text-white text-[1.075rem] leading-relaxed"
-              style={{ whiteSpace: 'pre-wrap', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
+              className="font-serif text-[#1a1614] text-[1.075rem] leading-relaxed"
+              style={{ whiteSpace: 'pre-wrap' }}
             >
               {campaignBackground}
             </div>
