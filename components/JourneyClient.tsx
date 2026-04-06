@@ -27,9 +27,10 @@ const BOX_BLUES = [
 interface Props {
   sessions: Session[];
   imageMap?: Record<string, string>;
+  campaignBackground?: string;
 }
 
-export default function JourneyClient({ sessions, imageMap: initialImageMap = {} }: Props) {
+export default function JourneyClient({ sessions, imageMap: initialImageMap = {}, campaignBackground = '' }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [imageMap, setImageMap] = useState<Record<string, string>>(initialImageMap);
   const [dragTarget, setDragTarget] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
   const completedSessions = sessions.filter(s => !!s.started_at && !!s.journal_public);
   const lastCompleted = completedSessions.length > 0 ? completedSessions[completedSessions.length - 1].number : null;
   const [activeJournal, setActiveJournal] = useState<number | null>(lastCompleted);
+  const [showBackstory, setShowBackstory] = useState(false);
 
   // Box dimensions — contiguous, no gaps
   const boxW = 200;
@@ -126,7 +128,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
   };
 
   return (
-    <div className="max-w-full mx-auto">
+    <div className="max-w-full mx-auto relative">
       {/* Banner */}
       <div className="relative w-full h-[200px] overflow-hidden" style={{ display: 'flex', alignItems: 'center' }}>
         <Image
@@ -152,8 +154,9 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                 background: 'rgba(200,200,220,0.4)',
                 transform: isDragOver ? 'scale(1.1)' : undefined,
                 transition: 'border 0.15s, transform 0.15s',
-                cursor: 'default',
+                cursor: campaignBackground ? 'pointer' : 'default',
               }}
+              onClick={() => { if (campaignBackground) { setShowBackstory(prev => !prev); setActiveJournal(null); } }}
               onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(key); }}
               onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); }}
               onDrop={(e) => {
@@ -180,7 +183,40 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             </div>
           );
         })()}
+
+        <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
       </div>
+
+      {/* Backstory text overlay — floats over journey pane */}
+      {showBackstory && campaignBackground && (
+        <div
+          className="absolute z-20"
+          style={{
+            left: boxW / 2 + circleR + 16,
+            top: 20,
+            right: 12,
+            animation: 'fadeIn 0.4s ease-out',
+            pointerEvents: 'none',
+          }}
+        >
+          <div
+            style={{
+              background: 'rgba(0,0,0,0.55)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: 8,
+              padding: '20px 28px',
+              pointerEvents: 'auto',
+            }}
+          >
+            <div
+              className="font-serif text-white text-[1.075rem] leading-relaxed"
+              style={{ whiteSpace: 'pre-wrap', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
+            >
+              {campaignBackground}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Journey map — horizontal scroll */}
       <div
@@ -297,6 +333,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                 onClick={() => {
                   if (!canOpen) return;
                   setActiveJournal(isActive ? null : session.number);
+                  setShowBackstory(false);
                 }}
               >
                 <div

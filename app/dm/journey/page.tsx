@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { readdir, mkdir } from 'fs/promises';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
-import type { Session } from '@/lib/types';
+import type { Session, Campaign } from '@/lib/types';
 import DmNav from '@/components/DmNav';
 import JourneyClient from '@/components/JourneyClient';
 
@@ -26,15 +26,16 @@ async function getJourneyImages(): Promise<Record<string, string>> {
 
 export default async function JourneyPage() {
   await ensureSchema();
-  const [sessions, imageMap] = await Promise.all([
+  const [sessions, imageMap, [campaign]] = await Promise.all([
     query<Session>('SELECT * FROM sessions ORDER BY number ASC'),
     getJourneyImages(),
+    query<Campaign>('SELECT * FROM campaign LIMIT 1'),
   ]);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       <DmNav current="journey" />
-      <JourneyClient sessions={sessions} imageMap={imageMap} />
+      <JourneyClient sessions={sessions} imageMap={imageMap} campaignBackground={campaign?.background ?? ''} />
     </div>
   );
 }
