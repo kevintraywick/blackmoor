@@ -143,7 +143,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
           const isDragOver = dragTarget === key;
           return (
             <div
-              className="absolute z-10 rounded-full overflow-hidden"
+              className="absolute z-10 rounded-full overflow-hidden flex items-center justify-center"
               style={{
                 left: boxW / 2 - circleR,
                 width: circleR * 2,
@@ -167,17 +167,16 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                 }
               }}
             >
-              {img ? (
-                <img
-                  src={img}
-                  alt="Campaign"
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
-                  <span className="text-[#4a5568] font-serif text-[0.5rem] select-none uppercase tracking-wider">Drop image</span>
-                </div>
-              )}
+              <img
+                src={img || '/images/campaign/campaign_bg.png'}
+                alt="Campaign"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }}
+              />
+              <div className="absolute z-10 flex flex-col items-center select-none" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)', lineHeight: 1.1 }}>
+                <span className="font-serif text-white text-[1.1rem] uppercase tracking-[0.1em]">Shadow</span>
+                <span className="font-serif text-white text-[0.75rem] uppercase tracking-[0.15em]">of the</span>
+                <span className="font-serif text-white text-[1.1rem] uppercase tracking-[0.1em]">Wolf</span>
+              </div>
             </div>
           );
         })()}
