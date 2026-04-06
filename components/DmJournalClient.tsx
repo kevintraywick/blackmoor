@@ -180,13 +180,11 @@ export default function DmJournalClient({ sessions, campaign, statsMap, initialJ
             }
           }}
         >
-          {journalBg && (
-            <img
-              src={journalBg}
-              alt="Journal"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }}
-            />
-          )}
+          <img
+            src={journalBg || '/images/journal/journal_bg.png'}
+            alt="Journal"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }}
+          />
           <span className="relative z-10 font-serif text-white text-[1.1rem] uppercase tracking-[0.1em] select-none" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
             Journal
           </span>
