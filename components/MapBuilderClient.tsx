@@ -120,6 +120,29 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   // World hex picker overlay state
   const [showWorldPicker, setShowWorldPicker] = useState(false);
 
+  // ── Session event publishing ──────────────────────────────────────────────
+  // Best-effort: when the active build is linked to a session, publish a
+  // map-side event into main's existing /api/sessions/[id]/events log so the
+  // session report (and any future subscribers) can see what happened on the
+  // map during play. Failures must never block the user-facing action.
+  function publishMapEvent(eventType: string, extraPayload: Record<string, unknown> = {}) {
+    if (!activeBuildId) return;
+    const build = builds.find((b) => b.id === activeBuildId);
+    if (!build || !build.session_id) return;
+    const payload = {
+      build_id: activeBuildId,
+      build_name: build.name,
+      world_hex_q: build.world_hex_q ?? null,
+      world_hex_r: build.world_hex_r ?? null,
+      ...extraPayload,
+    };
+    fetch(`/api/sessions/${build.session_id}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: eventType, payload }),
+    }).catch((err) => console.warn('publishMapEvent failed', err));
+  }
+
   // ── Load a build ───────────────────────────────────────────────────────────
   async function loadBuild(buildId: string) {
     const [buildRes, bookmarkRes, assetsRes] = await Promise.all([
@@ -139,6 +162,23 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
       setActiveLevelId(firstLevel.id);
       loadLevelTiles(firstLevel);
       setPlacedAssets(Array.isArray(firstLevel.assets) ? firstLevel.assets : []);
+    }
+    // Best-effort session event publish: only fires when the build has a
+    // session_id, so opening an unassigned build is a no-op.
+    if (data?.session_id) {
+      fetch(`/api/sessions/${data.session_id}/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: 'local_map_opened',
+          payload: {
+            build_id: buildId,
+            build_name: data.name,
+            world_hex_q: data.world_hex_q ?? null,
+            world_hex_r: data.world_hex_r ?? null,
+          },
+        }),
+      }).catch((err) => console.warn('local_map_opened publish failed', err));
     }
   }
 
@@ -678,6 +718,12 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     const updated = [...placedAssets, newAsset];
     setPlacedAssets(updated);
     saveAssets(updated);
+    publishMapEvent('asset_placed', {
+      asset_id: paletteAssetId,
+      placement_id: newAsset.id,
+      col,
+      row,
+    });
     pushUndo({
       apply: () => { setPlacedAssets(p => [...p, newAsset]); saveAssets([...placedAssets, newAsset]); },
       reverse: () => { setPlacedAssets(p => p.filter(a => a.id !== newAsset.id)); saveAssets(placedAssets.filter(a => a.id !== newAsset.id)); },
@@ -1664,6 +1710,7 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
                 prev.map((b) => (b.id === activeBuild.id ? { ...b, world_hex_q: q, world_hex_r: r } : b))
               );
               setShowWorldPicker(false);
+              publishMapEvent('local_map_anchored', { world_hex_q: q, world_hex_r: r });
             }}
           />
         );
