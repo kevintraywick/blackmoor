@@ -270,9 +270,13 @@ export default function WorldMapClient({ world, initialHexes }: Props) {
       const [q, r] = hex;
       const existing = hexMap.get(`${q},${r}`);
 
-      // Mapped hexes navigate regardless of mode
+      // Mapped hexes navigate regardless of mode. The map builder reads
+      // ?build=<id> and auto-opens the build; ?returnToWorld=q,r renders
+      // a "← World" breadcrumb that returns here centered on the same hex.
       if (existing?.reveal_state === 'mapped' && existing.local_map_id) {
-        router.push(`/dm/map-builder/${existing.local_map_id}`);
+        router.push(
+          `/dm/map-builder?build=${existing.local_map_id}&returnToWorld=${q},${r}`
+        );
         return;
       }
 

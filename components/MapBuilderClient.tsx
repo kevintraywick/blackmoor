@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import BuilderCanvas, { packKey } from '@/components/BuilderCanvas';
 import type { BuilderTool } from '@/components/BuilderCanvas';
 import type { MapBuild, MapBuildLevel, MapBuildBookmark, TileState, Session, BuilderAsset, PlacedAsset } from '@/lib/types';
@@ -102,6 +104,14 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null); // which placed asset is selected
   const [placedAssets, setPlacedAssets] = useState<PlacedAsset[]>([]);
 
+  // ── World-map round-trip (via ?build=<id>&returnToWorld=q,r) ──────────────
+  const searchParams = useSearchParams();
+  const returnToWorld = searchParams.get('returnToWorld');
+  const incomingBuildId = searchParams.get('build');
+
+  // Auto-open a build when arriving via ?build=<id>. Runs once per incoming id.
+  const hasAutoOpenedRef = useRef<string | null>(null);
+
   // ── Load a build ───────────────────────────────────────────────────────────
   async function loadBuild(buildId: string) {
     const [buildRes, bookmarkRes, assetsRes] = await Promise.all([
@@ -123,6 +133,16 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
       setPlacedAssets(Array.isArray(firstLevel.assets) ? firstLevel.assets : []);
     }
   }
+
+  // Auto-open a build when arriving via ?build=<id> (e.g. from the world map).
+  useEffect(() => {
+    if (!incomingBuildId) return;
+    if (hasAutoOpenedRef.current === incomingBuildId) return;
+    hasAutoOpenedRef.current = incomingBuildId;
+    loadBuild(incomingBuildId);
+    // loadBuild is stable in intent; no need to add it as a dep
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingBuildId]);
 
   function loadLevelTiles(level: MapBuildLevel) {
     const map = new Map<number, TileState>();
@@ -1038,6 +1058,17 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 inline-block -mt-px mr-1"><path d="M10 3L5 8l5 5" /></svg>
           All Maps
         </button>
+
+        {/* World-map round-trip breadcrumb (present when we arrived from /dm/world) */}
+        {returnToWorld && (
+          <Link
+            href={`/dm/world?focus=${returnToWorld}`}
+            className="text-[0.75rem] text-[#c9a84c] hover:text-[#e6c66a] transition-colors no-underline"
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 inline-block -mt-px mr-1"><path d="M10 3L5 8l5 5" /></svg>
+            World
+          </Link>
+        )}
 
         <div className="flex-1" />
 
