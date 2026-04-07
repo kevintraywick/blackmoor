@@ -110,6 +110,9 @@ export interface MapRow {
   dm_notes: DmNote[];
   sort_order: number;
   created_at: number;
+  // Real-world scale (nullable for legacy maps without grid metadata)
+  cell_size_px: number | null;
+  scale_value_ft: number | null;
 }
 
 // Player version — dm_notes omitted (never sent to client)
@@ -157,6 +160,10 @@ export interface ImageLayer {
   height: number;
 }
 
+export type GridDetectType = 'square' | 'hex' | 'none';
+export type ScaleMode = 'combat' | 'overland' | 'none';
+export type MapKind = 'interior' | 'exterior' | 'dungeon' | 'town' | 'overland' | 'other';
+
 export interface MapBuild {
   id: string;
   name: string;
@@ -166,6 +173,16 @@ export interface MapBuild {
   // Joined from sessions when listed via GET /api/map-builder
   session_number?: number | null;
   session_title?: string | null;
+  // Grid + scale metadata (all nullable until Mappy or the DM populates them)
+  grid_type: GridDetectType | null;
+  hex_orientation: HexOrientation | null;
+  cell_size_px: number | null;
+  scale_mode: ScaleMode | null;
+  scale_value_ft: number | null;
+  map_kind: MapKind | null;
+  image_path: string | null;
+  image_width_px: number | null;
+  image_height_px: number | null;
 }
 
 export interface MapBuildLevel {
