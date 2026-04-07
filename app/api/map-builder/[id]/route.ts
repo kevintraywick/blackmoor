@@ -22,23 +22,38 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 }
 
-// PATCH /api/map-builder/[id] — update build name
+// PATCH /api/map-builder/[id] — update build name and/or session_id
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await ensureSchema();
     const { id } = await params;
     const body = await req.json();
-    const { name } = body;
 
-    if (typeof name !== 'string' || name.length > 200) {
-      return NextResponse.json({ error: 'Invalid name' }, { status: 400 });
+    const sets: string[] = [];
+    const vals: unknown[] = [];
+
+    if (typeof body.name === 'string') {
+      if (body.name.length > 200) return NextResponse.json({ error: 'Invalid name' }, { status: 400 });
+      sets.push(`name = $${vals.length + 1}`);
+      vals.push(body.name.trim());
+    }
+    if ('session_id' in body) {
+      if (body.session_id !== null && typeof body.session_id !== 'string') {
+        return NextResponse.json({ error: 'Invalid session_id' }, { status: 400 });
+      }
+      sets.push(`session_id = $${vals.length + 1}`);
+      vals.push(body.session_id);
     }
 
-    const now = Math.floor(Date.now() / 1000);
-    await query(
-      'UPDATE map_builds SET name = $1, updated_at = $2 WHERE id = $3',
-      [name.trim(), now, id]
-    );
+    if (sets.length === 0) {
+      return NextResponse.json({ error: 'No updatable fields provided' }, { status: 400 });
+    }
+
+    sets.push(`updated_at = $${vals.length + 1}`);
+    vals.push(Math.floor(Date.now() / 1000));
+    vals.push(id);
+
+    await query(`UPDATE map_builds SET ${sets.join(', ')} WHERE id = $${vals.length}`, vals);
 
     const [build] = await query('SELECT * FROM map_builds WHERE id = $1', [id]);
     return NextResponse.json(build);

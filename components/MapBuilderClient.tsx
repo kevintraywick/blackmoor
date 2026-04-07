@@ -66,6 +66,10 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   const [showNewMapDialog, setShowNewMapDialog] = useState(false);
   const [newMapName, setNewMapName] = useState('');
 
+  // Home-page file picker + drop circle
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [homeDragOver, setHomeDragOver] = useState(false);
+
   // Rename build on home page
   const [editingBuildName, setEditingBuildName] = useState<string | null>(null);
   const [buildNameDraft, setBuildNameDraft] = useState('');
@@ -119,6 +123,47 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     const data = await res.json();
     setBuilds(prev => [data, ...prev]);
     loadBuild(data.id);
+  }
+
+  // Create a build from an image file (used by both file picker and drop circle).
+  // Strips extension for the initial name; DM can rename via double-click later.
+  async function createBuildFromImage(file: File) {
+    if (!file.type.startsWith('image/')) return;
+    const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'Untitled Map';
+
+    // Step 1: create the build
+    const res = await fetch('/api/map-builder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: baseName }),
+    });
+    const build = await res.json();
+    setBuilds(prev => [build, ...prev]);
+
+    // Step 2: upload the image to the new build
+    const fd = new FormData();
+    fd.append('file', file);
+    const uploadRes = await fetch(`/api/map-builder/${build.id}/image`, {
+      method: 'POST',
+      body: fd,
+    });
+    const uploadData = await uploadRes.json();
+
+    // Step 3: open the editor for the new build
+    await loadBuild(build.id);
+
+    // Step 4: prime the overlay state so the DM lands on the editor with the image visible
+    if (uploadData.ok) {
+      setOverlay({
+        image_path: uploadData.image_path,
+        base64: uploadData.base64,
+        media_type: uploadData.media_type,
+        width_meters: 30,
+        height_meters: 30,
+        confidence: '',
+        analyzing: false,
+      });
+    }
   }
 
   async function renameBuild(buildId: string, name: string) {
@@ -639,6 +684,67 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
 
   // ── No build selected: show build list ─────────────────────────────────────
   if (!activeBuildId) {
+    // Group builds by session for rows 2+
+    const unassigned = builds.filter(b => !b.session_id);
+    const assigned = builds.filter(b => b.session_id);
+    const bySession = new Map<number, { number: number; title: string; builds: MapBuild[] }>();
+    for (const b of assigned) {
+      const num = b.session_number ?? 0;
+      if (!bySession.has(num)) {
+        bySession.set(num, { number: num, title: b.session_title ?? '', builds: [] });
+      }
+      bySession.get(num)!.builds.push(b);
+    }
+    const sessionGroups = Array.from(bySession.values()).sort((a, b) => a.number - b.number);
+    // Sort each session group by updated_at DESC
+    sessionGroups.forEach(g => g.builds.sort((a, b) => b.updated_at - a.updated_at));
+
+    const renderCard = (b: MapBuild) => {
+      const label = b.session_number != null ? `S${b.session_number} — ${b.name || 'Untitled'}` : (b.name || 'Untitled Map');
+      return (
+        <div
+          key={b.id}
+          className="w-[200px] h-[200px] border border-[var(--color-border)] rounded bg-[var(--color-surface)] hover:border-[var(--color-gold)] transition-colors cursor-pointer flex flex-col overflow-hidden"
+        >
+          <div
+            className="h-[164px] flex items-center justify-center"
+            onClick={() => loadBuild(b.id)}
+          >
+            <span className="text-4xl opacity-20">🗺</span>
+          </div>
+          <div className="h-[36px] border-t border-[var(--color-border)] px-3 flex items-center">
+            {editingBuildName === b.id ? (
+              <input
+                autoFocus
+                value={buildNameDraft}
+                onChange={e => setBuildNameDraft(e.target.value)}
+                onBlur={() => renameBuild(b.id, buildNameDraft)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') renameBuild(b.id, buildNameDraft);
+                  if (e.key === 'Escape') setEditingBuildName(null);
+                }}
+                className="w-full bg-transparent border-b border-[var(--color-gold)] text-[var(--color-text)] font-serif text-sm outline-none"
+              />
+            ) : (
+              <span
+                className="font-serif text-sm text-[var(--color-text)] block truncate"
+                onDoubleClick={() => { setEditingBuildName(b.id); setBuildNameDraft(b.name || ''); }}
+                title="Double-click to rename"
+              >
+                {label}
+              </span>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const groupHeader = (text: string) => (
+      <div className="w-full text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)] font-sans mt-8 mb-3">
+        {text}
+      </div>
+    );
+
     return (
       <div className="max-w-[1000px] mx-auto px-8 py-12">
         <h1 className="font-serif text-[2rem] italic text-[var(--color-text)] leading-none tracking-tight">Map Builder</h1>
@@ -646,11 +752,68 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           Hex Grid Editor
         </p>
 
+        {/* Hidden file input for the [+ New Map] picker card */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          style={{ display: 'none' }}
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) createBuildFromImage(file);
+            // Reset so picking the same file again still fires onChange
+            e.target.value = '';
+          }}
+        />
+
+        {/* Row 1 — three creation cards */}
         <div className="flex gap-4 flex-wrap">
-          {/* New map card */}
+          {/* [+ New Map] — file picker */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-[200px] h-[200px] border-2 border-dashed border-[var(--color-border)] rounded flex flex-col items-center justify-center gap-2 text-[var(--color-text-dim)] hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
+          >
+            <span className="text-3xl leading-none">+</span>
+            <span className="text-[0.65rem] uppercase tracking-[0.15em] font-sans">New Map</span>
+            <span className="text-[0.55rem] uppercase tracking-[0.1em] text-[var(--color-text-muted)] font-sans">browse file</span>
+          </button>
+
+          {/* (+ Drop Map) — drag-and-drop circle */}
+          <div
+            onDragOver={e => { e.preventDefault(); e.stopPropagation(); setHomeDragOver(true); }}
+            onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setHomeDragOver(false); }}
+            onDrop={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              setHomeDragOver(false);
+              const file = e.dataTransfer.files[0];
+              if (file) createBuildFromImage(file);
+            }}
+            style={{
+              width: 200,
+              height: 200,
+              borderRadius: '50%',
+              border: homeDragOver ? '3px solid #4a7a5a' : '2px dashed var(--color-border)',
+              transform: homeDragOver ? 'scale(1.05)' : undefined,
+              transition: 'border 0.15s, transform 0.15s',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              color: homeDragOver ? '#4a7a5a' : 'var(--color-text-dim)',
+              cursor: 'pointer',
+            }}
+          >
+            <span className="text-3xl leading-none">+</span>
+            <span className="text-[0.65rem] uppercase tracking-[0.15em] font-sans">Drop Map</span>
+            <span className="text-[0.55rem] uppercase tracking-[0.1em] text-[var(--color-text-muted)] font-sans">drag image here</span>
+          </div>
+
+          {/* [+ Blank Map] — current behavior, named dialog → empty grid */}
           {showNewMapDialog ? (
             <div className="w-[200px] h-[200px] border-2 border-[var(--color-gold)] rounded bg-[var(--color-surface)] flex flex-col items-center justify-center gap-3 p-4">
-              <span className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-gold)] font-sans">New Map</span>
+              <span className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-gold)] font-sans">Blank Map</span>
               <input
                 autoFocus
                 value={newMapName}
@@ -692,48 +855,31 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
               className="w-[200px] h-[200px] border-2 border-dashed border-[var(--color-border)] rounded flex flex-col items-center justify-center gap-2 text-[var(--color-text-dim)] hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
             >
               <span className="text-3xl leading-none">+</span>
-              <span className="text-[0.65rem] uppercase tracking-[0.15em] font-sans">New Map</span>
+              <span className="text-[0.65rem] uppercase tracking-[0.15em] font-sans">Blank Map</span>
+              <span className="text-[0.55rem] uppercase tracking-[0.1em] text-[var(--color-text-muted)] font-sans">empty grid</span>
             </button>
           )}
-
-          {/* Existing map cards */}
-          {builds.map(b => (
-            <div
-              key={b.id}
-              className="w-[200px] h-[200px] border border-[var(--color-border)] rounded bg-[var(--color-surface)] hover:border-[var(--color-gold)] transition-colors cursor-pointer flex flex-col overflow-hidden"
-            >
-              <div
-                className="h-[164px] flex items-center justify-center"
-                onClick={() => loadBuild(b.id)}
-              >
-                <span className="text-4xl opacity-20">🗺</span>
-              </div>
-              <div className="h-[36px] border-t border-[var(--color-border)] px-3 flex items-center">
-                {editingBuildName === b.id ? (
-                  <input
-                    autoFocus
-                    value={buildNameDraft}
-                    onChange={e => setBuildNameDraft(e.target.value)}
-                    onBlur={() => renameBuild(b.id, buildNameDraft)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') renameBuild(b.id, buildNameDraft);
-                      if (e.key === 'Escape') setEditingBuildName(null);
-                    }}
-                    className="w-full bg-transparent border-b border-[var(--color-gold)] text-[var(--color-text)] font-serif text-sm outline-none"
-                  />
-                ) : (
-                  <span
-                    className="font-serif text-sm text-[var(--color-text)] block truncate"
-                    onDoubleClick={() => { setEditingBuildName(b.id); setBuildNameDraft(b.name || ''); }}
-                    title="Double-click to rename"
-                  >
-                    {b.name || 'Untitled Map'}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
         </div>
+
+        {/* Row 2 — Unassigned */}
+        {unassigned.length > 0 && (
+          <>
+            {groupHeader('Unassigned')}
+            <div className="flex gap-4 flex-wrap">
+              {unassigned.map(renderCard)}
+            </div>
+          </>
+        )}
+
+        {/* Rows 3+ — one per session, ascending */}
+        {sessionGroups.map(g => (
+          <div key={g.number}>
+            {groupHeader(`Session ${g.number}${g.title ? ' — ' + g.title : ''}`)}
+            <div className="flex gap-4 flex-wrap">
+              {g.builds.map(renderCard)}
+            </div>
+          </div>
+        ))}
 
         {builds.length === 0 && !showNewMapDialog && (
           <p className="text-[0.88rem] italic text-[var(--color-text-dim)] mt-6">No maps yet. Create one to get started.</p>

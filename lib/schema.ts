@@ -323,6 +323,13 @@ async function _initSchema() {
     )
   `);
 
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS session_id TEXT REFERENCES sessions(id) ON DELETE SET NULL`
+  ).catch(() => {});
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS map_builds_session_id_idx ON map_builds (session_id)`
+  ).catch(() => {});
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS map_build_levels (
       id          TEXT PRIMARY KEY,

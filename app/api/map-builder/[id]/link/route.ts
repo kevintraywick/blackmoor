@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { pool, query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import type { MapBuildLevel } from '@/lib/types';
 
@@ -33,13 +33,28 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
-    // Create a frozen copy in the maps table
+    // Two-step transaction: insert frozen copy into maps, then mark the build's session_id.
+    // Order matters — the frozen copy is the high-value side effect; do it first.
     const mapId = crypto.randomUUID();
-    await query(
-      `INSERT INTO maps (id, session_id, name, grid_type, cols, rows, tile_px, hex_orientation, revealed_tiles, created_at)
-       VALUES ($1, $2, $3, 'hex', $4, $5, 24, 'flat', $6, $7)`,
-      [mapId, session_id, level.name, level.cols, level.rows, JSON.stringify(activeTiles), Date.now()]
-    );
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(
+        `INSERT INTO maps (id, session_id, name, grid_type, cols, rows, tile_px, hex_orientation, revealed_tiles, created_at)
+         VALUES ($1, $2, $3, 'hex', $4, $5, 24, 'flat', $6, $7)`,
+        [mapId, session_id, level.name, level.cols, level.rows, JSON.stringify(activeTiles), Date.now()]
+      );
+      await client.query(
+        `UPDATE map_builds SET session_id = $1, updated_at = $2 WHERE id = $3`,
+        [session_id, Math.floor(Date.now() / 1000), id]
+      );
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
+    }
 
     return NextResponse.json({ ok: true, map_id: mapId });
   } catch (err) {

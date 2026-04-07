@@ -162,6 +162,10 @@ export interface MapBuild {
   name: string;
   created_at: number;
   updated_at: number;
+  session_id: string | null;
+  // Joined from sessions when listed via GET /api/map-builder
+  session_number?: number | null;
+  session_title?: string | null;
 }
 
 export interface MapBuildLevel {

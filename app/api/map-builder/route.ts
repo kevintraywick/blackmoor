@@ -2,11 +2,16 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 
-// GET /api/map-builder — list all map builds
+// GET /api/map-builder — list all map builds (joined with sessions for grouping)
 export async function GET() {
   try {
     await ensureSchema();
-    const rows = await query('SELECT * FROM map_builds ORDER BY updated_at DESC');
+    const rows = await query(
+      `SELECT b.*, s.number AS session_number, s.title AS session_title
+       FROM map_builds b
+       LEFT JOIN sessions s ON s.id = b.session_id
+       ORDER BY s.number NULLS FIRST, b.updated_at DESC`
+    );
     return NextResponse.json(rows);
   } catch (err) {
     console.error('GET /api/map-builder', err);
@@ -19,10 +24,13 @@ export async function POST(req: Request) {
   try {
     await ensureSchema();
     const body = await req.json();
-    const { name = 'Untitled Map' } = body;
+    const { name = 'Untitled Map', session_id = null } = body;
 
     if (typeof name !== 'string' || name.length > 200) {
       return NextResponse.json({ error: 'Invalid name' }, { status: 400 });
+    }
+    if (session_id !== null && typeof session_id !== 'string') {
+      return NextResponse.json({ error: 'Invalid session_id' }, { status: 400 });
     }
 
     const buildId = crypto.randomUUID();
@@ -30,8 +38,8 @@ export async function POST(req: Request) {
     const now = Math.floor(Date.now() / 1000);
 
     await query(
-      `INSERT INTO map_builds (id, name, created_at, updated_at) VALUES ($1, $2, $3, $4)`,
-      [buildId, name.trim(), now, now]
+      `INSERT INTO map_builds (id, name, session_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`,
+      [buildId, name.trim(), session_id, now, now]
     );
 
     // Create default first level
