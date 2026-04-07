@@ -263,6 +263,21 @@ async function _initSchema() {
     );
   }
 
+  // ── Campaign game clock ─────────────────────────────────────────────────────
+  // The game clock is a campaign-wide singleton stored on the campaign row.
+  // game_time_seconds is "seconds since campaign start"; presentation layer
+  // formats it into an in-fiction date/time. clock_paused gates the only
+  // mutator (lib/game-clock.ts::advanceGameTime).
+  await pool.query(
+    `ALTER TABLE campaign ADD COLUMN IF NOT EXISTS game_time_seconds BIGINT NOT NULL DEFAULT 0`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE campaign ADD COLUMN IF NOT EXISTS clock_paused BOOLEAN NOT NULL DEFAULT true`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE campaign ADD COLUMN IF NOT EXISTS clock_last_advanced_at BIGINT NOT NULL DEFAULT 0`
+  ).catch(() => {});
+
   // Magic catalog — DM's persistent reference library of spells, scrolls, magic items, and custom entries
   await pool.query(`
     CREATE TABLE IF NOT EXISTS magic_catalog (
@@ -409,6 +424,29 @@ async function _initSchema() {
       ).catch(() => {});
     }
   }
+
+  // ── Session events ──────────────────────────────────────────────────────────
+  // Event log published by the local map editor during play. Read by a future
+  // session report UI. v1 writers: local_map_opened, local_map_closed,
+  // asset_placed. v1 readers: a tiny debug list on the session detail page.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS session_events (
+      id                 TEXT PRIMARY KEY,
+      session_id         TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+      game_time_seconds  BIGINT NOT NULL,
+      kind               TEXT NOT NULL,
+      local_map_id       TEXT REFERENCES map_builds(id) ON DELETE SET NULL,
+      world_hex_q        INTEGER,
+      world_hex_r        INTEGER,
+      payload            JSONB NOT NULL DEFAULT '{}',
+      created_at         BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS session_events_session_time_idx
+     ON session_events (session_id, game_time_seconds DESC, id DESC)`
+  ).catch(() => {});
 
   // ── World map tables ────────────────────────────────────────────────────────
   // The world map is the singleton spatial backbone of the campaign. It holds
