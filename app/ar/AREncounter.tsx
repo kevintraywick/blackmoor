@@ -19,8 +19,7 @@ const ModelViewer = dynamic(() => import('./ModelViewer'), { ssr: false });
 
 // ---------------------------------------------------------------------------
 // Spawn configuration
-// UPDATE: Replace lat/lng with real GPS coordinates before field testing.
-// Tip: stand at your test location, open maps.google.com, long-press → copy coords.
+// Add more entries to SPAWN_POINTS as the location layer grows.
 // ---------------------------------------------------------------------------
 interface SpawnPoint {
   id: string;
@@ -29,7 +28,7 @@ interface SpawnPoint {
   lore: string;
   lat: number;
   lng: number;
-  radius: number; // meters — 40 is a good starting radius outdoors
+  radius: number; // meters
 }
 
 const SPAWN_POINTS: SpawnPoint[] = [
@@ -38,8 +37,8 @@ const SPAWN_POINTS: SpawnPoint[] = [
     name: 'The Hollow Oak',
     creature: 'Worg Scout',
     lore: 'A shadow moves among the roots. It has been watching you for some time.',
-    lat: 36.3428,   // ← replace with real lat
-    lng: -88.8517,  // ← replace with real lng
+    lat: 36.36584,
+    lng: -88.85562,
     radius: 40,
   },
 ];
@@ -256,15 +255,17 @@ function NearbyState({ spawn, revealed, onReveal }: NearbyStateProps) {
 // Main component
 // ---------------------------------------------------------------------------
 export default function AREncounter() {
-  const [state, setState] = useState<EncounterState>('requesting');
+  // Initialise to 'denied' immediately if geolocation is unavailable —
+  // avoids calling setState synchronously inside an effect (lint: react-hooks/set-state-in-effect).
+  const [state, setState] = useState<EncounterState>(() =>
+    typeof navigator !== 'undefined' && !navigator.geolocation ? 'denied' : 'requesting'
+  );
   const [activeSpawn, setActiveSpawn] = useState<ActiveSpawn | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setState('denied');
-      return;
-    }
+    // Already marked denied during initialisation — nothing to set up.
+    if (state === 'denied') return;
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       ({ coords }) => {
@@ -292,6 +293,7 @@ export default function AREncounter() {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
