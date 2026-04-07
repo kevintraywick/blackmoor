@@ -172,6 +172,14 @@ async function _initSchema() {
     ADD COLUMN IF NOT EXISTS menagerie JSONB NOT NULL DEFAULT '[]'
   `);
 
+  // Session lifecycle status — controlled by the Session Control Bar.
+  // 'open'   = upcoming or in-progress, clock may be running
+  // 'paused' = session paused, clock should be paused too
+  // 'ended'  = session over, clock not auto-touched
+  await pool.query(
+    `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'open'`
+  ).catch(() => {});
+
   // DM-only player fields
   await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS dm_notes TEXT NOT NULL DEFAULT ''`);
   await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`);

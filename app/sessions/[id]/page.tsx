@@ -5,6 +5,7 @@ import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import type { Session, Npc } from '@/lib/types';
 import SessionForm from '@/components/SessionForm';
+import SessionControlBar from '@/components/SessionControlBar';
 
 // Always render fresh — session data changes frequently
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,9 @@ export default async function SessionPage({ params }: Props) {
         <span className="text-[var(--color-border)] select-none">·</span>
         <Link href="/dm/poisons" className="text-[var(--color-text)] hover:text-[var(--color-gold)] transition-colors no-underline">Poisons & Traps</Link>
       </nav>
+
+      {/* Session Control Bar — DM cockpit for the campaign clock */}
+      <SessionControlBar sessionId={session.id} />
 
       {/* The editable form — handles all state and autosave client-side */}
       <SessionForm session={session} allNpcs={allNpcs} />
