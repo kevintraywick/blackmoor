@@ -136,6 +136,21 @@ async function _initSchema() {
     WHERE in_marketplace = true AND marketplace_qty = 0
   `);
 
+  // Item type + type-specific columns
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS item_type TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS attack INTEGER DEFAULT 0`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS damage INTEGER DEFAULT 0`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS heal INTEGER DEFAULT 0`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS rarity TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS attunement BOOLEAN DEFAULT false`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS level INTEGER`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS school TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS casting_time TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS range TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS components TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS duration TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE items ADD COLUMN IF NOT EXISTS risk_percent INTEGER`).catch(() => {});
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS npcs (
       id         TEXT PRIMARY KEY,
@@ -342,6 +357,140 @@ async function _initSchema() {
     }
   }
 
+  // ── Availability (Can you play?) ───────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS availability (
+      player_id TEXT NOT NULL,
+      saturday  TEXT NOT NULL,
+      status    TEXT NOT NULL DEFAULT 'in',
+      PRIMARY KEY (player_id, saturday)
+    )
+  `).catch(() => {});
+
+  // Quorum threshold on campaign row
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS quorum INTEGER NOT NULL DEFAULT 5
+  `).catch(() => {});
+
+  // DM email for quorum notifications
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS dm_email TEXT NOT NULL DEFAULT ''
+  `).catch(() => {});
+
+  // Track which Saturdays have already triggered a quorum notification
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS quorum_notified JSONB NOT NULL DEFAULT '[]'
+  `).catch(() => {});
+
+  // Site description for Discord embeds / meta tags
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''
+  `).catch(() => {});
+
+  // Campaign background / backstory
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS background TEXT NOT NULL DEFAULT ''
+  `).catch(() => {});
+
+  // ── Invitations (shareable availability polls) ─────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS invitations (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      slug TEXT UNIQUE NOT NULL,
+      label TEXT NOT NULL,
+      dates JSONB NOT NULL DEFAULT '[]',
+      created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::bigint)
+    )
+  `).catch(() => {});
+
+  // ── DM Messages ────────────────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS dm_messages (
+      id         TEXT PRIMARY KEY,
+      player_id  TEXT NOT NULL,
+      message    TEXT NOT NULL DEFAULT '',
+      created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      read       BOOLEAN NOT NULL DEFAULT false
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS dm_messages_player_id_idx
+    ON dm_messages (player_id, created_at DESC)
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS poison_status (
+      id          TEXT PRIMARY KEY,
+      player_id   TEXT NOT NULL,
+      poison_type TEXT NOT NULL DEFAULT 'Poisoned',
+      duration    TEXT NOT NULL DEFAULT 'long_rest',
+      started_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      active      BOOLEAN NOT NULL DEFAULT true
+    )
+  `).catch(() => {});
+
+  // ── Session Events (session lifecycle logging) ──────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS session_events (
+      id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      session_id  TEXT NOT NULL,
+      event_type  TEXT NOT NULL,
+      payload     JSONB NOT NULL DEFAULT '{}',
+      created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS session_events_session_id_idx
+    ON session_events (session_id, created_at DESC)
+  `).catch(() => {});
+
+  // ── Player Change Notifications ─────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS player_changes (
+      id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      player_id   TEXT NOT NULL,
+      field       TEXT NOT NULL,
+      old_value   TEXT,
+      new_value   TEXT,
+      created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      read        BOOLEAN NOT NULL DEFAULT false
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS player_changes_unread_idx
+    ON player_changes (read, created_at DESC)
+  `).catch(() => {});
+
+  // ── Player Presence (online indicator) ──────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS player_presence (
+      player_id  TEXT PRIMARY KEY,
+      last_seen  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `).catch(() => {});
+
+  // Ability scores — the six core D&D attributes
+  for (const ab of ['str', 'dex', 'con', 'int', 'wis', 'cha']) {
+    await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS ${ab} TEXT NOT NULL DEFAULT ''`).catch(() => {});
+  }
+
+  await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS align TEXT NOT NULL DEFAULT ''`).catch(() => {});
+
+  // Session tracking — link boons/poisons to sessions
+  await pool.query(`ALTER TABLE player_boons ADD COLUMN IF NOT EXISTS session_id TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE poison_status ADD COLUMN IF NOT EXISTS session_id TEXT`).catch(() => {});
+
+  // Session lifecycle timestamps
+  await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS started_at BIGINT`).catch(() => {});
+  await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS ended_at BIGINT`).catch(() => {});
+  await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS journal TEXT NOT NULL DEFAULT ''`).catch(() => {});
+  await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS journal_public TEXT NOT NULL DEFAULT ''`).catch(() => {});
+  await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS narrative_notes TEXT NOT NULL DEFAULT ''`).catch(() => {});
+  await pool.query(`ALTER TABLE campaign ADD COLUMN IF NOT EXISTS narrative_notes TEXT NOT NULL DEFAULT ''`).catch(() => {});
+
   // ── Map Builder tables ──────────────────────────────────────────────────────
 
   await pool.query(`
@@ -451,29 +600,6 @@ async function _initSchema() {
     }
   }
 
-  // ── Session events ──────────────────────────────────────────────────────────
-  // Event log published by the local map editor during play. Read by a future
-  // session report UI. v1 writers: local_map_opened, local_map_closed,
-  // asset_placed. v1 readers: a tiny debug list on the session detail page.
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS session_events (
-      id                 TEXT PRIMARY KEY,
-      session_id         TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-      game_time_seconds  BIGINT NOT NULL,
-      kind               TEXT NOT NULL,
-      local_map_id       TEXT REFERENCES map_builds(id) ON DELETE SET NULL,
-      world_hex_q        INTEGER,
-      world_hex_r        INTEGER,
-      payload            JSONB NOT NULL DEFAULT '{}',
-      created_at         BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
-    )
-  `).catch(() => {});
-
-  await pool.query(
-    `CREATE INDEX IF NOT EXISTS session_events_session_time_idx
-     ON session_events (session_id, game_time_seconds DESC, id DESC)`
-  ).catch(() => {});
-
   // ── World map tables ────────────────────────────────────────────────────────
   // The world map is the singleton spatial backbone of the campaign. It holds
   // reveal state per hex, anchors for local maps, and the moving entities
@@ -496,8 +622,7 @@ async function _initSchema() {
 
   // Sparse per-hex state. Only hexes the DM has interacted with (revealed,
   // mapped, or annotated) get a row. Missing row == unrevealed.
-  // Uses axial coords (q, r) for forward compatibility; display layer may
-  // still use offset coords via lib/hex-math.ts.
+  // (q, r) are even-q offset coords matching lib/hex-math.ts.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS world_hexes (
       q                INTEGER NOT NULL,

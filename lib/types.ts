@@ -13,6 +13,7 @@ export interface WeaponItem {
   name: string;
   attack_bonus: string;
   damage: string;
+  price: string;
 }
 
 export interface SpellItem {
@@ -57,6 +58,13 @@ export interface PlayerSheet {
   gear: WeaponItem[];      // "Weapons" in UI — stored as JSONB
   spells: SpellItem[];     // "Magic Spells or Items" — stored as JSONB
   items: MarketplaceItem[]; // Purchased marketplace items — stored as JSONB, transferable
+  str: string;             // Ability scores
+  dex: string;
+  con: string;
+  int: string;
+  wis: string;
+  cha: string;
+  align: string;            // Alignment (e.g. 'CG', 'LN')
   dm_notes: string;        // DM-only notes (not shown to player)
   status: string;          // 'active' | 'away' | 'removed'
 }
@@ -81,8 +89,14 @@ export interface Session {
   notes: string;
   npc_ids: string[];
   menagerie: MenagerieEntry[];
+  terrain: string;
   sort_order: number;
   last_modified: number;
+  started_at: number | null;
+  ended_at: number | null;
+  journal: string;
+  journal_public: string;
+  narrative_notes: string;
 }
 
 export type GridType = 'square' | 'hex';
@@ -124,6 +138,97 @@ export interface Campaign {
   id: string;
   name: string;
   world: string;
+  quorum: number;
+  dm_email: string;
+  quorum_notified: string[];
+  description: string;
+  background: string;
+  narrative_notes: string;
+}
+
+export interface Invitation {
+  id: string;
+  slug: string;
+  label: string;
+  dates: string[];
+  created_at: number;
+}
+
+export interface Availability {
+  player_id: string;
+  saturday: string;
+  status: 'in' | 'out';
+}
+
+export interface DmMessage {
+  id: string;
+  player_id: string;
+  message: string;
+  created_at: number;
+  read: boolean;
+}
+
+export interface PoisonStatus {
+  id: string;
+  player_id: string;
+  poison_type: string;
+  duration: string;       // 'long_rest' or minutes as string (e.g. '10')
+  started_at: number;
+  active: boolean;
+}
+
+export type BoonCategory = 'boon' | 'inspiration' | 'luck';
+
+export interface BoonTemplate {
+  id: string;
+  name: string;
+  category: BoonCategory;
+  description: string;
+  effect: string;
+  action_type: string;
+  range: string;
+  components: string;
+  duration: string;
+  grants_advantage: boolean;
+  created_at: number;
+}
+
+export interface PlayerBoon {
+  id: string;
+  player_id: string;
+  template_id: string;
+  name: string;
+  category: BoonCategory;
+  description: string;
+  effect: string;
+  action_type: string;
+  range: string;
+  components: string;
+  duration_text: string;
+  grants_advantage: boolean;
+  expiry_type: string;
+  expiry_minutes: number;
+  started_at: number;
+  active: boolean;
+  seen: boolean;
+}
+
+export interface SessionEvent {
+  id: string;
+  session_id: string;
+  event_type: string;
+  payload: Record<string, unknown>;
+  created_at: number;
+}
+
+export interface PlayerChange {
+  id: string;
+  player_id: string;
+  field: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: number;
+  read: boolean;
 }
 
 export type MagicCategory = 'spell' | 'scroll' | 'magic_item' | 'other';

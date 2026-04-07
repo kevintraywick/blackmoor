@@ -43,4 +43,4 @@ next-env.d.ts
 .superpowers/
 
 # scratch / local artifacts
-public/dice_home_button.af
+*.af

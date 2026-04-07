@@ -1,162 +1,446 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import type { Session, Npc, MenagerieEntry } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import { resolveImageUrl } from '@/lib/imageUrl';
 
 // Fields to render in the detail panel — npcs replaced by NPC checkboxes
 const FIELDS = [
-  { key: 'goal',      label: 'Goal / Hook',   rows: 3, placeholder: "What's the session goal? How does it open?",  cols: 1 },
-  { key: 'scenes',    label: 'Scene Outline', rows: 7, placeholder: 'Encounters, beats, traps, treasure, exits…',  cols: 1 },
-  { key: 'locations', label: 'Locations',     rows: 5, placeholder: 'Key locations and descriptions…',             cols: 2 },
-  { key: 'notes',     label: 'Notes',         rows: 4, placeholder: 'Music, atmosphere, misc reminders…',          cols: 2 },
+  { key: 'scenes', label: 'Scene',  rows: 7, placeholder: 'Scene — goal, encounters, locations, beats, traps, treasure, exits…' },
+  { key: 'notes',  label: 'Notes',  rows: 7, placeholder: 'Notes — music, atmosphere, misc reminders…' },
 ] as const;
 
 type FieldKey = (typeof FIELDS)[number]['key'];
 
 function emptyValues(session: Session): Record<string, string | number> {
+  const goal = (session.goal ?? '').trim();
+  const scenes = (session.scenes ?? '').trim();
+  const combined = goal ? `${goal}\n\n${scenes}` : scenes;
   return {
     title: session.title,
     date:  session.date,
-    ...Object.fromEntries(FIELDS.map(f => [f.key, session[f.key as keyof Session] ?? ''])),
+    scenes: combined,
+    notes: session.notes ?? '',
+    journal: session.journal ?? '',
+    journal_public: session.journal_public ?? '',
   };
+}
+
+// ── Session Control Bar ──────────────────────────────────────────────────────
+
+function SessionControlBar({
+  sessionId,
+  session,
+  onLongRest,
+  onSessionUpdate,
+}: {
+  sessionId: string;
+  session: Session;
+  onLongRest: () => void;
+  onSessionUpdate: (s: Session) => void;
+}) {
+  const [longRestPhase, setLongRestPhase] = useState<'idle' | 'confirm' | 'resting' | 'summary'>('idle');
+  const [longRestResult, setLongRestResult] = useState<{ restored_npcs: number; expired_boons: number; cleared_poisons: number } | null>(null);
+
+
+  const isStarted = !!session.started_at;
+  const isPaused = !!session.ended_at;
+  const isRunning = isStarted && !isPaused;
+  // Right button: idle → paused (shows "END SESSION?") → ended (shows stats)
+  const [sessionEnded, setSessionEnded] = useState(false);
+  // Track if session has been started at least once (after resume, show ✓ instead of START)
+  const [hasResumed, setHasResumed] = useState(false);
+
+  async function handleStart() {
+    if (isPaused || sessionEnded) setHasResumed(true);
+    setSessionEnded(false);
+    const res = await fetch(`/api/sessions/${sessionId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'start' }),
+    });
+    if (res.ok) onSessionUpdate(await res.json());
+  }
+
+  async function handlePause() {
+    const res = await fetch(`/api/sessions/${sessionId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'end' }),
+    });
+    if (res.ok) onSessionUpdate(await res.json());
+  }
+
+  async function handleEndSession() {
+    setSessionEnded(true);
+    // Log a session_end event (pause doesn't log one, only full end does)
+    await fetch(`/api/sessions/${sessionId}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: 'session_end' }),
+    });
+  }
+
+  function handleLongRestClick() {
+    setLongRestPhase('confirm');
+  }
+
+  async function executeLongRest() {
+    setLongRestPhase('resting');
+    const res = await fetch(`/api/sessions/${sessionId}/long-rest`, { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      setLongRestResult(data);
+      setLongRestPhase('summary');
+      onLongRest();
+      setTimeout(() => { setLongRestPhase('idle'); setLongRestResult(null); }, 4000);
+    } else {
+      setLongRestPhase('idle');
+    }
+  }
+
+  async function handleRollInitiative() {
+    await fetch(`/api/sessions/${sessionId}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: 'combat_start' }),
+    });
+    try { localStorage.setItem('blackmoor-last-session', sessionId); } catch { /* silent */ }
+  }
+
+  const circleBase: React.CSSProperties = {
+    width: 64, height: 64,
+    border: '1px solid rgba(201,168,76,0.4)',
+    background: 'transparent',
+  };
+
+  // Left button: START → ✓ (running after resume) → RESUME (when paused or ended)
+  const startLabel = isRunning && hasResumed ? '✓' : (isPaused || sessionEnded) ? 'RESUME' : 'START';
+
+  // Right button: PAUSE → END SESSION? (when paused) → ended (stats)
+  const rightLabel = sessionEnded ? 'ENDED' : isPaused ? 'END\nSESSION?' : 'PAUSE';
+  const rightOnClick = sessionEnded ? undefined : isPaused ? handleEndSession : handlePause;
+
+  const buttons = [
+    {
+      label: startLabel,
+      onClick: handleStart,
+      style: {
+        ...circleBase,
+        ...(isRunning ? { borderColor: '#2d8a4e', boxShadow: '0 0 12px rgba(45,138,78,0.6)' } : {}),
+      },
+      className: isRunning ? 'animate-pulse-slow-green' : '',
+      disabled: isRunning,
+      isCheck: isRunning && hasResumed,
+    },
+    {
+      label: 'LONG REST',
+      onClick: handleLongRestClick,
+      style: circleBase,
+    },
+    {
+      label: 'ROLL INIT',
+      href: '/dm/initiative?fresh=1',
+      onClick: handleRollInitiative,
+      style: circleBase,
+    },
+    {
+      label: 'BOON',
+      href: '/dm/boons',
+      style: circleBase,
+    },
+    {
+      label: rightLabel,
+      onClick: rightOnClick,
+      style: {
+        ...circleBase,
+        ...(isPaused && !sessionEnded ? { borderColor: '#c9a84c', boxShadow: '0 0 10px rgba(201,168,76,0.4)' } : {}),
+        ...(sessionEnded ? { borderColor: '#a05050', boxShadow: '0 0 12px rgba(160,80,80,0.6)' } : {}),
+      },
+      className: sessionEnded ? 'animate-pulse-slow-red' : '',
+      disabled: sessionEnded,
+    },
+  ];
+
+  return (
+    <div className="flex flex-col items-center gap-2 py-4 border-b border-[var(--color-border)]">
+      <style>{`
+        @keyframes pulse-slow-green {
+          0%, 100% { box-shadow: 0 0 8px rgba(45,138,78,0.4); border-color: #2d8a4e; }
+          50% { box-shadow: 0 0 18px rgba(45,138,78,0.7); border-color: #5ab87a; }
+        }
+        @keyframes pulse-slow-red {
+          0%, 100% { box-shadow: 0 0 8px rgba(160,80,80,0.4); border-color: #a05050; }
+          50% { box-shadow: 0 0 18px rgba(160,80,80,0.7); border-color: #d06060; }
+        }
+        .animate-pulse-slow-green { animation: pulse-slow-green 3s ease-in-out infinite; }
+        .animate-pulse-slow-red { animation: pulse-slow-red 3s ease-in-out infinite; }
+        @keyframes rest-glow {
+          0% { opacity: 0; transform: scale(0.9); }
+          15% { opacity: 1; transform: scale(1); }
+          85% { opacity: 1; transform: scale(1); }
+          100% { opacity: 0; transform: scale(0.95); }
+        }
+        @keyframes ember-drift {
+          0% { opacity: 0; transform: translateY(0) scale(0.5); }
+          20% { opacity: 1; }
+          100% { opacity: 0; transform: translateY(-30px) scale(0); }
+        }
+        @keyframes rest-line-in {
+          0% { opacity: 0; transform: translateY(6px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .rest-summary-appear { animation: rest-glow 4s ease-in-out forwards; }
+        .rest-line { animation: rest-line-in 0.4s ease-out forwards; opacity: 0; }
+      `}</style>
+
+      {/* Long Rest Confirmation Overlay */}
+      {longRestPhase === 'confirm' && (
+        <div className="flex flex-col items-center gap-3 py-2">
+          <span className="font-serif text-[1.15rem] text-[var(--color-gold)] tracking-wide">
+            Long Rest?
+          </span>
+          <div className="flex items-center" style={{ gap: 16 }}>
+            <button
+              onClick={executeLongRest}
+              className="rounded-full flex items-center justify-center transition-all hover:scale-105"
+              style={{ width: 64, height: 64, background: '#2d5a3f', border: '1px solid rgba(255,255,255,0.7)' }}
+            >
+              <span className="text-white text-[0.55rem] uppercase tracking-[0.1em] font-sans leading-none text-center px-1">
+                Grant Rest
+              </span>
+            </button>
+            <button
+              onClick={() => setLongRestPhase('idle')}
+              className="rounded-full flex items-center justify-center transition-all hover:scale-105"
+              style={{ width: 64, height: 64, background: '#1a1614', border: '1px solid rgba(255,255,255,0.7)' }}
+            >
+              <span className="text-white text-[0.55rem] uppercase tracking-[0.1em] font-sans leading-none text-center px-1">
+                Not Yet
+              </span>
+            </button>
+          </div>
+          <span className="text-[0.65rem] text-[var(--color-text-muted)] font-sans uppercase tracking-widest">
+            Restores HP &middot; Expires boons &middot; Clears poisons
+          </span>
+        </div>
+      )}
+
+      {/* Resting... */}
+      {longRestPhase === 'resting' && (
+        <div className="flex items-center gap-3 py-4">
+          <span className="font-serif text-[0.9rem] text-[var(--color-text-muted)] animate-pulse">
+            Resting&hellip;
+          </span>
+        </div>
+      )}
+
+      {/* Long Rest Summary */}
+      {longRestPhase === 'summary' && longRestResult && (
+        <div className="rest-summary-appear flex flex-col items-center gap-2 py-3">
+          <span className="font-serif text-[1.1rem] text-[var(--color-gold)] tracking-wide">
+            Rested
+          </span>
+          <div className="flex flex-col items-center gap-1">
+            {longRestResult.restored_npcs > 0 && (
+              <span className="rest-line font-serif text-[0.85rem] text-[#7ac28a]" style={{ animationDelay: '0.2s' }}>
+                {longRestResult.restored_npcs} creature{longRestResult.restored_npcs !== 1 ? 's' : ''} healed
+              </span>
+            )}
+            {longRestResult.expired_boons > 0 && (
+              <span className="rest-line font-serif text-[0.85rem] text-[#c9a84c]" style={{ animationDelay: '0.5s' }}>
+                {longRestResult.expired_boons} boon{longRestResult.expired_boons !== 1 ? 's' : ''} expired
+              </span>
+            )}
+            {longRestResult.cleared_poisons > 0 && (
+              <span className="rest-line font-serif text-[0.85rem] text-[#8eb89a]" style={{ animationDelay: '0.8s' }}>
+                {longRestResult.cleared_poisons} poison{longRestResult.cleared_poisons !== 1 ? 's' : ''} cleared
+              </span>
+            )}
+            {longRestResult.restored_npcs === 0 && longRestResult.expired_boons === 0 && longRestResult.cleared_poisons === 0 && (
+              <span className="rest-line font-serif text-[0.85rem] text-[var(--color-text-muted)]" style={{ animationDelay: '0.2s' }}>
+                Nothing to restore
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Control circles — hidden during long rest flow */}
+      {longRestPhase === 'idle' && (
+        <div className="flex items-center" style={{ gap: 16 }}>
+          {buttons.map(btn => {
+            const circle = (
+              <button
+                key={btn.label}
+                onClick={btn.onClick}
+                disabled={btn.disabled}
+                className={`rounded-full flex items-center justify-center transition-all hover:scale-105 relative ${btn.className ?? ''}`}
+                style={btn.style}
+                title={btn.label}
+              >
+                <span className={`uppercase tracking-[0.1em] font-sans leading-tight text-center px-1 whitespace-pre-line ${
+                  btn.isCheck ? 'text-[#5ab87a] text-xl' : 'text-white text-[0.55rem]'
+                }`}>
+                  {btn.label}
+                </span>
+              </button>
+            );
+
+            if (btn.href) {
+              return (
+                <Link key={btn.label} href={btn.href} onClick={btn.onClick}>
+                  {circle}
+                </Link>
+              );
+            }
+            return circle;
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function NpcCastingBoard({
   allNpcs,
   npcIds,
-  onToggle,
+  sessions,
+  currentSessionId,
+  menagerie,
+  onAdd,
 }: {
   allNpcs: Npc[];
   npcIds: string[];
-  onToggle: (id: string) => void;
+  sessions: Session[];
+  currentSessionId: string | null;
+  menagerie: MenagerieEntry[];
+  onAdd: (id: string) => void;
 }) {
-  const [search, setSearch] = useState('');
-  const [showAvailable, setShowAvailable] = useState(true);
+  const [selectedCatalogNpc, setSelectedCatalogNpc] = useState<string | null>(null);
 
-  // Count assigned NPCs (supports duplicates)
-  const counts: Record<string, number> = {};
-  npcIds.forEach(id => { counts[id] = (counts[id] ?? 0) + 1; });
-  const assignedEntries = Object.entries(counts);
+  // NPCs assigned to OTHER sessions
+  const assignedElsewhere = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of sessions) {
+      if (s.id === currentSessionId) continue;
+      const ids = Array.isArray(s.npc_ids) ? s.npc_ids : [];
+      ids.forEach(id => set.add(id));
+    }
+    return set;
+  }, [sessions, currentSessionId]);
 
-  // Filter available NPCs by search
-  const query = search.trim().toLowerCase();
-  const available = useMemo(() => {
-    if (!query) return allNpcs;
-    return allNpcs.filter(n => n.name?.toLowerCase().includes(query));
-  }, [allNpcs, query]);
+  // Unassigned = not in this session AND not in any other session
+  const unassigned = useMemo(() => {
+    return allNpcs.filter(n => !npcIds.includes(n.id) && !assignedElsewhere.has(n.id));
+  }, [allNpcs, npcIds, assignedElsewhere]);
+
+  const assignedNpcs = npcIds.map(id => allNpcs.find(n => n.id === id)).filter(Boolean) as Npc[];
+
+  function handleConfirmAdd() {
+    if (!selectedCatalogNpc) return;
+    onAdd(selectedCatalogNpc);
+    setSelectedCatalogNpc(null);
+  }
+
+  function renderNpcCircle(npc: Npc, opts: { selected?: boolean; onClick: () => void; size?: number }) {
+    const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
+    const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
+    const sz = opts.size ?? 64;
+    return (
+      <button
+        key={npc.id}
+        onClick={opts.onClick}
+        className="flex flex-col items-center gap-1 transition-opacity"
+        title={npc.name}
+      >
+        <div
+          className="rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center flex-shrink-0 transition-all"
+          style={{
+            width: sz, height: sz,
+            border: opts.selected ? '3px solid #2d8a4e' : '2px solid rgba(201,168,76,0.4)',
+            boxShadow: opts.selected ? '0 0 8px rgba(45,138,78,0.5)' : 'none',
+          }}
+        >
+          {imgUrl
+            ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
+            : <span className="text-sm text-[var(--color-text-muted)] font-serif">{initial}</span>
+          }
+        </div>
+        <span className="font-serif text-[0.87rem] text-[var(--color-text-muted)] max-w-[76px] truncate text-center">
+          {npc.name || 'Unnamed'}
+        </span>
+      </button>
+    );
+  }
 
   return (
-    <div className="mb-7">
-      <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPCs in this Session</div>
-
-      {/* Assigned NPCs */}
-      {assignedEntries.length === 0 ? (
-        <p className="text-[#5a4a44] text-xs font-serif italic mb-3">No NPCs assigned yet.</p>
-      ) : (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {assignedEntries.map(([npcId, count]) => {
-            const npc = allNpcs.find(n => n.id === npcId);
-            if (!npc) return null;
-            const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
-            const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
-            return (
-              <button
-                key={npcId}
-                onClick={() => onToggle(npcId)}
-                className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border border-[var(--color-gold)]/40 bg-[#2e2825]
-                           hover:border-[#a05050] hover:bg-[#301a1a] transition-colors group"
-                title={`Remove ${npc.name}`}
-              >
-                <div className="w-6 h-6 rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center flex-shrink-0">
-                  {imgUrl
-                    ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
-                    : <span className="text-[0.6rem] text-[var(--color-text-muted)] font-serif">{initial}</span>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-stretch">
+      {/* Left: NPCs in this Session */}
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
+        <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPCs in this Session</div>
+        {assignedNpcs.length === 0 ? (
+          <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs assigned yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {assignedNpcs.map((npc, idx) => {
+              const entry = menagerie.find((e, i) => {
+                // Match nth occurrence of this npc_id
+                let count = 0;
+                for (let j = 0; j < npcIds.length; j++) {
+                  if (npcIds[j] === npc.id) {
+                    if (j === idx) return e.npc_id === npc.id && count === 0;
+                    if (npcIds[j] === npc.id) count++;
                   }
+                }
+                return false;
+              }) ?? menagerie.find(e => e.npc_id === npc.id);
+              return (
+                <div key={`${npc.id}-${idx}`} className="flex flex-col items-center gap-1">
+                  {renderNpcCircle(npc, { onClick: () => {} })}
+                  {entry && entry.maxHp !== undefined && (
+                    <span className={`text-[0.72rem] font-serif tabular-nums ${entry.hp <= 0 ? 'text-[#a05050]' : entry.hp < entry.maxHp ? 'text-[#c07050]' : 'text-[#4a8a65]'}`}>
+                      {entry.hp}/{entry.maxHp}
+                    </span>
+                  )}
                 </div>
-                <span className="font-serif text-xs text-[var(--color-text)] whitespace-nowrap">
-                  {npc.name || 'Unnamed'}
-                  {count > 1 && <span className="text-[var(--color-gold)] font-bold ml-1">×{count}</span>}
-                </span>
-                <span className="text-[var(--color-border)] group-hover:text-[#a05050] text-xs ml-0.5 transition-colors">×</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-      {/* Add NPCs toggle */}
-      {!showAvailable ? (
-        <button
-          onClick={() => setShowAvailable(true)}
-          className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] border border-dashed border-[var(--color-border)]
-                     rounded px-3 py-1.5 hover:border-[var(--color-gold)] hover:text-[var(--color-gold)] transition-colors"
-        >
-          + Add NPCs
-        </button>
-      ) : (
-        <div className="border border-[var(--color-border)] rounded bg-[var(--color-surface)] overflow-hidden">
-          {/* Search header */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-border)]">
-            <span className="text-[var(--color-text-muted)] text-sm">⌕</span>
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search NPCs…"
-              autoFocus
-              className="flex-1 bg-transparent border-none text-[var(--color-text)] text-sm outline-none placeholder:text-[var(--color-text-muted)] font-serif"
-            />
+      {/* Right: NPC Catalog */}
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
+        <div className="flex items-center justify-between mb-2">
+          {selectedCatalogNpc ? (
             <button
-              onClick={() => { setShowAvailable(false); setSearch(''); }}
-              className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-xs transition-colors"
+              onClick={handleConfirmAdd}
+              className="flex items-center gap-1 text-[#2d8a4e] hover:text-[#5ab87a] transition-colors"
+              title="Add to session"
             >
-              Done
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d="M10 3L5 8l5 5" />
+              </svg>
+              <span className="text-[0.7rem] uppercase tracking-[0.15em] font-sans">Add to Session</span>
             </button>
-          </div>
-
-          {/* NPC grid */}
-          <div className="px-2 py-2">
-            {available.length === 0 ? (
-              <p className="text-[#5a4a44] text-xs font-serif italic px-2 py-3">No NPCs match &ldquo;{search}&rdquo;</p>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-                {available.map(npc => {
-                  const isAssigned = npcIds.includes(npc.id);
-                  const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
-                  const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
-                  return (
-                    <button
-                      key={npc.id}
-                      onClick={() => onToggle(npc.id)}
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
-                        isAssigned
-                          ? 'bg-[var(--color-gold)]/10 border border-[var(--color-gold)]/30'
-                          : 'hover:bg-[#2e2825] border border-transparent'
-                      }`}
-                    >
-                      <div className="w-7 h-7 rounded-full overflow-hidden bg-[#1a1714] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
-                        {imgUrl
-                          ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
-                          : <span className="text-[0.65rem] text-[var(--color-text-muted)] font-serif">{initial}</span>
-                        }
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-serif text-xs text-[var(--color-text)] truncate">{npc.name || 'Unnamed'}</div>
-                        {npc.cr && <div className="text-[0.55rem] text-[#5a4a44] uppercase">CR {npc.cr}</div>}
-                      </div>
-                      {isAssigned && (
-                        <span className="text-[var(--color-gold)] text-xs flex-shrink-0">✓</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          ) : (
+            <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">+ Add NPCs</span>
+          )}
         </div>
-      )}
+        {unassigned.length === 0 ? (
+          <p className="text-[#5a4a44] text-xs font-serif italic">All NPCs are assigned.</p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {unassigned.map(npc => renderNpcCircle(npc, {
+              selected: selectedCatalogNpc === npc.id,
+              onClick: () => setSelectedCatalogNpc(prev => prev === npc.id ? null : npc.id),
+            }))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -183,6 +467,19 @@ export default function DmSessionsClient({
   );
   const { save: autosave, status: saveStatus } = useAutosave(() => `/api/sessions/${selectedId}`);
   const creating = useRef(false);
+
+  // Session stats (players, boons, poisons, killed)
+  const [sessionStats, setSessionStats] = useState<{
+    players: string[];
+    boons: { name: string; player: string }[];
+    poisons: { type: string; player: string }[];
+    killed: string[];
+  } | null>(null);
+
+  useEffect(() => {
+    if (!selectedId) { setSessionStats(null); return; }
+    fetch(`/api/sessions/${selectedId}/stats`).then(r => r.json()).then(setSessionStats).catch(() => setSessionStats(null));
+  }, [selectedId]);
 
   const selected = sessions.find(s => s.id === selectedId) ?? null;
 
@@ -215,17 +512,6 @@ export default function DmSessionsClient({
     autosave({ npc_ids: next });
     setSessions(prev => prev.map(s =>
       s.id === selectedId ? { ...s, npc_ids: next } : s
-    ));
-  }
-
-  function handleLongRest() {
-    if (!selectedId || menagerie.length === 0) return;
-    if (!confirm('Grant a Long Rest? This will restore all NPCs to full HP.')) return;
-    const restored = menagerie.map(e => ({ ...e, hp: e.maxHp ?? e.hp }));
-    setMenagerie(restored);
-    autosave({ menagerie: restored });
-    setSessions(prev => prev.map(s =>
-      s.id === selectedId ? { ...s, menagerie: restored } : s
     ));
   }
 
@@ -290,13 +576,39 @@ export default function DmSessionsClient({
           {/* + box */}
           <button
             onClick={handleNew}
-            className="flex-shrink-0 w-[88px] rounded border border-dashed border-[var(--color-border)] bg-transparent flex items-center justify-center text-[var(--color-border)] text-2xl hover:border-[#5a4a44] hover:text-[#5a4a44] transition-colors"
+            className="flex-shrink-0 w-[88px] rounded border border-dashed border-[var(--color-border)] bg-transparent flex items-center justify-center text-lg font-bold font-serif text-[var(--color-gold)] hover:border-[#5a4a44] transition-colors"
             title="New session"
           >
             +
           </button>
         </div>
       </div>
+
+      {/* Session Control Bar */}
+      {selected && (
+        <div className="bg-[#1e1b18] px-6">
+          <div className="max-w-[1000px] mx-auto">
+            <SessionControlBar
+              sessionId={selected.id}
+              session={selected}
+              onLongRest={async () => {
+                // Refresh menagerie from server after omnibus long rest
+                try {
+                  const fresh = await fetch(`/api/sessions/${selected.id}`).then(r => r.json());
+                  if (fresh?.menagerie) {
+                    const m = Array.isArray(fresh.menagerie) ? fresh.menagerie : [];
+                    setMenagerie(m);
+                    setSessions(prev => prev.map(s => s.id === selected.id ? { ...s, menagerie: m } : s));
+                  }
+                } catch { /* silent */ }
+              }}
+              onSessionUpdate={(updated) => {
+                setSessions(prev => prev.map(s => s.id === updated.id ? updated : s));
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Session detail panel */}
       <div className="px-8 py-8 max-w-[1000px] mx-auto">
@@ -306,108 +618,73 @@ export default function DmSessionsClient({
           </p>
         ) : (
           <div>
-            {/* Header: #N title / date */}
-            <div className="mb-8 pb-6 border-b border-[var(--color-border)]">
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-[var(--color-gold)] text-3xl font-serif">#{selected.number}</span>
-                <input
-                  type="text"
-                  value={values.title as string}
-                  placeholder="Session Title"
-                  onChange={e => handleChange('title', e.target.value)}
-                  className="bg-transparent border-none text-[var(--color-text)] text-3xl flex-1 outline-none placeholder:text-[var(--color-text-muted)] font-serif"
-                />
-              </div>
-              <input
-                type="text"
-                value={values.date as string}
-                placeholder="Date"
-                onChange={e => handleChange('date', e.target.value)}
-                className="bg-transparent border-none border-b border-transparent focus:border-[var(--color-border)] text-[var(--color-text-muted)] text-sm italic outline-none placeholder:text-[var(--color-border)]"
-              />
-            </div>
-
-            {/* Full-width fields (cols: 1) */}
-            {FIELDS.filter(f => f.cols === 1).map(f => (
-              <div key={f.key} className="mb-7">
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">{f.label}</div>
-                <textarea
-                  rows={f.rows}
-                  value={values[f.key as FieldKey] as string}
-                  placeholder={f.placeholder}
-                  onChange={e => handleChange(f.key, e.target.value)}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
-                />
-              </div>
-            ))}
-
-            {/* Two-column: Locations + Notes */}
+            {/* Scene + Locations side by side */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-start">
-              <div>
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Locations</div>
-                <textarea
-                  rows={5}
-                  value={values.locations as string}
-                  placeholder="Key locations and descriptions…"
-                  onChange={e => handleChange('locations', e.target.value)}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
-                />
-              </div>
-              <div>
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Notes</div>
-                <textarea
-                  rows={4}
-                  value={values.notes as string}
-                  placeholder="Music, atmosphere, misc reminders…"
-                  onChange={e => handleChange('notes', e.target.value)}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
-                />
-              </div>
+              {FIELDS.map(f => (
+                <div key={f.key}>
+                  <textarea
+                    rows={f.rows}
+                    value={values[f.key as FieldKey] as string}
+                    placeholder={f.placeholder}
+                    onChange={e => handleChange(f.key, e.target.value)}
+                    className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
+                  />
+                </div>
+              ))}
             </div>
+
 
             {/* NPC Casting Board */}
             <NpcCastingBoard
               allNpcs={allNpcs}
               npcIds={npcIds}
-              onToggle={handleNpcToggle}
+              sessions={sessions}
+              currentSessionId={selectedId}
+              menagerie={menagerie}
+              onAdd={handleNpcToggle}
             />
 
-            {/* Menagerie HP summary + Long Rest */}
-            {menagerie.length > 0 && menagerie.some(e => e.maxHp !== undefined) && (
-              <div className="mb-7">
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPC Hit Points</div>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {menagerie.map((entry, idx) => {
-                    const isDamaged = entry.maxHp !== undefined && entry.hp < entry.maxHp;
-                    const isDead = entry.hp <= 0;
-                    return (
-                      <div
-                        key={idx}
-                        className={`flex items-center gap-2 px-2.5 py-1 rounded-full border text-xs font-serif ${
-                          isDead
-                            ? 'border-[#6a1a1a]/40 bg-[#241414] opacity-50'
-                            : isDamaged
-                              ? 'border-[#6a1a1a]/40 bg-[#2e1a1a]'
-                              : 'border-[#2d5a3f]/40 bg-[#1a2520]'
-                        }`}
-                      >
-                        <span className="text-[var(--color-text)]">{entry.label || 'NPC'}</span>
-                        <span className={`tabular-nums ${isDead ? 'text-[#a05050]' : isDamaged ? 'text-[#c07050]' : 'text-[#4a8a65]'}`}>
-                          {entry.hp}/{entry.maxHp}
-                        </span>
-                      </div>
-                    );
-                  })}
+            {/* Journal — Private | Public side by side */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7">
+              <div>
+                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Journal — Private</div>
+                <div className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2">
+                  {/* Session stats */}
+                  {sessionStats && (sessionStats.players.length > 0 || sessionStats.boons.length > 0 || sessionStats.poisons.length > 0 || sessionStats.killed.length > 0) && (
+                    <div className="text-[0.8rem] font-serif text-[var(--color-text-muted)] mb-2 space-y-0.5">
+                      {sessionStats.players.length > 0 && (
+                        <div><span className="text-[var(--color-gold)]">Players:</span> {sessionStats.players.join(', ')}</div>
+                      )}
+                      {sessionStats.boons.length > 0 && (
+                        <div><span className="text-[var(--color-gold)]">Boons:</span> {sessionStats.boons.map(b => `${b.name} → ${b.player}`).join(', ')}</div>
+                      )}
+                      {sessionStats.poisons.length > 0 && (
+                        <div><span className="text-[var(--color-gold)]">Poisons:</span> {sessionStats.poisons.map(p => `${p.type} → ${p.player}`).join(', ')}</div>
+                      )}
+                      {sessionStats.killed.length > 0 && (
+                        <div><span className="text-[var(--color-gold)]">Killed:</span> {sessionStats.killed.join(', ')}</div>
+                      )}
+                    </div>
+                  )}
+                  <textarea
+                    rows={6}
+                    value={values.journal as string}
+                    onChange={e => handleChange('journal', e.target.value)}
+                    className="w-full bg-transparent text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-y outline-none font-serif"
+                  />
                 </div>
-                <button
-                  onClick={handleLongRest}
-                  className="text-[0.7rem] uppercase tracking-[0.15em] text-[#4a8a65] border border-[#2d5a3f]
-                             rounded px-4 py-2 hover:bg-[#1a2a1a] hover:border-[#4a8a65] transition-colors font-serif"
-                >
-                  Long Rest
-                </button>
               </div>
-            )}
+              <div>
+                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Journal — Public</div>
+                <textarea
+                  rows={6}
+                  value={values.journal_public as string}
+                  placeholder="What players see on the Journey page…"
+                  onChange={e => handleChange('journal_public', e.target.value)}
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
+                />
+              </div>
+            </div>
 
             {/* Save status */}
             <div className={`text-xs text-right mt-2 h-4 transition-opacity duration-200 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} ${statusColor}`}>

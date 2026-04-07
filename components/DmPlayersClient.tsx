@@ -108,6 +108,22 @@ export default function DmPlayersClient({
   const [showAddModal, setShowAddModal] = useState(false);
   const firstActive = players.find(p => (sheets[p.id]?.status ?? 'active') !== 'removed')?.id ?? players[0]?.id ?? '';
   const [selectedId, setSelectedId] = useState(firstActive);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+  const [imgOverrides, setImgOverrides] = useState<Record<string, string>>({});
+
+  async function handleDrop(playerId: string, e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(null);
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const form = new FormData();
+    form.append('player_id', playerId);
+    form.append('image', file);
+    const res = await fetch('/api/uploads/players', { method: 'POST', body: form });
+    if (!res.ok) return;
+    const { img } = await res.json();
+    setImgOverrides(prev => ({ ...prev, [playerId]: img }));
+  }
 
   const selectedPlayer = players.find(p => p.id === selectedId)!;
   const selectedSheet  = sheets[selectedId];
@@ -124,22 +140,29 @@ export default function DmPlayersClient({
           const isAway    = status === 'away';
           const isRemoved = status === 'removed';
           const isActive  = p.id === selectedId;
+          const imgSrc = imgOverrides[p.id] || p.img;
+          const isDragTarget = dragOver === p.id;
           return (
             <button
               key={p.id}
               onClick={() => setSelectedId(p.id)}
+              onDragOver={e => { e.preventDefault(); setDragOver(p.id); }}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={e => handleDrop(p.id, e)}
               className={`flex flex-col items-center gap-1.5 cursor-pointer bg-transparent border-none transition-opacity ${
                 isRemoved ? 'opacity-30' : isAway ? 'opacity-50' : ''
               }`}
             >
               <div className={`relative w-20 h-20 rounded-full overflow-hidden border-[3px] transition-all ${
-                isActive
-                  ? 'border-[var(--color-gold)]'
-                  : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)] hover:scale-105'
+                isDragTarget
+                  ? 'border-[#4a7a5a] scale-110'
+                  : isActive
+                    ? 'border-[var(--color-gold)]'
+                    : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)] hover:scale-105'
               } bg-[#2e2825] flex items-center justify-center`}>
                 <span className="text-[1.6rem] text-[var(--color-text-muted)] select-none">{p.initial}</span>
                 <Image
-                  src={p.img}
+                  src={imgSrc}
                   alt={p.playerName}
                   fill
                   className="object-cover absolute inset-0"
@@ -174,6 +197,7 @@ export default function DmPlayersClient({
         <DmPlayerBox
           key={selectedId}
           playerId={selectedId}
+          playerName={selectedPlayer.character}
           initialNotes={selectedSheet?.dm_notes ?? ''}
           initialStatus={(selectedSheet?.status ?? 'active') as 'active' | 'away' | 'removed'}
         />
@@ -187,7 +211,7 @@ export default function DmPlayersClient({
           playerName={selectedPlayer.playerName}
           character={selectedPlayer.character}
           initial={selectedPlayer.initial}
-          img={selectedPlayer.img}
+          img={imgOverrides[selectedPlayer.id] || selectedPlayer.img}
           data={selectedSheet}
         />
       )}

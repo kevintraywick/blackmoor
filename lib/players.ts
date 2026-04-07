@@ -6,6 +6,7 @@ export const PLAYERS = [
   { id: 'katie',    playerName: 'KATIE',    character: 'Lysandra', initial: 'K', img: '/images/players/katie.png' },
   { id: 'brandon',  playerName: 'BRANDON',  character: 'Vaoker',   initial: 'B', img: '/images/players/brandon.png' },
   { id: 'ashton',   playerName: 'ASHTON',   character: 'Ash',      initial: 'A', img: '/images/players/ashton.png' },
+  { id: 'donnie',   playerName: 'DONNIE',   character: 'BigD',     initial: 'D', img: '/images/players/donnie.png' },
 ] as const;
 
 export type Player = typeof PLAYERS[number];

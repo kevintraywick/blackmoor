@@ -35,6 +35,38 @@ body {
   font-family: var(--font-geist-sans);
 }
 
+/* Hide scrollbars globally — scroll via wheel/finger only */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Scrollbar appears only on focus for approved elements */
+.focus-scrollbar {
+  scrollbar-width: none;
+}
+.focus-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.focus-scrollbar:focus {
+  scrollbar-width: thin;
+  scrollbar-color: #c9a84c #2a2420;
+}
+.focus-scrollbar:focus::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+}
+.focus-scrollbar:focus::-webkit-scrollbar-thumb {
+  background: #c9a84c;
+  border-radius: 3px;
+}
+.focus-scrollbar:focus::-webkit-scrollbar-track {
+  background: #2a2420;
+  border-radius: 3px;
+}
+
 .magic-cat-btn {
   background: transparent;
 }

@@ -1,15 +1,35 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { ensureSchema } from '@/lib/schema';
+import { pauseClock, resumeClock } from '@/lib/game-clock';
 
 // Static mapping prevents user-supplied strings from ever touching the query template
 const SESSION_COLUMNS: Record<string, string> = {
   title: 'title', date: 'date', goal: 'goal', scenes: 'scenes',
   npcs: 'npcs', locations: 'locations', loose_ends: 'loose_ends', notes: 'notes',
   npc_ids: 'npc_ids', menagerie: 'menagerie',
+  started_at: 'started_at', ended_at: 'ended_at',
+  journal: 'journal', journal_public: 'journal_public', narrative_notes: 'narrative_notes',
 };
 
 // JSONB columns need JSON.stringify before passing to pg
 const JSONB_COLUMNS = new Set(['npc_ids', 'menagerie']);
+
+// GET /api/sessions/:id — fetch a single session
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const [session] = await query('SELECT * FROM sessions WHERE id = $1', [id]);
+    if (!session) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json(session);
+  } catch (err) {
+    console.error('GET /api/sessions/[id]', err);
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
+  }
+}
 
 // DELETE /api/sessions/:id — remove a session
 export async function DELETE(
@@ -53,6 +73,47 @@ export async function PATCH(
     return NextResponse.json(session);
   } catch (err) {
     console.error('PATCH /api/sessions/[id]', err);
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
+  }
+}
+
+// POST /api/sessions/:id — session lifecycle actions (start, end)
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await ensureSchema();
+    const { id } = await params;
+    const { action } = await req.json();
+    const now = Date.now();
+
+    if (action === 'start') {
+      await query('UPDATE sessions SET started_at = $1, ended_at = NULL WHERE id = $2', [now, id]);
+      await query(
+        `INSERT INTO session_events (id, session_id, event_type, payload, created_at)
+         VALUES (gen_random_uuid()::text, $1, 'session_start', '{}', $2)`,
+        [id, now]
+      );
+      // Resume the campaign-wide game clock so weather/horde ticks can advance
+      await resumeClock().catch(() => {});
+    } else if (action === 'end') {
+      await query('UPDATE sessions SET ended_at = $1 WHERE id = $2', [now, id]);
+      await query(
+        `INSERT INTO session_events (id, session_id, event_type, payload, created_at)
+         VALUES (gen_random_uuid()::text, $1, 'session_pause', '{}', $2)`,
+        [id, now]
+      );
+      // Pause the campaign-wide game clock alongside the session
+      await pauseClock().catch(() => {});
+    } else {
+      return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
+    }
+
+    const [session] = await query('SELECT * FROM sessions WHERE id = $1', [id]);
+    return NextResponse.json(session);
+  } catch (err) {
+    console.error('POST /api/sessions/[id]', err);
     return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 }

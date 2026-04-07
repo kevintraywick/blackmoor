@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, EB_Garamond } from "next/font/google";
+import { query } from "@/lib/db";
+import { ensureSchema } from "@/lib/schema";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,10 +20,21 @@ const ebGaramond = EB_Garamond({
   style: ["normal", "italic"],
 });
 
-export const metadata: Metadata = {
-  title: "Blackmoor — Shadow of the Wolf",
-  description: "Campaign management for Shadow of the Wolf",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    await ensureSchema();
+    const [campaign] = await query<{ description: string }>('SELECT description FROM campaign LIMIT 1');
+    return {
+      title: "Shadow of the Wolf",
+      description: campaign?.description || "Campaign management for Shadow of the Wolf",
+    };
+  } catch {
+    return {
+      title: "Shadow of the Wolf",
+      description: "Campaign management for Shadow of the Wolf",
+    };
+  }
+}
 
 export default function RootLayout({
   children,

@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import { getPlayers } from '@/lib/getPlayers';
@@ -15,7 +16,8 @@ async function getSheets(playerIds: string[]): Promise<Record<string, PlayerShee
     discord: '', species: '', class: '', level: '', hp: '', xp: '',
     speed: '', size: '', ac: '', gold: '', boons: '', class_features: '',
     species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [], items: [],
-    dm_notes: '', status: 'active',
+    str: '', dex: '', con: '', int: '', wis: '', cha: '',
+    align: '', dm_notes: '', status: 'active',
   };
 
   return Object.fromEntries(
@@ -36,9 +38,8 @@ export default async function PlayersPage() {
 
       {/* Sticky nav */}
       <nav className="sticky top-0 bg-[var(--color-bg)]/95 backdrop-blur border-b border-[var(--color-border)] px-8 py-2.5 flex items-center gap-4 z-10 text-sm">
-        <Link href="/" className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors no-underline flex items-center gap-1">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 inline-block -mt-px"><path d="M10 3L5 8l5 5" /></svg>
-          Home
+        <Link href="/" title="Shadow of the Wolf" className="flex-shrink-0">
+          <div className="relative rounded-full overflow-hidden" style={{ width: 30, height: 30 }}><Image src="/images/invite/dice_home.png" alt="Home" fill className="object-cover" /></div>
         </Link>
         <span className="text-[var(--color-gold)] font-semibold">Players</span>
       </nav>
