@@ -410,6 +410,70 @@ async function _initSchema() {
     }
   }
 
+  // ── World map tables ────────────────────────────────────────────────────────
+  // The world map is the singleton spatial backbone of the campaign. It holds
+  // reveal state per hex, anchors for local maps, and the moving entities
+  // (storms, hordes, caravans, armies, other parties) that advance with the
+  // campaign game clock.
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS world_map (
+      id                TEXT PRIMARY KEY CHECK (id = 'default'),
+      name              TEXT NOT NULL DEFAULT 'World',
+      default_north_deg REAL NOT NULL DEFAULT 0,
+      created_at        BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `).catch(() => {});
+
+  // Seed the singleton row if absent
+  await pool.query(
+    `INSERT INTO world_map (id) VALUES ('default') ON CONFLICT (id) DO NOTHING`
+  ).catch(() => {});
+
+  // Sparse per-hex state. Only hexes the DM has interacted with (revealed,
+  // mapped, or annotated) get a row. Missing row == unrevealed.
+  // Uses axial coords (q, r) for forward compatibility; display layer may
+  // still use offset coords via lib/hex-math.ts.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS world_hexes (
+      q                INTEGER NOT NULL,
+      r                INTEGER NOT NULL,
+      reveal_state     TEXT NOT NULL DEFAULT 'unrevealed'
+                         CHECK (reveal_state IN ('unrevealed', 'revealed', 'mapped')),
+      terrain_note     TEXT NOT NULL DEFAULT '',
+      local_map_id     TEXT REFERENCES map_builds(id) ON DELETE SET NULL,
+      weather_override TEXT,
+      updated_at       BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      PRIMARY KEY (q, r)
+    )
+  `).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS world_hexes_local_map_id_idx ON world_hexes (local_map_id) WHERE local_map_id IS NOT NULL`
+  ).catch(() => {});
+
+  // Moving entities on the world map. One table with a kind discriminator —
+  // storms, hordes, caravans, armies, and "other parties" share the same
+  // model: a current position, an optional waypoint path, and a cadence.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS world_entities (
+      id                TEXT PRIMARY KEY,
+      kind              TEXT NOT NULL CHECK (kind IN ('storm', 'horde', 'caravan', 'army', 'other_party')),
+      label             TEXT NOT NULL DEFAULT '',
+      current_q         INTEGER NOT NULL,
+      current_r         INTEGER NOT NULL,
+      waypoints         JSONB NOT NULL DEFAULT '[]',
+      waypoint_index    INTEGER NOT NULL DEFAULT 0,
+      seconds_per_step  BIGINT NOT NULL DEFAULT 21600,
+      created_at        BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      updated_at        BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS world_entities_position_idx ON world_entities (current_q, current_r)`
+  ).catch(() => {});
+
   // Backfill hp_roll (and empty stat fields) for existing NPCs from SRD.
   // Idempotent — only updates rows with empty hp_roll.
   // Strips _N suffixes and uses partial matching so "Ettercap_4" → "8d8+8".
