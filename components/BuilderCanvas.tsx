@@ -52,21 +52,25 @@ export default function BuilderCanvas({
   const dirtyRef = useRef(true);
   const rafRef = useRef<number>(0);
 
-  // Refs to avoid stale closures in event handlers
+  // Refs to avoid stale closures in event handlers. Assignments live in an
+  // effect so we never mutate refs during render (react-hooks/refs).
   const toolRef = useRef(activeTool);
-  toolRef.current = activeTool;
   const tilesRef = useRef(tiles);
-  tilesRef.current = tiles;
   const colsRef = useRef(cols);
-  colsRef.current = cols;
   const rowsRef = useRef(rows);
-  rowsRef.current = rows;
   const placedAssetsRef = useRef(placedAssets);
-  placedAssetsRef.current = placedAssets;
   const assetLibraryRef = useRef(assetLibrary);
-  assetLibraryRef.current = assetLibrary;
   const selectedPlacementRef = useRef(selectedPlacementId);
-  selectedPlacementRef.current = selectedPlacementId;
+
+  useEffect(() => {
+    toolRef.current = activeTool;
+    tilesRef.current = tiles;
+    colsRef.current = cols;
+    rowsRef.current = rows;
+    placedAssetsRef.current = placedAssets;
+    assetLibraryRef.current = assetLibrary;
+    selectedPlacementRef.current = selectedPlacementId;
+  });
 
   const markDirty = useCallback(() => { dirtyRef.current = true; }, []);
 
@@ -83,15 +87,21 @@ export default function BuilderCanvas({
   }
 
   // ── Render loop ────────────────────────────────────────────────────────────
+  // Self-referencing RAF loop: we hold the callback in a ref so the body can
+  // schedule its next frame without creating a forward reference to itself.
+  const renderLoopRef = useRef<() => void>(() => {});
+  const scheduleNext = useCallback(() => {
+    rafRef.current = requestAnimationFrame(() => renderLoopRef.current());
+  }, []);
   const renderLoop = useCallback(() => {
     if (!dirtyRef.current) {
-      rafRef.current = requestAnimationFrame(renderLoop);
+      scheduleNext();
       return;
     }
     dirtyRef.current = false;
 
     const canvas = canvasRef.current;
-    if (!canvas) { rafRef.current = requestAnimationFrame(renderLoop); return; }
+    if (!canvas) { scheduleNext(); return; }
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -204,8 +214,11 @@ export default function BuilderCanvas({
       }
     }
 
-    rafRef.current = requestAnimationFrame(renderLoop);
-  }, [hexSize]);
+    scheduleNext();
+  }, [hexSize, scheduleNext]);
+  useEffect(() => {
+    renderLoopRef.current = renderLoop;
+  }, [renderLoop]);
 
   useEffect(() => {
     // Size canvas to container

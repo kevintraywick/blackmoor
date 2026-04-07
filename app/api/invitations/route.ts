@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     const earliest = new Date(sorted[0] + 'T12:00:00');
     const monthAbbr = earliest.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
     const day = String(earliest.getDate()).padStart(2, '0');
-    let baseSlug = `${monthAbbr}_${day}`;
+    const baseSlug = `${monthAbbr}_${day}`;
 
     // Check for slug collision
     let slug = baseSlug;

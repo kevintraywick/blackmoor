@@ -30,24 +30,39 @@ export default function PoisonClient({ players, initialPoisons }: Props) {
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [, setTick] = useState(0);
 
-  // Tick every second to update timers
+  // Tick every second + auto-expire sweep. Combined so the sweep runs off the
+  // interval (not a render-effect) and setState only fires when something is
+  // actually expiring.
   useEffect(() => {
     const hasTimers = poisons.some(p => p.duration !== 'long_rest');
-    if (hasTimers) {
-      tickRef.current = setInterval(() => setTick(t => t + 1), 1000);
-    }
+    if (!hasTimers) return;
+    tickRef.current = setInterval(() => {
+      setTick(t => t + 1);
+      setPoisons(prev => {
+        const expired = prev.filter(p => timeRemaining(p) === 'expired');
+        if (expired.length === 0) return prev;
+        for (const p of expired) {
+          fetch('/api/poison', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: p.id }),
+          }).catch(() => {});
+        }
+        const expiredIds = new Set(expired.map(p => p.id));
+        return prev.filter(p => !expiredIds.has(p.id));
+      });
+    }, 1000);
     return () => { if (tickRef.current) clearInterval(tickRef.current); };
   }, [poisons]);
 
-  // Auto-expire timed poisons
-  useEffect(() => {
-    for (const p of poisons) {
-      const tr = timeRemaining(p);
-      if (tr === 'expired') {
-        clearPoison(p.id);
-      }
-    }
-  });
+  const clearPoison = useCallback(async (id: string) => {
+    setPoisons(prev => prev.filter(p => p.id !== id));
+    await fetch('/api/poison', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+  }, []);
 
   const poisonPlayer = useCallback(async (playerId: string, duration: string) => {
     const label = poisonLabels[playerId]?.trim() || 'Poisoned';
@@ -63,15 +78,6 @@ export default function PoisonClient({ players, initialPoisons }: Props) {
     setTimerInputs(prev => { const n = { ...prev }; delete n[playerId]; return n; });
     setDurationMode(prev => { const n = { ...prev }; delete n[playerId]; return n; });
   }, [poisonLabels]);
-
-  const clearPoison = useCallback(async (id: string) => {
-    setPoisons(prev => prev.filter(p => p.id !== id));
-    await fetch('/api/poison', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
-  }, []);
 
   const clearAllForPlayer = useCallback(async (playerId: string) => {
     setPoisons(prev => prev.filter(p => p.player_id !== playerId));

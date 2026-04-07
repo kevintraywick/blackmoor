@@ -42,22 +42,39 @@ export default function BoonsDmClient({ players, initialTemplates, initialActive
   const [, setTick] = useState(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Tick for timers
+  // Tick for timers + auto-expire sweep. Combined so the sweep runs off the
+  // interval (not a render-effect) and setState only fires when something is
+  // actually expiring.
   useEffect(() => {
     const hasTimers = activeBoons.some(b => b.expiry_type === 'timer');
-    if (hasTimers) {
-      tickRef.current = setInterval(() => setTick(t => t + 1), 1000);
-    }
+    if (!hasTimers) return;
+    tickRef.current = setInterval(() => {
+      setTick(t => t + 1);
+      setActiveBoons(prev => {
+        const expired = prev.filter(b => timeRemaining(b) === 'expired');
+        if (expired.length === 0) return prev;
+        for (const b of expired) {
+          fetch('/api/boons', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: b.id, action: 'cancel' }),
+          }).catch(() => {});
+        }
+        const expiredIds = new Set(expired.map(b => b.id));
+        return prev.filter(b => !expiredIds.has(b.id));
+      });
+    }, 1000);
     return () => { if (tickRef.current) clearInterval(tickRef.current); };
   }, [activeBoons]);
 
-  // Auto-expire timed boons
-  useEffect(() => {
-    for (const b of activeBoons) {
-      const tr = timeRemaining(b);
-      if (tr === 'expired') cancelBoon(b.id);
-    }
-  });
+  async function cancelBoon(id: string) {
+    await fetch('/api/boons', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action: 'cancel' }),
+    });
+    setActiveBoons(prev => prev.filter(b => b.id !== id));
+  }
 
   async function grantBoon(templateId: string) {
     if (!selectedPlayer) return;
@@ -81,15 +98,6 @@ export default function BoonsDmClient({ players, initialTemplates, initialActive
       const data = await fetch('/api/boons').then(r => r.json());
       setActiveBoons(data.active);
     }
-  }
-
-  async function cancelBoon(id: string) {
-    await fetch('/api/boons', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, action: 'cancel' }),
-    });
-    setActiveBoons(prev => prev.filter(b => b.id !== id));
   }
 
   const playerBoons = activeBoons.filter(b => b.player_id === selectedPlayer);

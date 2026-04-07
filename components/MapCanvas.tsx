@@ -247,7 +247,8 @@ export default function MapCanvas({
       const q = (2 / 3 * x) / R;
       const r = (-1 / 3 * x + Math.sqrt(3) / 3 * y) / R;
       const s = -q - r;
-      let rq = Math.round(q), rr = Math.round(r), rs = Math.round(s);
+      let rq = Math.round(q), rr = Math.round(r);
+      const rs = Math.round(s);
       const dq = Math.abs(rq - q), dr = Math.abs(rr - r), ds = Math.abs(rs - s);
       if (dq > dr && dq > ds) rq = -rr - rs;
       else if (dr > ds) rr = -rq - rs;

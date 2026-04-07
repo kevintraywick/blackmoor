@@ -49,7 +49,8 @@ export function pixelToHex(
   const s = -q - r;
 
   // Cube round
-  let rq = Math.round(q), rr = Math.round(r), rs = Math.round(s);
+  let rq = Math.round(q), rr = Math.round(r);
+  const rs = Math.round(s);
   const dq = Math.abs(rq - q), dr = Math.abs(rr - r), ds = Math.abs(rs - s);
   if (dq > dr && dq > ds) rq = -rr - rs;
   else if (dr > ds) rr = -rq - rs;

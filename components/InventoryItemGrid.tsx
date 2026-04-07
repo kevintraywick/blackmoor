@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { resolveImageUrl } from '@/lib/imageUrl';
 
 export interface Item {
@@ -65,12 +65,17 @@ interface Props {
 export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect }: Props) {
   const [items, setItems] = useState<Item[]>([]);
 
-  const load = useCallback(async () => {
-    const res = await fetch('/api/items');
-    if (res.ok) setItems(await res.json());
-  }, []);
-
-  useEffect(() => { load(); }, [load, refreshKey]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const res = await fetch('/api/items');
+      if (alive && res.ok) {
+        const data = await res.json();
+        if (alive) setItems(data);
+      }
+    })();
+    return () => { alive = false; };
+  }, [refreshKey]);
 
   if (items.length === 0) {
     return (

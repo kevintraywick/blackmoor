@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import type { Player } from '@/lib/types';
 import type { Availability } from '@/lib/types';
 
@@ -204,7 +205,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
 
         {/* Home button */}
         <div className="flex justify-center mt-8 mb-4">
-          <a href="/" title="Shadow of the Wolf" className="block rounded-full overflow-hidden" style={{ width: 77, height: 77, flexShrink: 0 }}>
+          <Link href="/" title="Shadow of the Wolf" className="block rounded-full overflow-hidden" style={{ width: 77, height: 77, flexShrink: 0 }}>
             <Image
               src="/images/invite/dice_home.png"
               alt="Home"
@@ -212,7 +213,7 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
               height={77}
               className="object-cover rounded-full"
             />
-          </a>
+          </Link>
         </div>
 
       </div>
