@@ -73,3 +73,13 @@ body {
 .magic-cat-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--cat-color) 13%, transparent);
 }
+
+/* AR Encounter — slowly rotating compass rose in the searching state */
+@keyframes compass-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-compass-spin {
+  animation: compass-spin 20s linear infinite;
+  transform-origin: center;
+}

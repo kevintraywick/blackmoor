@@ -8,7 +8,7 @@ export type NavSection =
   | 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative'
   | 'world' | 'maps' | 'map-builder'
   | 'magic' | 'marketplace' | 'poisons' | 'inventory'
-  | 'boons' | 'journey' | 'journal';
+  | 'boons' | 'journey' | 'journal' | 'ar';
 
 interface PlayerChangeRow {
   player_id: string;
@@ -52,6 +52,31 @@ const LINKS: { key: NavSection; label: string; href: string }[] = [
   { key: 'boons',       label: 'Boons',           href: '/dm/boons' },
   { key: 'journey',     label: 'Journey',         href: '/dm/journey' },
 ];
+
+// Gold wireframe icosahedron used as the AR / "The Field" nav link.
+// Matches the fallback GoldCrystal in app/ar/ARViewer.tsx.
+function GoldCrystalIcon({ active }: { active: boolean }) {
+  const stroke = active ? '#c9a84c' : '#4a8a5a';
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={18}
+      height={18}
+      fill="none"
+      stroke={stroke}
+      strokeWidth="1.3"
+      strokeLinejoin="round"
+      aria-label="The Field"
+      style={{ display: 'inline-block', verticalAlign: 'middle' }}
+    >
+      <polygon points="12,2 22,9 18,21 6,21 2,9" />
+      <line x1="12" y1="2" x2="12" y2="21" />
+      <line x1="2" y1="9" x2="22" y2="9" />
+      <line x1="2" y1="9" x2="18" y2="21" />
+      <line x1="22" y1="9" x2="6" y2="21" />
+    </svg>
+  );
+}
 
 function ArrowLeft() {
   return (
@@ -117,6 +142,15 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
             ? <span key={link.key} className="text-[#5ab87a] font-semibold whitespace-nowrap">{link.label}</span>
             : <Link key={link.key} href={href} className={`transition-colors no-underline whitespace-nowrap ${isPoisonGlow ? 'text-[#7ac28a] animate-pulse' : 'text-[#4a8a5a] hover:text-[#5ab87a]'}`}>{link.label}</Link>;
         })}
+        {/* The Field — AR encounter. Icon-only (gold crystal) to signal it's a different kind of page. */}
+        <Link
+          href="/ar"
+          title="The Field"
+          className="flex items-center transition-opacity hover:opacity-80"
+          style={{ marginLeft: 4 }}
+        >
+          <GoldCrystalIcon active={current === 'ar'} />
+        </Link>
         </div>
         {/* Change notification dot — right end of nav */}
         <div className="flex-shrink-0" style={{ marginLeft: 16 }}>

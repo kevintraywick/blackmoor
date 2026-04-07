@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Script from 'next/script';
 import Link from 'next/link';
+import Image from 'next/image';
 import dynamic from 'next/dynamic';
 
 // Heavy components — loaded client-side only after the encounter triggers
@@ -28,7 +29,9 @@ interface SpawnPoint {
   lore: string;
   lat: number;
   lng: number;
-  radius: number; // meters
+  radius: number;  // meters — outer trigger ring
+  glbSrc: string;  // R3F preview + Android Scene Viewer
+  usdzSrc: string; // iOS QuickLook
 }
 
 const SPAWN_POINTS: SpawnPoint[] = [
@@ -40,6 +43,8 @@ const SPAWN_POINTS: SpawnPoint[] = [
     lat: 36.36584,
     lng: -88.85562,
     radius: 40,
+    glbSrc: '/models/robot.glb',
+    usdzSrc: '/models/robot.usdz',
   },
 ];
 
@@ -56,6 +61,22 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Forward bearing in degrees (0 = N, 90 = E) from (lat1,lng1) toward (lat2,lng2)
+function bearingDeg(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δλ = ((lng2 - lng1) * Math.PI) / 180;
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+const COMPASS_POINTS = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'] as const;
+function compassWord(deg: number): string {
+  const idx = Math.round(deg / 45) % 8;
+  return COMPASS_POINTS[idx];
 }
 
 // ---------------------------------------------------------------------------
@@ -99,15 +120,8 @@ function CompassRose() {
     <div className="flex items-center justify-center my-2">
       <svg
         viewBox="0 0 80 80"
-        className="w-24 h-24 text-[var(--color-gold)] opacity-50"
-        style={{ animation: 'compass-spin 20s linear infinite' }}
+        className="w-24 h-24 text-[var(--color-gold)] opacity-50 animate-compass-spin"
       >
-        <style>{`
-          @keyframes compass-spin {
-            from { transform: rotate(0deg); }
-            to   { transform: rotate(360deg); }
-          }
-        `}</style>
         <circle cx="40" cy="40" r="37" fill="none" stroke="currentColor" strokeWidth="0.5" />
         {points.map((angle) => {
           const rad = (angle * Math.PI) / 180;
@@ -185,7 +199,11 @@ function DeniedState() {
   );
 }
 
-function SearchingState() {
+interface SearchingStateProps {
+  nearest: { distance: number; bearing: number } | null;
+}
+
+function SearchingState({ nearest }: SearchingStateProps) {
   return (
     <div className="text-center">
       <SectionLabel>Scanning</SectionLabel>
@@ -194,9 +212,16 @@ function SearchingState() {
       </h1>
       <Divider />
       <CompassRose />
-      <p className="text-[var(--color-text-muted)] font-serif italic mt-4 text-sm">
-        Move through the area. The field will stir when something is close.
-      </p>
+      {nearest ? (
+        <p className="text-[var(--color-text-body)] font-serif italic mt-4 text-sm">
+          Something stirs <span className="text-[var(--color-gold)]">~{nearest.distance}m</span>{' '}
+          to the <span className="text-[var(--color-gold)]">{compassWord(nearest.bearing)}</span>.
+        </p>
+      ) : (
+        <p className="text-[var(--color-text-muted)] font-serif italic mt-4 text-sm">
+          Move through the area. The field will stir when something is close.
+        </p>
+      )}
     </div>
   );
 }
@@ -233,14 +258,14 @@ function NearbyState({ spawn, revealed, onReveal }: NearbyStateProps) {
         </>
       ) : (
         <>
-          <ARViewer />
+          <ARViewer glbSrc={spawn.glbSrc} />
           <Divider />
           <p className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-4">
             View in your world
           </p>
           <ModelViewer
-            glbSrc="/models/creature.glb"
-            usdzSrc="/models/creature.usdz"
+            glbSrc={spawn.glbSrc}
+            usdzSrc={spawn.usdzSrc}
           />
           <p className="text-[var(--color-text-dim)] text-xs font-serif mt-4 italic">
             Tap the AR button on the model to place {spawn.creature} in your surroundings.
@@ -256,11 +281,12 @@ function NearbyState({ spawn, revealed, onReveal }: NearbyStateProps) {
 // ---------------------------------------------------------------------------
 export default function AREncounter() {
   // Initialise to 'denied' immediately if geolocation is unavailable —
-  // avoids calling setState synchronously inside an effect (lint: react-hooks/set-state-in-effect).
+  // avoids calling setState inside the effect body (lint: react-hooks/immutability).
   const [state, setState] = useState<EncounterState>(() =>
     typeof navigator !== 'undefined' && !navigator.geolocation ? 'denied' : 'requesting'
   );
   const [activeSpawn, setActiveSpawn] = useState<ActiveSpawn | null>(null);
+  const [nearest, setNearest] = useState<{ distance: number; bearing: number } | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -271,16 +297,27 @@ export default function AREncounter() {
       ({ coords }) => {
         const { latitude, longitude } = coords;
 
+        // Find the closest spawn regardless of radius so SearchingState can
+        // hint at direction + distance.
+        let closest: { spawn: SpawnPoint; dist: number } | null = null;
         for (const spawn of SPAWN_POINTS) {
           const dist = haversine(latitude, longitude, spawn.lat, spawn.lng);
-          if (dist <= spawn.radius) {
-            setActiveSpawn({ ...spawn, distance: Math.round(dist) });
-            // Don't collapse the revealed state when GPS ticks again
-            setState((prev) => (prev === 'revealed' ? 'revealed' : 'nearby'));
-            return;
-          }
+          if (!closest || dist < closest.dist) closest = { spawn, dist };
         }
 
+        if (closest && closest.dist <= closest.spawn.radius) {
+          setActiveSpawn({ ...closest.spawn, distance: Math.round(closest.dist) });
+          // Don't collapse the revealed state when GPS ticks again
+          setState((prev) => (prev === 'revealed' ? 'revealed' : 'nearby'));
+          return;
+        }
+
+        if (closest) {
+          setNearest({
+            distance: Math.round(closest.dist),
+            bearing: bearingDeg(latitude, longitude, closest.spawn.lat, closest.spawn.lng),
+          });
+        }
         // Out of range — preserve the encounter if the player has already revealed it
         setState((prev) => (prev === 'revealed' ? 'revealed' : 'searching'));
       },
@@ -300,7 +337,8 @@ export default function AREncounter() {
     <>
       {/* model-viewer script — loads lazily, only needed if the encounter is revealed */}
       <Script
-        src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"
+        type="module"
+        src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.2.0/model-viewer.min.js"
         strategy="lazyOnload"
       />
 
@@ -308,20 +346,17 @@ export default function AREncounter() {
         <nav className="sticky top-0 bg-[var(--color-bg)]/95 backdrop-blur border-b border-[var(--color-border)] px-6 py-2.5 flex items-center gap-3 text-sm z-10">
           <Link
             href="/"
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors no-underline flex items-center gap-1"
+            title="Shadow of the Wolf"
+            className="block rounded-full overflow-hidden flex-shrink-0"
+            style={{ width: 30, height: 30 }}
           >
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-3.5 h-3.5"
-            >
-              <path d="M10 3L5 8l5 5" />
-            </svg>
-            Home
+            <Image
+              src="/images/invite/dice_home.png"
+              alt="Home"
+              width={30}
+              height={30}
+              className="object-cover rounded-full"
+            />
           </Link>
           <span className="text-[var(--color-gold)]">The Field</span>
         </nav>
@@ -329,7 +364,7 @@ export default function AREncounter() {
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 max-w-[860px] mx-auto w-full">
           {state === 'requesting' && <RequestingState />}
           {state === 'denied'    && <DeniedState />}
-          {state === 'searching' && <SearchingState />}
+          {state === 'searching' && <SearchingState nearest={nearest} />}
           {(state === 'nearby' || state === 'revealed') && activeSpawn && (
             <NearbyState
               spawn={activeSpawn}

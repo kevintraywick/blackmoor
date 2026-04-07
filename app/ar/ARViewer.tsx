@@ -5,11 +5,15 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import type { Group, Mesh } from 'three';
 
-// Loads /public/models/creature.glb — spins slowly in the encounter preview.
-// Falls back to a gold wireframe crystal if the model isn't present yet.
+// Loads the spawn's GLB from /public/models/ — spins slowly in the encounter
+// preview. Falls back to a gold wireframe crystal if the model isn't present.
 
-function RotatingModel() {
-  const { scene } = useGLTF('/models/creature.glb');
+interface ARViewerProps {
+  glbSrc: string;
+}
+
+function RotatingModel({ glbSrc }: ARViewerProps) {
+  const { scene } = useGLTF(glbSrc);
   const ref = useRef<Group>(null);
   useFrame((_, delta) => {
     if (ref.current) ref.current.rotation.y += delta * 0.4;
@@ -55,7 +59,7 @@ class SceneErrorBoundary extends Component<
   }
 }
 
-export default function ARViewer() {
+export default function ARViewer({ glbSrc }: ARViewerProps) {
   return (
     <div className="w-full" style={{ height: '260px' }}>
       <SceneErrorBoundary>
@@ -64,7 +68,7 @@ export default function ARViewer() {
           <pointLight position={[2, 4, 2]} intensity={1.5} color="#c9a84c" />
           <pointLight position={[-2, -1, -2]} intensity={0.3} color="#8b3a3a" />
           <Suspense fallback={<GoldCrystal />}>
-            <RotatingModel />
+            <RotatingModel glbSrc={glbSrc} />
           </Suspense>
         </Canvas>
       </SceneErrorBoundary>
