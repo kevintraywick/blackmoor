@@ -5,13 +5,17 @@
  * Reference: https://www.redblobgames.com/grids/hexagons/
  */
 
-/** Compute the pixel center of a flat-top hex in world space. */
+/** Compute the pixel center of a flat-top hex in world space.
+ *  NOTE: Works for negative `col`. JavaScript's `%` returns a negative result
+ *  for negative operands (e.g. -1 % 2 === -1), so a naive `col % 2 === 1`
+ *  check misclassifies negative odd columns. Use a sign-safe odd test. */
 export function hexCenter(col: number, row: number, hexSize: number): { cx: number; cy: number } {
   const w = hexSize * 2;
   const h = hexSize * Math.sqrt(3);
+  const isOdd = ((col % 2) + 2) % 2 === 1;
   return {
     cx: col * w * 0.75 + hexSize,
-    cy: row * h + h / 2 + (col % 2 === 1 ? h / 2 : 0),
+    cy: row * h + h / 2 + (isOdd ? h / 2 : 0),
   };
 }
 
@@ -82,7 +86,9 @@ export function gridBounds(cols: number, rows: number, hexSize: number) {
  *   Edge 5 (300°→360°) = lower-right  → SE neighbor
  */
 export function hexNeighbors(col: number, row: number): [number, number][] {
-  const isOdd = col % 2 === 1;
+  // Sign-safe odd test — see hexCenter for why a naive `col % 2 === 1` is wrong
+  // for negative columns.
+  const isOdd = ((col % 2) + 2) % 2 === 1;
   if (isOdd) {
     return [
       [col + 1, row],     // Edge 0: NE

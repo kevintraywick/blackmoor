@@ -154,7 +154,7 @@ export default function WorldMapClient({ world, initialHexes }: Props) {
         const known = hexMap.get(`${q},${r}`);
         const state = known?.reveal_state ?? 'unrevealed';
 
-        hexPath(ctx, cx, cy, HEX_SIZE - 1);
+        hexPath(ctx, cx, cy, HEX_SIZE);
 
         if (state === 'unrevealed') {
           ctx.fillStyle = COLOR_UNREVEALED_FILL;
@@ -181,7 +181,7 @@ export default function WorldMapClient({ world, initialHexes }: Props) {
         }
 
         if (hover && hover[0] === q && hover[1] === r) {
-          hexPath(ctx, cx, cy, HEX_SIZE - 1);
+          hexPath(ctx, cx, cy, HEX_SIZE);
           ctx.strokeStyle = COLOR_HOVER_STROKE;
           ctx.lineWidth = 2;
           ctx.stroke();
