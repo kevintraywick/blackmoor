@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
-export type NavSection = 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative' | 'maps' | 'map-builder' | 'magic' | 'marketplace' | 'poisons' | 'inventory';
+export type NavSection = 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative' | 'world' | 'maps' | 'map-builder' | 'magic' | 'marketplace' | 'poisons' | 'inventory';
 
 const LINKS: { key: NavSection; label: string; href: string }[] = [
   { key: 'campaign',    label: 'Campaign',         href: '/dm/campaign' },
@@ -11,6 +11,7 @@ const LINKS: { key: NavSection; label: string; href: string }[] = [
   { key: 'players',     label: 'Players',         href: '/dm/players' },
   { key: 'npcs',        label: 'NPCs',            href: '/dm/npcs' },
   { key: 'initiative',  label: 'Initiative',      href: '/dm/initiative' },
+  { key: 'world',       label: 'World',           href: '/dm/world' },
   { key: 'maps',        label: 'Maps',            href: '/dm/maps' },
   { key: 'map-builder', label: 'Map Builder',     href: '/dm/map-builder' },
   { key: 'magic',       label: 'Magic',           href: '/dm/magic' },

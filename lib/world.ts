@@ -4,10 +4,11 @@
 // world_hexes, and world_entities. API routes call into these helpers; nothing
 // else touches the DDL for these tables directly.
 //
-// Hex coordinates: we store axial (q, r) for forward compatibility. The
-// display layer in lib/hex-math.ts uses flat-top even-q offset coords.
-// Conversions between the two live here when needed — see axialToOffset /
-// offsetToAxial below.
+// Hex coordinates: stored as (q, r) integer pairs in the DB. These are
+// treated as even-q offset coordinates matching lib/hex-math.ts (flat-top),
+// so q == col and r == row at the display layer. The q/r naming is
+// intentional so we can migrate to true axial later without a column rename
+// if we ever want cube/axial math in storage.
 
 import { query } from './db';
 
