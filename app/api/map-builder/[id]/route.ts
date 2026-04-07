@@ -45,6 +45,45 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       vals.push(body.session_id);
     }
 
+    // Grid + scale fields — all nullable, all optional in any combination.
+    const gridStringFields: Array<[keyof typeof body, string[]]> = [
+      ['grid_type',       ['square', 'hex', 'none']],
+      ['hex_orientation', ['flat', 'pointy']],
+      ['scale_mode',      ['combat', 'overland', 'none']],
+      ['map_kind',        ['interior', 'exterior', 'dungeon', 'town', 'overland', 'other']],
+    ];
+    for (const [key, allowed] of gridStringFields) {
+      if (key in body) {
+        const v = body[key];
+        if (v !== null && (typeof v !== 'string' || !allowed.includes(v))) {
+          return NextResponse.json({ error: `Invalid ${String(key)}` }, { status: 400 });
+        }
+        sets.push(`${String(key)} = $${vals.length + 1}`);
+        vals.push(v);
+      }
+    }
+    const gridNumericFields: (keyof typeof body)[] = [
+      'cell_size_px', 'scale_value_ft', 'image_width_px', 'image_height_px',
+    ];
+    for (const key of gridNumericFields) {
+      if (key in body) {
+        const v = body[key];
+        if (v !== null && typeof v !== 'number') {
+          return NextResponse.json({ error: `Invalid ${String(key)}` }, { status: 400 });
+        }
+        sets.push(`${String(key)} = $${vals.length + 1}`);
+        vals.push(v);
+      }
+    }
+    if ('image_path' in body) {
+      const v = body.image_path;
+      if (v !== null && typeof v !== 'string') {
+        return NextResponse.json({ error: 'Invalid image_path' }, { status: 400 });
+      }
+      sets.push(`image_path = $${vals.length + 1}`);
+      vals.push(v);
+    }
+
     if (sets.length === 0) {
       return NextResponse.json({ error: 'No updatable fields provided' }, { status: 400 });
     }

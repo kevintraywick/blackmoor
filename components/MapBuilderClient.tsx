@@ -70,6 +70,28 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [homeDragOver, setHomeDragOver] = useState(false);
 
+  // Grid confirmation panel — populated after Mappy analyzes a freshly uploaded image
+  interface GridDraft {
+    grid_type: 'square' | 'hex' | 'none';
+    hex_orientation: 'flat' | 'pointy' | null;
+    cell_size_px: number | null;
+    scale_mode: 'combat' | 'overland' | 'none';
+    scale_value_ft: number | null;
+    map_kind: 'interior' | 'exterior' | 'dungeon' | 'town' | 'overland' | 'other';
+    confidence: 'low' | 'medium' | 'high';
+    notes: string;
+    image_path: string | null;
+    image_width_px: number | null;
+    image_height_px: number | null;
+    base64: string | null;
+    media_type: string | null;
+  }
+  const [gridDraft, setGridDraft] = useState<GridDraft | null>(null);
+  const [gridAnalyzing, setGridAnalyzing] = useState(false);
+  const [showCalibration, setShowCalibration] = useState(false);
+  const [calibrationPoints, setCalibrationPoints] = useState<Array<{ x: number; y: number }>>([]);
+  const [calibrationDistanceFt, setCalibrationDistanceFt] = useState('');
+
   // Rename build on home page
   const [editingBuildName, setEditingBuildName] = useState<string | null>(null);
   const [buildNameDraft, setBuildNameDraft] = useState('');
@@ -125,8 +147,26 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     loadBuild(data.id);
   }
 
+  // Decode image dimensions client-side from a File without uploading.
+  function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new window.Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = e => {
+        URL.revokeObjectURL(url);
+        reject(e);
+      };
+      img.src = url;
+    });
+  }
+
   // Create a build from an image file (used by both file picker and drop circle).
   // Strips extension for the initial name; DM can rename via double-click later.
+  // After upload, calls Mappy to detect grid + scale and pops the confirmation panel.
   async function createBuildFromImage(file: File) {
     if (!file.type.startsWith('image/')) return;
     const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'Untitled Map';
@@ -140,7 +180,10 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     const build = await res.json();
     setBuilds(prev => [build, ...prev]);
 
-    // Step 2: upload the image to the new build
+    // Step 2: capture image dimensions client-side (parallel with upload)
+    const dimsPromise = readImageDimensions(file).catch(() => ({ width: 0, height: 0 }));
+
+    // Step 3: upload the image to the new build
     const fd = new FormData();
     fd.append('file', file);
     const uploadRes = await fetch(`/api/map-builder/${build.id}/image`, {
@@ -149,21 +192,110 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     });
     const uploadData = await uploadRes.json();
 
-    // Step 3: open the editor for the new build
+    // Step 4: open the editor for the new build
     await loadBuild(build.id);
 
-    // Step 4: prime the overlay state so the DM lands on the editor with the image visible
-    if (uploadData.ok) {
-      setOverlay({
-        image_path: uploadData.image_path,
-        base64: uploadData.base64,
-        media_type: uploadData.media_type,
-        width_meters: 30,
-        height_meters: 30,
-        confidence: '',
-        analyzing: false,
+    if (!uploadData.ok) return;
+
+    const dims = await dimsPromise;
+
+    // Step 5: kick off Mappy grid analysis (don't block the editor)
+    setGridAnalyzing(true);
+    setGridDraft({
+      grid_type: 'square',
+      hex_orientation: null,
+      cell_size_px: null,
+      scale_mode: 'combat',
+      scale_value_ft: 5,
+      map_kind: 'interior',
+      confidence: 'low',
+      notes: 'Analyzing…',
+      image_path: uploadData.image_path,
+      image_width_px: dims.width || null,
+      image_height_px: dims.height || null,
+      base64: uploadData.base64,
+      media_type: uploadData.media_type,
+    });
+
+    try {
+      const mappyRes = await fetch(`/api/map-builder/${build.id}/mappy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64: uploadData.base64, media_type: uploadData.media_type }),
       });
+      const mappy = await mappyRes.json();
+
+      // Map scale_guess → defaults from lib/map-scale conventions
+      const scale_mode: 'combat' | 'overland' = mappy.scale_guess === 'overland' ? 'overland' : 'combat';
+      let scale_value_ft = 5;
+      if (scale_mode === 'overland') {
+        scale_value_ft = mappy.grid_type === 'hex' ? 6 * 5280 : 5280;
+      }
+      const map_kind: GridDraft['map_kind'] =
+        scale_mode === 'overland' ? 'overland' :
+        mappy.grid_type === 'square' ? 'interior' : 'other';
+
+      setGridDraft(prev => prev ? {
+        ...prev,
+        grid_type: (mappy.grid_type as GridDraft['grid_type']) ?? 'none',
+        hex_orientation: (mappy.hex_orientation as GridDraft['hex_orientation']) ?? null,
+        cell_size_px: typeof mappy.cell_size_px === 'number' ? mappy.cell_size_px : null,
+        scale_mode,
+        scale_value_ft,
+        map_kind,
+        confidence: (mappy.confidence as GridDraft['confidence']) ?? 'low',
+        notes: typeof mappy.notes === 'string' ? mappy.notes : '',
+      } : null);
+    } catch {
+      setGridDraft(prev => prev ? { ...prev, notes: 'Mappy unreachable — calibrate manually.', confidence: 'low' } : null);
+    } finally {
+      setGridAnalyzing(false);
     }
+  }
+
+  // Persist the confirmed grid draft to the build, then close the panel.
+  async function applyGridDraft() {
+    if (!gridDraft || !activeBuildId) return;
+    const payload = {
+      grid_type: gridDraft.grid_type,
+      hex_orientation: gridDraft.hex_orientation,
+      cell_size_px: gridDraft.cell_size_px,
+      scale_mode: gridDraft.scale_mode,
+      scale_value_ft: gridDraft.scale_value_ft,
+      map_kind: gridDraft.map_kind,
+      image_path: gridDraft.image_path,
+      image_width_px: gridDraft.image_width_px,
+      image_height_px: gridDraft.image_height_px,
+    };
+    const res = await fetch(`/api/map-builder/${activeBuildId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setBuilds(prev => prev.map(b => b.id === updated.id ? { ...b, ...updated } : b));
+    }
+    setGridDraft(null);
+    setShowCalibration(false);
+    setCalibrationPoints([]);
+    setCalibrationDistanceFt('');
+  }
+
+  // Two-point calibration: user clicks two points on the image → enters real-world distance.
+  // Computes cell_size_px assuming 5 ft per cell (combat default; user can override scale_value_ft after).
+  function applyCalibration() {
+    if (calibrationPoints.length !== 2 || !gridDraft) return;
+    const distanceFt = parseFloat(calibrationDistanceFt);
+    if (!Number.isFinite(distanceFt) || distanceFt <= 0) return;
+    const [a, b] = calibrationPoints;
+    const pixelsBetween = Math.hypot(b.x - a.x, b.y - a.y);
+    const scaleValueFt = gridDraft.scale_value_ft ?? 5;
+    const cellSizePx = Math.round(pixelsBetween * (scaleValueFt / distanceFt));
+    setGridDraft({ ...gridDraft, cell_size_px: cellSizePx, grid_type: gridDraft.grid_type === 'none' ? 'square' : gridDraft.grid_type });
+    setShowCalibration(false);
+    setCalibrationPoints([]);
+    setCalibrationDistanceFt('');
   }
 
   async function renameBuild(buildId: string, name: string) {
@@ -1197,6 +1329,243 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           ))}
         </div>
       </div>
+
+      {/* Grid Confirmation Panel — appears after a fresh image upload + Mappy analysis */}
+      {gridDraft && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+          }}
+          onClick={() => { /* click-outside is not a cancel — DM must apply or close */ }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 6,
+              width: showCalibration ? 880 : 480,
+              maxWidth: '95vw',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              padding: 24,
+              display: 'flex',
+              gap: 24,
+            }}
+          >
+            {/* Left column — confirmation form */}
+            <div style={{ flex: showCalibration ? '0 0 400px' : '1 1 auto' }}>
+              <div className="font-serif italic text-[1.4rem] text-[var(--color-text)] mb-1">Map Grid</div>
+              <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans mb-4">
+                {gridAnalyzing ? 'Mappy is analyzing…' : `Mappy says: ${gridDraft.notes}`}
+              </div>
+
+              {/* Grid type */}
+              <div className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-gold)] font-sans mb-2">Grid Type</div>
+              <div className="flex gap-2 mb-4">
+                {(['square', 'hex', 'none'] as const).map(g => (
+                  <button
+                    key={g}
+                    onClick={() => setGridDraft({ ...gridDraft, grid_type: g })}
+                    className={`px-3 py-1.5 text-[0.75rem] font-serif rounded border transition-colors ${
+                      gridDraft.grid_type === g
+                        ? 'border-[var(--color-gold)] text-[var(--color-gold)] bg-[var(--color-gold)]/10'
+                        : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+                    }`}
+                  >
+                    {g === 'square' ? 'Square' : g === 'hex' ? 'Hex' : 'None'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Hex orientation — only when grid_type === 'hex' */}
+              {gridDraft.grid_type === 'hex' && (
+                <>
+                  <div className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-gold)] font-sans mb-2">Hex Orientation</div>
+                  <div className="flex gap-2 mb-4">
+                    {(['flat', 'pointy'] as const).map(o => (
+                      <button
+                        key={o}
+                        onClick={() => setGridDraft({ ...gridDraft, hex_orientation: o })}
+                        className={`px-3 py-1.5 text-[0.75rem] font-serif rounded border transition-colors ${
+                          gridDraft.hex_orientation === o
+                            ? 'border-[var(--color-gold)] text-[var(--color-gold)] bg-[var(--color-gold)]/10'
+                            : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+                        }`}
+                      >
+                        {o === 'flat' ? 'Flat-Top' : 'Pointy-Top'}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Scale mode */}
+              <div className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-gold)] font-sans mb-2">Scale</div>
+              <div className="flex gap-2 mb-4">
+                {(['combat', 'overland'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      const next: GridDraft = { ...gridDraft, scale_mode: m };
+                      // Re-default scale_value_ft for the new mode
+                      if (m === 'combat') next.scale_value_ft = 5;
+                      else next.scale_value_ft = gridDraft.grid_type === 'hex' ? 6 * 5280 : 5280;
+                      setGridDraft(next);
+                    }}
+                    className={`px-3 py-1.5 text-[0.75rem] font-serif rounded border transition-colors ${
+                      gridDraft.scale_mode === m
+                        ? 'border-[var(--color-gold)] text-[var(--color-gold)] bg-[var(--color-gold)]/10'
+                        : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+                    }`}
+                  >
+                    {m === 'combat' ? 'Combat (5 ft)' : gridDraft.grid_type === 'hex' ? 'Overland (6 mi)' : 'Overland (1 mi)'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Map kind */}
+              <div className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-gold)] font-sans mb-2">Map Kind</div>
+              <div className="flex gap-2 flex-wrap mb-4">
+                {(['interior', 'exterior', 'dungeon', 'town', 'overland', 'other'] as const).map(k => (
+                  <button
+                    key={k}
+                    onClick={() => setGridDraft({ ...gridDraft, map_kind: k })}
+                    className={`px-3 py-1.5 text-[0.75rem] font-serif rounded border transition-colors capitalize ${
+                      gridDraft.map_kind === k
+                        ? 'border-[var(--color-gold)] text-[var(--color-gold)] bg-[var(--color-gold)]/10'
+                        : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+                    }`}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+
+              {/* Cell size px */}
+              <div className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-gold)] font-sans mb-2">Cell Size (image px)</div>
+              <div className="flex items-center gap-3 mb-4">
+                <button
+                  onClick={() => setGridDraft({ ...gridDraft, cell_size_px: Math.max(4, (gridDraft.cell_size_px ?? 60) - 2) })}
+                  className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm hover:text-[var(--color-gold)] hover:border-[var(--color-gold)]"
+                >−</button>
+                <span className="font-serif text-[1.05rem] text-[var(--color-text)] min-w-[3rem] text-center">
+                  {gridDraft.cell_size_px ?? '—'}
+                </span>
+                <button
+                  onClick={() => setGridDraft({ ...gridDraft, cell_size_px: Math.min(1000, (gridDraft.cell_size_px ?? 60) + 2) })}
+                  className="w-[22px] h-5 bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm hover:text-[var(--color-gold)] hover:border-[var(--color-gold)]"
+                >+</button>
+                <button
+                  onClick={() => { setShowCalibration(true); setCalibrationPoints([]); }}
+                  className="ml-auto text-[0.7rem] font-serif text-[var(--color-text-muted)] underline hover:text-[var(--color-gold)]"
+                >
+                  Calibrate manually →
+                </button>
+              </div>
+
+              {/* Confidence indicator */}
+              <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans mb-4">
+                Confidence: <span className={
+                  gridDraft.confidence === 'high' ? 'text-[#7ac28a]' :
+                  gridDraft.confidence === 'medium' ? 'text-[var(--color-gold)]' :
+                  'text-[#c07a8a]'
+                }>{gridDraft.confidence}</span>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3 justify-end mt-6">
+                <button
+                  onClick={() => { setGridDraft(null); setShowCalibration(false); }}
+                  className="px-4 py-1.5 text-[0.75rem] font-serif text-[var(--color-text-muted)] border border-[var(--color-border)] rounded hover:border-[var(--color-text-muted)]"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={applyGridDraft}
+                  disabled={gridAnalyzing}
+                  className="px-4 py-1.5 text-[0.75rem] font-serif text-[var(--color-gold)] border border-[var(--color-gold)]/40 rounded hover:bg-[var(--color-gold)]/10 disabled:opacity-50"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+
+            {/* Right column — calibration tool */}
+            {showCalibration && gridDraft.image_path && (
+              <div style={{ flex: '1 1 auto' }}>
+                <div className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-gold)] font-sans mb-2">Manual Calibration</div>
+                <div className="text-[0.7rem] text-[var(--color-text-muted)] font-serif mb-2">
+                  Click two points on the image and enter the real-world distance between them.
+                </div>
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <img
+                    src={gridDraft.base64 && gridDraft.media_type ? `data:${gridDraft.media_type};base64,${gridDraft.base64}` : ''}
+                    alt="calibration"
+                    style={{ maxWidth: 400, maxHeight: 400, display: 'block', cursor: 'crosshair' }}
+                    onClick={e => {
+                      const rect = (e.target as HTMLImageElement).getBoundingClientRect();
+                      const x = (e.clientX - rect.left) * ((gridDraft.image_width_px ?? rect.width) / rect.width);
+                      const y = (e.clientY - rect.top) * ((gridDraft.image_height_px ?? rect.height) / rect.height);
+                      setCalibrationPoints(prev => prev.length >= 2 ? [{ x, y }] : [...prev, { x, y }]);
+                    }}
+                    draggable={false}
+                  />
+                  {calibrationPoints.map((p, i) => {
+                    const rect = { width: 400, height: 400 };
+                    const sx = p.x * (rect.width / (gridDraft.image_width_px ?? rect.width));
+                    const sy = p.y * (rect.height / (gridDraft.image_height_px ?? rect.height));
+                    return (
+                      <div key={i} style={{
+                        position: 'absolute',
+                        left: sx - 6,
+                        top: sy - 6,
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        background: '#4a7a5a',
+                        border: '2px solid #fff',
+                        pointerEvents: 'none',
+                      }} />
+                    );
+                  })}
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={calibrationDistanceFt}
+                    onChange={e => setCalibrationDistanceFt(e.target.value)}
+                    placeholder="Distance in feet"
+                    className="w-32 bg-transparent border border-[var(--color-border)] rounded px-2 py-1 text-[0.8rem] font-serif text-[var(--color-text)]"
+                  />
+                  <button
+                    onClick={applyCalibration}
+                    disabled={calibrationPoints.length !== 2 || !calibrationDistanceFt}
+                    className="px-3 py-1 text-[0.75rem] font-serif text-[var(--color-gold)] border border-[var(--color-gold)]/40 rounded hover:bg-[var(--color-gold)]/10 disabled:opacity-50"
+                  >
+                    Apply Calibration
+                  </button>
+                  <button
+                    onClick={() => { setCalibrationPoints([]); setCalibrationDistanceFt(''); }}
+                    className="px-3 py-1 text-[0.7rem] font-serif text-[var(--color-text-muted)] border border-[var(--color-border)] rounded hover:border-[var(--color-text-muted)]"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="mt-2 text-[0.65rem] text-[var(--color-text-muted)] font-serif">
+                  {calibrationPoints.length}/2 points selected
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
