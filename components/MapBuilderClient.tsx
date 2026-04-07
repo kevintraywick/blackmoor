@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import BuilderCanvas, { packKey } from '@/components/BuilderCanvas';
 import WorldHexPicker from '@/components/WorldHexPicker';
+import EnvironmentPill from '@/components/EnvironmentPill';
 import type { BuilderTool } from '@/components/BuilderCanvas';
 import type { MapBuild, MapBuildLevel, MapBuildBookmark, TileState, Session, BuilderAsset, PlacedAsset } from '@/lib/types';
 import { useUndoRedo } from '@/lib/useUndoRedo';
@@ -1099,15 +1100,20 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
             ? `(${activeBuild.world_hex_q}, ${activeBuild.world_hex_r})`
             : null;
           return (
-            <button
-              type="button"
-              onClick={() => setShowWorldPicker(true)}
-              className="text-[0.75rem] text-[#c9a84c] hover:text-[#e6c66a] transition-colors"
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
-              title="Place this map on a world hex"
-            >
-              📍 {anchor ? `World ${anchor}` : 'Set World Location'}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setShowWorldPicker(true)}
+                className="text-[0.75rem] text-[#c9a84c] hover:text-[#e6c66a] transition-colors"
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+                title="Place this map on a world hex"
+              >
+                📍 {anchor ? `World ${anchor}` : 'Set World Location'}
+              </button>
+              {anchor && (
+                <EnvironmentPill q={activeBuild.world_hex_q} r={activeBuild.world_hex_r} />
+              )}
+            </>
           );
         })()}
 
