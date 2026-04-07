@@ -113,6 +113,8 @@ export interface MapRow {
   // Real-world scale (nullable for legacy maps without grid metadata)
   cell_size_px: number | null;
   scale_value_ft: number | null;
+  image_width_px: number | null;
+  image_height_px: number | null;
 }
 
 // Player version — dm_notes omitted (never sent to client)

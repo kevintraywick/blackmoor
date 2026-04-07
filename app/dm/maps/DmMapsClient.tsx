@@ -3,6 +3,29 @@
 import { useState, useRef, useEffect } from 'react';
 import type { MapRow, DmNote } from '@/lib/types';
 import MapCanvas from '@/components/MapCanvas';
+import { imageDisplaySize } from '@/lib/map-scale';
+
+// Cap canvas size so absurdly large canonical maps can't blow up the layout.
+const MAX_CANVAS_W = 1400;
+const MAX_CANVAS_H = 1000;
+const FALLBACK_CANVAS_W = 700;
+const FALLBACK_CANVAS_H = 420;
+
+function canvasSizeFor(map: MapRow | null | undefined): { w: number; h: number } {
+  if (!map) return { w: FALLBACK_CANVAS_W, h: FALLBACK_CANVAS_H };
+  if (!map.cell_size_px || !map.scale_value_ft || !map.image_width_px || !map.image_height_px) {
+    return { w: FALLBACK_CANVAS_W, h: FALLBACK_CANVAS_H };
+  }
+  const { width, height } = imageDisplaySize({
+    imageNaturalWidth: map.image_width_px,
+    imageNaturalHeight: map.image_height_px,
+    cellSizePx: map.cell_size_px,
+    scaleValueFt: map.scale_value_ft,
+  });
+  // Preserve aspect when capping
+  const ratio = Math.min(MAX_CANVAS_W / width, MAX_CANVAS_H / height, 1);
+  return { w: Math.round(width * ratio), h: Math.round(height * ratio) };
+}
 
 interface Props {
   initialMaps: MapRow[];
@@ -280,17 +303,28 @@ export default function DmMapsClient({ initialMaps, sessionId }: Props) {
           </div>
 
           <div className="flex gap-3">
-            {/* Canvas */}
-            <div className="flex-1 bg-[#0d0b09] border border-[var(--color-border)] rounded overflow-hidden" style={{ minHeight: 320 }}>
-              <MapCanvas
-                mapData={showGridSetup && previewMap ? previewMap : activeMap}
-                mode="dm"
-                width={700}
-                height={420}
-                onTileClick={handleTileClick}
-                activeNoteCoord={selectedNote ? [selectedNote.col, selectedNote.row] : null}
-              />
-            </div>
+            {/* Canvas — sized to canonical scale when the map carries grid metadata */}
+            {(() => {
+              const renderMap = showGridSetup && previewMap ? previewMap : activeMap;
+              const { w: cw, h: ch } = canvasSizeFor(renderMap);
+              return (
+                <div
+                  className="flex-1 bg-[#0d0b09] border border-[var(--color-border)] rounded"
+                  style={{ minHeight: 320, overflow: 'auto' }}
+                >
+                  <div style={{ width: cw, height: ch }}>
+                    <MapCanvas
+                      mapData={renderMap}
+                      mode="dm"
+                      width={cw}
+                      height={ch}
+                      onTileClick={handleTileClick}
+                      activeNoteCoord={selectedNote ? [selectedNote.col, selectedNote.row] : null}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Controls sidebar */}
             <div className="w-[160px] flex-shrink-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3 flex flex-col gap-2">

@@ -218,14 +218,17 @@ We want: drop a map → Blackmoor analyzes it → returns grid type + cell size 
 
 **Verification:** drop a no-grid map → calibration tool opens → click 100 ft apart in the image → enter "100" → cell_size_px computed correctly → apply.
 
-### Unit 5 — Canonical scale rendering in builder + viewer
-**Files:** `components/BuilderCanvas.tsx`, `components/MapCanvas.tsx`
+### Unit 5 — Canonical scale rendering in viewer
+**Files:** `components/MapCanvas.tsx`, `app/dm/maps/DmMapsClient.tsx`
 
-- `BuilderCanvas`: when the active build has `scale_value_ft` + `cell_size_px`, compute `imageDisplaySize` and use that as the rendered size for the image overlay (instead of natural).
-- `MapCanvas`: same logic. Fall back to current "fit container" behavior when scale fields are null.
-- Both components import from `lib/map-scale.ts`.
+- `MapCanvas`: when the source row carries `scale_value_ft` + `cell_size_px`, compute `imageDisplaySize` from the image's natural resolution and use that as the canvas size. Wrap in a scrollable container at the parent level.
+- `DmMapsClient`: when the active map has scale fields, pass the computed canonical width/height instead of the hardcoded 700×420. Cap at a sensible max so absurdly large maps don't blow up the layout.
+- Both import from `lib/map-scale.ts`.
+- Legacy maps (no scale fields) keep current "fit to 700×420" behavior. No regression.
 
-**Verification:** drop two square maps of different real-world size → both render with 5 ft cells at 60 screen px. Open one in the session map view → same scale. Open a legacy map (no scale fields) → falls back to current behavior, no crash.
+**Verification:** drop two square maps of different real-world size → link both to a session → open `/dm/maps` → both render with 5 ft cells at 60 screen px (same on-screen scale). Open a legacy map → falls back to current behavior, no crash.
+
+**Deferred (separate task):** rendering the uploaded image as a background layer inside `BuilderCanvas` itself. The builder today only renders the hex grid; adding image overlays at canonical scale is a meaningful new feature, not a small extension. Filed under v2 enhancements below.
 
 ### Unit 6 — Frozen-copy propagation in `[id]/link`
 **Files:** `app/api/map-builder/[id]/link/route.ts`, `lib/schema.ts` (already updated in Unit 1 for `maps` columns)

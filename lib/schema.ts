@@ -86,9 +86,11 @@ async function _initSchema() {
   await pool.query(`ALTER TABLE maps ALTER COLUMN tile_px TYPE DOUBLE PRECISION`).catch(() => {});
 
   // Real-world scale propagated from map_builds when a build is linked to a session.
-  // Both nullable for back-compat with legacy maps that have no scale data.
+  // All nullable for back-compat with legacy maps that have no scale data.
   await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS cell_size_px INTEGER`).catch(() => {});
   await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS scale_value_ft REAL`).catch(() => {});
+  await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS image_width_px INTEGER`).catch(() => {});
+  await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS image_height_px INTEGER`).catch(() => {});
 
   await pool.query(`
     CREATE INDEX IF NOT EXISTS maps_session_id_idx
