@@ -85,6 +85,13 @@ async function _initSchema() {
   await pool.query(`ALTER TABLE maps ALTER COLUMN offset_y TYPE DOUBLE PRECISION`).catch(() => {});
   await pool.query(`ALTER TABLE maps ALTER COLUMN tile_px TYPE DOUBLE PRECISION`).catch(() => {});
 
+  // Real-world scale propagated from map_builds when a build is linked to a session.
+  // All nullable for back-compat with legacy maps that have no scale data.
+  await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS cell_size_px INTEGER`).catch(() => {});
+  await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS scale_value_ft REAL`).catch(() => {});
+  await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS image_width_px INTEGER`).catch(() => {});
+  await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS image_height_px INTEGER`).catch(() => {});
+
   await pool.query(`
     CREATE INDEX IF NOT EXISTS maps_session_id_idx
     ON maps (session_id, sort_order)
@@ -180,6 +187,14 @@ async function _initSchema() {
     ADD COLUMN IF NOT EXISTS menagerie JSONB NOT NULL DEFAULT '[]'
   `);
 
+  // Session lifecycle status — controlled by the Session Control Bar.
+  // 'open'   = upcoming or in-progress, clock may be running
+  // 'paused' = session paused, clock should be paused too
+  // 'ended'  = session over, clock not auto-touched
+  await pool.query(
+    `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'open'`
+  ).catch(() => {});
+
   // DM-only player fields
   await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS dm_notes TEXT NOT NULL DEFAULT ''`);
   await pool.query(`ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`);
@@ -270,6 +285,21 @@ async function _initSchema() {
       `INSERT INTO campaign (id, name, world) VALUES ('default', '', '')`
     );
   }
+
+  // ── Campaign game clock ─────────────────────────────────────────────────────
+  // The game clock is a campaign-wide singleton stored on the campaign row.
+  // game_time_seconds is "seconds since campaign start"; presentation layer
+  // formats it into an in-fiction date/time. clock_paused gates the only
+  // mutator (lib/game-clock.ts::advanceGameTime).
+  await pool.query(
+    `ALTER TABLE campaign ADD COLUMN IF NOT EXISTS game_time_seconds BIGINT NOT NULL DEFAULT 0`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE campaign ADD COLUMN IF NOT EXISTS clock_paused BOOLEAN NOT NULL DEFAULT true`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE campaign ADD COLUMN IF NOT EXISTS clock_last_advanced_at BIGINT NOT NULL DEFAULT 0`
+  ).catch(() => {});
 
   // Magic catalog — DM's persistent reference library of spells, scrolls, magic items, and custom entries
   await pool.query(`
@@ -460,6 +490,178 @@ async function _initSchema() {
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS journal_public TEXT NOT NULL DEFAULT ''`).catch(() => {});
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS narrative_notes TEXT NOT NULL DEFAULT ''`).catch(() => {});
   await pool.query(`ALTER TABLE campaign ADD COLUMN IF NOT EXISTS narrative_notes TEXT NOT NULL DEFAULT ''`).catch(() => {});
+
+  // ── Map Builder tables ──────────────────────────────────────────────────────
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS map_builds (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL DEFAULT '',
+      created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      updated_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `);
+
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS session_id TEXT REFERENCES sessions(id) ON DELETE SET NULL`
+  ).catch(() => {});
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS map_builds_session_id_idx ON map_builds (session_id)`
+  ).catch(() => {});
+
+  // Grid + scale metadata. Populated by Mappy AI on upload, refined by the
+  // confirmation panel, and used by the viewer to enforce canonical screen scale.
+  await pool.query(`ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS grid_type       TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS hex_orientation TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS cell_size_px    INTEGER`).catch(() => {});
+  await pool.query(`ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS scale_mode      TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS scale_value_ft  REAL`).catch(() => {});
+  await pool.query(`ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS map_kind        TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS image_path      TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS image_width_px  INTEGER`).catch(() => {});
+  await pool.query(`ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS image_height_px INTEGER`).catch(() => {});
+
+  // Map workflow classification: 'local_map' (default — placed on a world hex)
+  // or 'world_addition' (extends the singleton world map). NULL is treated as
+  // 'local_map' for legacy rows.
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS map_role TEXT
+     CHECK (map_role IN ('local_map', 'world_addition'))`
+  ).catch(() => {});
+
+  // World location anchor for local maps. NULL until the DM places the build
+  // on a world hex via the picker. Updated in lockstep with world_hexes by
+  // lib/world.ts::setHexLocalMap.
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS world_hex_q INTEGER`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS world_hex_r INTEGER`
+  ).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS map_build_levels (
+      id          TEXT PRIMARY KEY,
+      build_id    TEXT NOT NULL REFERENCES map_builds(id) ON DELETE CASCADE,
+      name        TEXT NOT NULL DEFAULT 'Level 1',
+      sort_order  INTEGER NOT NULL DEFAULT 0,
+      cols        INTEGER NOT NULL DEFAULT 100,
+      rows        INTEGER NOT NULL DEFAULT 100,
+      tiles       JSONB NOT NULL DEFAULT '{}',
+      assets      JSONB NOT NULL DEFAULT '[]',
+      images      JSONB NOT NULL DEFAULT '[]'
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS map_build_levels_build_id_idx
+    ON map_build_levels (build_id, sort_order)
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS map_build_bookmarks (
+      id          TEXT PRIMARY KEY,
+      build_id    TEXT NOT NULL REFERENCES map_builds(id) ON DELETE CASCADE,
+      name        TEXT NOT NULL DEFAULT '',
+      snapshot    JSONB NOT NULL DEFAULT '{}',
+      created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS map_build_assets (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      category    TEXT NOT NULL CHECK (category IN ('wall', 'door', 'stairs', 'water', 'custom')),
+      image_path  TEXT,
+      is_builtin  BOOLEAN NOT NULL DEFAULT false,
+      created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `).catch(() => {});
+
+  // Seed built-in primitive assets
+  const [{ builtin_count }] = await pool.query(
+    `SELECT COUNT(*)::int as builtin_count FROM map_build_assets WHERE is_builtin = true`
+  ).then(r => r.rows).catch(() => [{ builtin_count: 0 }]);
+  if (builtin_count === 0) {
+    const builtins = [
+      { name: 'Wall', category: 'wall' },
+      { name: 'Door', category: 'door' },
+      { name: 'Stairs', category: 'stairs' },
+      { name: 'Water', category: 'water' },
+    ];
+    for (const b of builtins) {
+      await pool.query(
+        `INSERT INTO map_build_assets (id, name, category, is_builtin)
+         VALUES (gen_random_uuid()::text, $1, $2, true)
+         ON CONFLICT DO NOTHING`,
+        [b.name, b.category]
+      ).catch(() => {});
+    }
+  }
+
+  // ── World map tables ────────────────────────────────────────────────────────
+  // The world map is the singleton spatial backbone of the campaign. It holds
+  // reveal state per hex, anchors for local maps, and the moving entities
+  // (storms, hordes, caravans, armies, other parties) that advance with the
+  // campaign game clock.
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS world_map (
+      id                TEXT PRIMARY KEY CHECK (id = 'default'),
+      name              TEXT NOT NULL DEFAULT 'World',
+      default_north_deg REAL NOT NULL DEFAULT 0,
+      created_at        BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `).catch(() => {});
+
+  // Seed the singleton row if absent
+  await pool.query(
+    `INSERT INTO world_map (id) VALUES ('default') ON CONFLICT (id) DO NOTHING`
+  ).catch(() => {});
+
+  // Sparse per-hex state. Only hexes the DM has interacted with (revealed,
+  // mapped, or annotated) get a row. Missing row == unrevealed.
+  // (q, r) are even-q offset coords matching lib/hex-math.ts.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS world_hexes (
+      q                INTEGER NOT NULL,
+      r                INTEGER NOT NULL,
+      reveal_state     TEXT NOT NULL DEFAULT 'unrevealed'
+                         CHECK (reveal_state IN ('unrevealed', 'revealed', 'mapped')),
+      terrain_note     TEXT NOT NULL DEFAULT '',
+      local_map_id     TEXT REFERENCES map_builds(id) ON DELETE SET NULL,
+      weather_override TEXT,
+      updated_at       BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      PRIMARY KEY (q, r)
+    )
+  `).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS world_hexes_local_map_id_idx ON world_hexes (local_map_id) WHERE local_map_id IS NOT NULL`
+  ).catch(() => {});
+
+  // Moving entities on the world map. One table with a kind discriminator —
+  // storms, hordes, caravans, armies, and "other parties" share the same
+  // model: a current position, an optional waypoint path, and a cadence.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS world_entities (
+      id                TEXT PRIMARY KEY,
+      kind              TEXT NOT NULL CHECK (kind IN ('storm', 'horde', 'caravan', 'army', 'other_party')),
+      label             TEXT NOT NULL DEFAULT '',
+      current_q         INTEGER NOT NULL,
+      current_r         INTEGER NOT NULL,
+      waypoints         JSONB NOT NULL DEFAULT '[]',
+      waypoint_index    INTEGER NOT NULL DEFAULT 0,
+      seconds_per_step  BIGINT NOT NULL DEFAULT 21600,
+      created_at        BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint),
+      updated_at        BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM now())::bigint)
+    )
+  `).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS world_entities_position_idx ON world_entities (current_q, current_r)`
+  ).catch(() => {});
 
   // Backfill hp_roll (and empty stat fields) for existing NPCs from SRD.
   // Idempotent — only updates rows with empty hp_roll.

@@ -43,17 +43,45 @@ This is a tool for heroes and the people who run their world. It should feel lik
 - **Tailwind v4 classes break in Safari production.** Tailwind v4 uses `@property` CSS declarations that Safari may not process correctly. Components that work locally can be invisible in production. For any layout-critical element (navbars, primary containers), use inline `style={{}}` for flex, sticky, gap, and background — not Tailwind classes.
 - **Image uploads are capped at 4MB.** Midjourney outputs (typically 2048x2048 PNG, ~6MB) will be rejected by the upload API. Resize with `magick <file> -resize 1024x1024 <file>` before uploading or committing to `public/`.
 - **`autoFocus` on inputs causes page scroll.** If an input with `autoFocus` renders on page load (even inside a conditionally-shown panel that defaults open), the browser scrolls to it. Default panels to closed (`useState(false)`) when they contain autoFocus inputs.
-- **`ensureSchema` is memoized.** After adding new DDL (tables/columns), the dev server must be restarted — the schema won't re-run on refresh.
+- **`ensureSchema` is memoized.** After adding new DDL (tables/columns, ALTER TABLE), the dev server must be restarted — the schema won't re-run on refresh. Kill port 3000 and restart with `npx next dev -p 3000`.
 - **Tailwind v4 breaks arbitrary sizing values.** `w-[70px]`, `h-[70px]`, and `grid-cols-[...]` don't reliably generate CSS. Use inline `style={{ width: 70, height: 70 }}` for precise sizing and `style={{ display: 'grid', gridTemplateColumns: '...' }}` for complex grids.
 - **Always run `tsc --noEmit` before deploying.** Feature branches may merge code that references types/nav entries not present on main. Railway's build will fail on type errors that the dev server ignores.
+- **`.next/types/validator.ts` stale errors on feature branches.** On a feature branch, `tsc --noEmit` will emit "Cannot find module '../../app/.../route.js'" errors for routes that exist on main but not this branch. Filter them out with `npx tsc --noEmit 2>&1 | grep -v ".next/types"`. They regenerate correctly on next build.
 - **Deploy to Railway with `railway up`.** Auto-deploy from GitHub push may not trigger — use `railway up` explicitly to upload and build.
 - **Safari ignores `scrollbar-width: none` on textareas.** Use a wrapper `overflow-hidden` div with the textarea sized wider to clip the native scrollbar off-screen.
 - **Linter/formatter reverts file edits.** When editing `PlayerSheet.tsx` or other large components, changes to props/state declarations get silently reverted between edits. Commit immediately after making working changes to prevent loss.
 - **Player IDs are not character names.** Player IDs (`ashton`, `brandon`, etc.) are in the `players` table; character names are display-only. Routes use IDs: `/players/ashton`, not `/players/ash`.
 - **`next/image` rejects query strings on local paths.** Next.js 16 throws if an `<Image>` src has a `?t=...` cache-buster. Use plain `<img>` tags for uploaded/API-served images.
+- **Scope-trimming feature units.** When a planned implementation unit turns out to be two features hiding inside one (e.g., "apply canonical scale to the builder" turned into "also render images in the builder for the first time"), trim scope and defer the larger piece with a plan note. Deliver user value in the current commit; don't pretend the scope was always smaller.
+- **Client components can't transitively import `lib/db.ts`.** A `'use client'` component that imports a helper which itself imports from `lib/db.ts` will drag `pg` into the client bundle and Turbopack will fail with "Module not found: Can't resolve 'tls'". Split pure helpers (formatters, type guards) into a separate file with no DB imports — see `lib/game-clock-format.ts` next to the server-only `lib/game-clock.ts`.
+- **JavaScript `%` is remainder, not modulo.** `(-1) % 2 === -1`, so `col % 2 === 1` misclassifies every negative odd column as even. For sign-safe odd tests use `((col % 2) + 2) % 2 === 1`. This bit `lib/hex-math.ts::hexCenter` and `hexNeighbors` once the world map started using negative hex coordinates (existing builder canvases never hit it because they use `col >= 0`).
+
+## Output conventions
+
+- **Server links / URLs on their own line in backticks.** They render blue and are easy to click. Never inline a clickable URL in prose.
 
 ## Local Dev Server
 When making changes that need a server restart (new DDL, cache issues, etc.), handle it directly — kill port 3000 and restart with `npx next dev -p 3000` using the Bash tool. Run the server in the background. Don't ask the user to do it.
 
 ## GITHUB
 Alert the user on a local push or commit if the change has not been pushed to Github.
+
+## Code Quality Rules
+
+- Always use TypeScript (.ts/.tsx) with proper type annotations on functions, variables, and props.
+- Never skip type checks — no `any`, `as unknown as`, `// @ts-ignore`, `// @ts-expect-error`, or non-null assertions (`!`) to silence errors. Fix the underlying type problem.
+- Run linting (`npm run lint`) before marking any feature complete, and fix all reported errors.
+- Run the production build (`npm run build`) before marking any feature complete — dev mode is more forgiving than production.
+- Never commit `node_modules`, build artifacts, or local database files.
+
+## External API Rules
+
+- Never hardcode API keys or secrets — always load them from environment variables (`process.env.*`).
+- Add `.env` and `.env.*` to `.gitignore` before committing anything.
+- Never call external APIs directly from the browser — always proxy through a server route so keys stay server-side.
+- Always handle API errors explicitly with try/catch and user-visible error states. No silent failures.
+- Validate and sanitize all data coming from external APIs (e.g. with Zod) before using it.
+- Never log full API responses, request bodies, tokens, or PII in production.
+- Set explicit timeouts on all external API calls (e.g. via `AbortController`).
+- Respect rate limits — implement retries with exponential backoff for 429 responses.
+- Pin external API versions explicitly (e.g. Stripe `2024-06-20`) rather than relying on the provider default.

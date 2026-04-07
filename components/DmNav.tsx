@@ -4,7 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export type NavSection = 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative' | 'maps' | 'magic' | 'marketplace' | 'poisons' | 'inventory' | 'boons' | 'journey' | 'journal';
+export type NavSection =
+  | 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative'
+  | 'world' | 'maps' | 'map-builder'
+  | 'magic' | 'marketplace' | 'poisons' | 'inventory'
+  | 'boons' | 'journey' | 'journal';
 
 interface PlayerChangeRow {
   player_id: string;
@@ -38,7 +42,9 @@ const LINKS: { key: NavSection; label: string; href: string }[] = [
   { key: 'players',     label: 'Players',         href: '/dm/players' },
   { key: 'npcs',        label: 'NPCs',            href: '/dm/npcs' },
   { key: 'initiative',  label: 'Initiative',      href: '/dm/initiative' },
+  { key: 'world',       label: 'World',           href: '/dm/world' },
   { key: 'maps',        label: 'Maps',            href: '/dm/maps' },
+  { key: 'map-builder', label: 'Map Builder',     href: '/dm/map-builder' },
   { key: 'magic',       label: 'Magic',           href: '/dm/magic' },
   { key: 'marketplace', label: 'Marketplace',     href: '/dm/marketplace' },
   { key: 'inventory',   label: 'Inventory',       href: '/dm/inventory' },

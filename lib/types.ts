@@ -124,6 +124,11 @@ export interface MapRow {
   dm_notes: DmNote[];
   sort_order: number;
   created_at: number;
+  // Real-world scale (nullable for legacy maps without grid metadata)
+  cell_size_px: number | null;
+  scale_value_ft: number | null;
+  image_width_px: number | null;
+  image_height_px: number | null;
 }
 
 // Player version — dm_notes omitted (never sent to client)
@@ -235,6 +240,93 @@ export interface MagicCatalogEntry {
   api_key: string | null;
   description: string;
   metadata: Record<string, unknown>;
+  created_at: number;
+}
+
+// ── Map Builder types ─────────────────────────────────────────────────────────
+
+export interface TileState {
+  active: boolean;       // tile exists (placed during Build mode)
+  visible?: boolean;     // visible to players (set during Visible mode)
+  obscured?: boolean;    // assets show as muddy blob to players (set during Obscure mode)
+}
+
+export interface PlacedAsset {
+  id: string;
+  asset_id: string;
+  col: number;
+  row: number;
+}
+
+export interface ImageLayer {
+  id: string;
+  image_path: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export type GridDetectType = 'square' | 'hex' | 'none';
+export type ScaleMode = 'combat' | 'overland' | 'none';
+export type MapKind = 'interior' | 'exterior' | 'dungeon' | 'town' | 'overland' | 'other';
+
+export type MapRole = 'local_map' | 'world_addition';
+
+export interface MapBuild {
+  id: string;
+  name: string;
+  created_at: number;
+  updated_at: number;
+  session_id: string | null;
+  // Joined from sessions when listed via GET /api/map-builder
+  session_number?: number | null;
+  session_title?: string | null;
+  // Grid + scale metadata (all nullable until Mappy or the DM populates them)
+  grid_type: GridDetectType | null;
+  hex_orientation: HexOrientation | null;
+  cell_size_px: number | null;
+  scale_mode: ScaleMode | null;
+  scale_value_ft: number | null;
+  map_kind: MapKind | null;
+  image_path: string | null;
+  image_width_px: number | null;
+  image_height_px: number | null;
+  // Map workflow classification — null for legacy rows is treated as local_map
+  map_role: MapRole | null;
+  // World hex anchor (only set for local maps placed via the world hex picker)
+  world_hex_q: number | null;
+  world_hex_r: number | null;
+}
+
+export interface MapBuildLevel {
+  id: string;
+  build_id: string;
+  name: string;
+  sort_order: number;
+  cols: number;
+  rows: number;
+  tiles: Record<string, TileState>;   // "col,row" → state
+  assets: PlacedAsset[];
+  images: ImageLayer[];
+}
+
+export interface MapBuildBookmark {
+  id: string;
+  build_id: string;
+  name: string;
+  snapshot: unknown;
+  created_at: number;
+}
+
+export type BuilderAssetCategory = 'wall' | 'door' | 'stairs' | 'water' | 'custom';
+
+export interface BuilderAsset {
+  id: string;
+  name: string;
+  category: BuilderAssetCategory;
+  image_path: string | null;
+  is_builtin: boolean;
   created_at: number;
 }
 
