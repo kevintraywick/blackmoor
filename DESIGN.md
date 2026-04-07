@@ -78,7 +78,7 @@ The blank-map flow still exists but is a secondary entry point — the feature i
 
 **World map state & game time.**
 The world map maintains live state driven by a DM-controlled **game clock**:
-- **Game clock** — advanced by the DM via explicit "advance N hours / N days" actions on the world map. Tied into the Session Control Bar so the clock pauses when the session pauses. No auto-tick — in-fiction time and wall time diverge constantly (long rests, travel montages).
+- **Game clock** — campaign-wide singleton stored on the `campaign` row (`game_time_seconds`, `clock_paused`, `clock_last_advanced_at`). The only writer is `lib/game-clock.ts` (`advanceGameTime`, `pauseClock`, `resumeClock`); routes go through it. Advanced by the DM via explicit "advance N hours / N days" actions on the world map. The existing Session Control Bar's PAUSE / END SESSION? / RESUME buttons pause and resume the campaign clock alongside the session — wired into `app/api/sessions/[id]/route.ts` so the bar UI doesn't need to know about the clock. No auto-tick — in-fiction time and wall time diverge constantly (long rests, travel montages).
 - **Weather** — stored as state per region (`clear`, `storm`, etc.). Passing storms move along stored waypoint paths; each clock advance steps them one tick.
 - **Day/night** — derived from the game clock.
 - **Horde / caravan / army / other-party movement** — manually placed, with optional stored waypoint paths. Each clock advance steps them one tick along their path. No AI movement in v1.

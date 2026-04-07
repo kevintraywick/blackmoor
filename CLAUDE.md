@@ -53,6 +53,8 @@ This is a tool for heroes and the people who run their world. It should feel lik
 - **Player IDs are not character names.** Player IDs (`ashton`, `brandon`, etc.) are in the `players` table; character names are display-only. Routes use IDs: `/players/ashton`, not `/players/ash`.
 - **`next/image` rejects query strings on local paths.** Next.js 16 throws if an `<Image>` src has a `?t=...` cache-buster. Use plain `<img>` tags for uploaded/API-served images.
 - **Scope-trimming feature units.** When a planned implementation unit turns out to be two features hiding inside one (e.g., "apply canonical scale to the builder" turned into "also render images in the builder for the first time"), trim scope and defer the larger piece with a plan note. Deliver user value in the current commit; don't pretend the scope was always smaller.
+- **Client components can't transitively import `lib/db.ts`.** A `'use client'` component that imports a helper which itself imports from `lib/db.ts` will drag `pg` into the client bundle and Turbopack will fail with "Module not found: Can't resolve 'tls'". Split pure helpers (formatters, type guards) into a separate file with no DB imports — see `lib/game-clock-format.ts` next to the server-only `lib/game-clock.ts`.
+- **JavaScript `%` is remainder, not modulo.** `(-1) % 2 === -1`, so `col % 2 === 1` misclassifies every negative odd column as even. For sign-safe odd tests use `((col % 2) + 2) % 2 === 1`. This bit `lib/hex-math.ts::hexCenter` and `hexNeighbors` once the world map started using negative hex coordinates (existing builder canvases never hit it because they use `col >= 0`).
 
 ## Output conventions
 
