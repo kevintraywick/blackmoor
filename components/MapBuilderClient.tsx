@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import BuilderCanvas, { packKey } from '@/components/BuilderCanvas';
+import WorldHexPicker from '@/components/WorldHexPicker';
 import type { BuilderTool } from '@/components/BuilderCanvas';
 import type { MapBuild, MapBuildLevel, MapBuildBookmark, TileState, Session, BuilderAsset, PlacedAsset } from '@/lib/types';
 import { useUndoRedo } from '@/lib/useUndoRedo';
@@ -114,6 +115,9 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
 
   // Pending file awaiting world-vs-local classification before upload proceeds.
   const [pendingClassification, setPendingClassification] = useState<File | null>(null);
+
+  // World hex picker overlay state
+  const [showWorldPicker, setShowWorldPicker] = useState(false);
 
   // ── Load a build ───────────────────────────────────────────────────────────
   async function loadBuild(buildId: string) {
@@ -1087,6 +1091,26 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           </Link>
         )}
 
+        {/* Set World Location — only for local maps */}
+        {(() => {
+          const activeBuild = builds.find((b) => b.id === activeBuildId);
+          if (!activeBuild || activeBuild.map_role === 'world_addition') return null;
+          const anchor = activeBuild.world_hex_q != null && activeBuild.world_hex_r != null
+            ? `(${activeBuild.world_hex_q}, ${activeBuild.world_hex_r})`
+            : null;
+          return (
+            <button
+              type="button"
+              onClick={() => setShowWorldPicker(true)}
+              className="text-[0.75rem] text-[#c9a84c] hover:text-[#e6c66a] transition-colors"
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+              title="Place this map on a world hex"
+            >
+              📍 {anchor ? `World ${anchor}` : 'Set World Location'}
+            </button>
+          );
+        })()}
+
         <div className="flex-1" />
 
         {/* Mode buttons — center-aligned */}
@@ -1614,6 +1638,30 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           </div>
         </div>
       )}
+
+      {/* World hex picker overlay */}
+      {showWorldPicker && activeBuildId && (() => {
+        const activeBuild = builds.find((b) => b.id === activeBuildId);
+        if (!activeBuild) return null;
+        const currentAnchor =
+          activeBuild.world_hex_q != null && activeBuild.world_hex_r != null
+            ? { q: activeBuild.world_hex_q, r: activeBuild.world_hex_r }
+            : null;
+        return (
+          <WorldHexPicker
+            buildId={activeBuild.id}
+            buildName={activeBuild.name}
+            currentAnchor={currentAnchor}
+            onCancel={() => setShowWorldPicker(false)}
+            onPlaced={(q, r) => {
+              setBuilds((prev) =>
+                prev.map((b) => (b.id === activeBuild.id ? { ...b, world_hex_q: q, world_hex_r: r } : b))
+              );
+              setShowWorldPicker(false);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

@@ -166,6 +166,8 @@ export type GridDetectType = 'square' | 'hex' | 'none';
 export type ScaleMode = 'combat' | 'overland' | 'none';
 export type MapKind = 'interior' | 'exterior' | 'dungeon' | 'town' | 'overland' | 'other';
 
+export type MapRole = 'local_map' | 'world_addition';
+
 export interface MapBuild {
   id: string;
   name: string;
@@ -185,6 +187,11 @@ export interface MapBuild {
   image_path: string | null;
   image_width_px: number | null;
   image_height_px: number | null;
+  // Map workflow classification — null for legacy rows is treated as local_map
+  map_role: MapRole | null;
+  // World hex anchor (only set for local maps placed via the world hex picker)
+  world_hex_q: number | null;
+  world_hex_r: number | null;
 }
 
 export interface MapBuildLevel {
