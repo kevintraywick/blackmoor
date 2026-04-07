@@ -112,6 +112,9 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   // Auto-open a build when arriving via ?build=<id>. Runs once per incoming id.
   const hasAutoOpenedRef = useRef<string | null>(null);
 
+  // Pending file awaiting world-vs-local classification before upload proceeds.
+  const [pendingClassification, setPendingClassification] = useState<File | null>(null);
+
   // ── Load a build ───────────────────────────────────────────────────────────
   async function loadBuild(buildId: string) {
     const [buildRes, bookmarkRes, assetsRes] = await Promise.all([
@@ -187,7 +190,8 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   // Create a build from an image file (used by both file picker and drop circle).
   // Strips extension for the initial name; DM can rename via double-click later.
   // After upload, calls Mappy to detect grid + scale and pops the confirmation panel.
-  async function createBuildFromImage(file: File) {
+  // `role` is set by the classification dialog before this is called.
+  async function createBuildFromImage(file: File, role: 'local_map' | 'world_addition' = 'local_map') {
     if (!file.type.startsWith('image/')) return;
     const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'Untitled Map';
 
@@ -195,7 +199,7 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
     const res = await fetch('/api/map-builder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: baseName }),
+      body: JSON.stringify({ name: baseName, map_role: role }),
     });
     const build = await res.json();
     setBuilds(prev => [build, ...prev]);
@@ -912,7 +916,7 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           style={{ display: 'none' }}
           onChange={e => {
             const file = e.target.files?.[0];
-            if (file) createBuildFromImage(file);
+            if (file) setPendingClassification(file);
             // Reset so picking the same file again still fires onChange
             e.target.value = '';
           }}
@@ -939,7 +943,7 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
               e.stopPropagation();
               setHomeDragOver(false);
               const file = e.dataTransfer.files[0];
-              if (file) createBuildFromImage(file);
+              if (file) setPendingClassification(file);
             }}
             style={{
               width: 200,
@@ -1035,6 +1039,19 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
 
         {builds.length === 0 && !showNewMapDialog && (
           <p className="text-[0.88rem] italic text-[var(--color-text-dim)] mt-6">No maps yet. Create one to get started.</p>
+        )}
+
+        {/* Classification overlay — shown after upload, before the build is created. */}
+        {pendingClassification && (
+          <ClassificationDialog
+            file={pendingClassification}
+            onCancel={() => setPendingClassification(null)}
+            onPick={(role) => {
+              const file = pendingClassification;
+              setPendingClassification(null);
+              createBuildFromImage(file, role);
+            }}
+          />
         )}
       </div>
     );
@@ -1597,6 +1614,103 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Classification dialog (world addition vs local map) ───────────────────
+// Shown after a file is selected, before the build is created. The DM picks
+// the role; the chosen role is passed to createBuildFromImage. No dropdowns
+// per DESIGN.md — segmented cards instead.
+function ClassificationDialog({
+  file,
+  onCancel,
+  onPick,
+}: {
+  file: File;
+  onCancel: () => void;
+  onPick: (role: 'local_map' | 'world_addition') => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(8, 6, 4, 0.78)' }}
+    >
+      <div
+        className="bg-[#1a1614] border border-[#5a4632] rounded"
+        style={{ width: 560, padding: 28 }}
+      >
+        <p className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7a4c] font-sans">
+          New Map
+        </p>
+        <h2 className="font-serif text-[1.4rem] italic text-[#e8dcc4] mt-1 mb-1 leading-tight">
+          What kind of map is this?
+        </h2>
+        <p className="text-[0.78rem] text-[#8a7a4c] font-serif italic mb-6 truncate">
+          {file.name}
+        </p>
+
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={() => onPick('local_map')}
+            className="flex-1 text-left transition-colors"
+            style={{
+              background: 'transparent',
+              border: '1px solid #5a4632',
+              borderRadius: 2,
+              padding: '18px 18px 16px',
+              cursor: 'pointer',
+              color: '#e8dcc4',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#c9a84c'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#5a4632'; }}
+          >
+            <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#c9a84c] font-sans mb-2">
+              Local Map
+            </div>
+            <div className="font-serif text-[1.05rem] mb-1">A place in the world</div>
+            <div className="text-[0.78rem] text-[#8a7a4c] font-serif italic">
+              An interior, dungeon, town, or local exterior. Becomes a hex tile you place on the world map.
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onPick('world_addition')}
+            className="flex-1 text-left transition-colors"
+            style={{
+              background: 'transparent',
+              border: '1px solid #5a4632',
+              borderRadius: 2,
+              padding: '18px 18px 16px',
+              cursor: 'pointer',
+              color: '#e8dcc4',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#c9a84c'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#5a4632'; }}
+          >
+            <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[#c9a84c] font-sans mb-2">
+              World Addition
+            </div>
+            <div className="font-serif text-[1.05rem] mb-1">A piece of the world itself</div>
+            <div className="text-[0.78rem] text-[#8a7a4c] font-serif italic">
+              An overland or hexcrawl map that extends the world. The world map already exists; this adds to it.
+            </div>
+          </button>
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7a4c] hover:text-[#c9a84c] font-sans"
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px 12px' }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

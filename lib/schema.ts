@@ -364,6 +364,24 @@ async function _initSchema() {
   await pool.query(`ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS image_width_px  INTEGER`).catch(() => {});
   await pool.query(`ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS image_height_px INTEGER`).catch(() => {});
 
+  // Map workflow classification: 'local_map' (default — placed on a world hex)
+  // or 'world_addition' (extends the singleton world map). NULL is treated as
+  // 'local_map' for legacy rows.
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS map_role TEXT
+     CHECK (map_role IN ('local_map', 'world_addition'))`
+  ).catch(() => {});
+
+  // World location anchor for local maps. NULL until the DM places the build
+  // on a world hex via the picker. Updated in lockstep with world_hexes by
+  // lib/world.ts::setHexLocalMap.
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS world_hex_q INTEGER`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS world_hex_r INTEGER`
+  ).catch(() => {});
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS map_build_levels (
       id          TEXT PRIMARY KEY,

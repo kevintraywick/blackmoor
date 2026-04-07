@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   try {
     await ensureSchema();
     const body = await req.json();
-    const { name = 'Untitled Map', session_id = null } = body;
+    const { name = 'Untitled Map', session_id = null, map_role = 'local_map' } = body;
 
     if (typeof name !== 'string' || name.length > 200) {
       return NextResponse.json({ error: 'Invalid name' }, { status: 400 });
@@ -32,14 +32,17 @@ export async function POST(req: Request) {
     if (session_id !== null && typeof session_id !== 'string') {
       return NextResponse.json({ error: 'Invalid session_id' }, { status: 400 });
     }
+    if (map_role !== 'local_map' && map_role !== 'world_addition') {
+      return NextResponse.json({ error: 'Invalid map_role' }, { status: 400 });
+    }
 
     const buildId = crypto.randomUUID();
     const levelId = crypto.randomUUID();
     const now = Math.floor(Date.now() / 1000);
 
     await query(
-      `INSERT INTO map_builds (id, name, session_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`,
-      [buildId, name.trim(), session_id, now, now]
+      `INSERT INTO map_builds (id, name, session_id, map_role, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [buildId, name.trim(), session_id, map_role, now, now]
     );
 
     // Create default first level
