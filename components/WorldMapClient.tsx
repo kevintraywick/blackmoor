@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { hexCenter, hexPath } from '@/lib/hex-math';
-import type { WorldHex, WorldMap } from '@/lib/world';
+import type { WorldHex, WorldMap, WorldEntity, WorldEntityKind } from '@/lib/world';
+import { formatGameTime } from '@/lib/game-clock-format';
+
+interface ClockState {
+  game_time_seconds: number;
+  clock_paused: boolean;
+  clock_last_advanced_at: number;
+}
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
@@ -26,11 +33,21 @@ const COLOR_HOVER_STROKE = '#e6c66a';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type Mode = 'reveal' | 'pan' | 'navigate';
+type Mode = 'reveal' | 'pan' | 'navigate' | 'place-entity';
+
+const ENTITY_KINDS: { kind: WorldEntityKind; label: string; glyph: string; color: string }[] = [
+  { kind: 'storm',       label: 'Storm',       glyph: '⛈', color: '#9ec5e8' },
+  { kind: 'horde',       label: 'Horde',       glyph: '☠', color: '#c07a8a' },
+  { kind: 'caravan',     label: 'Caravan',     glyph: '⛺', color: '#c9a84c' },
+  { kind: 'army',        label: 'Army',        glyph: '⚔', color: '#d04a3a' },
+  { kind: 'other_party', label: 'Other Party', glyph: '◉', color: '#7ac28a' },
+];
 
 interface Props {
   world: WorldMap;
   initialHexes: WorldHex[];
+  initialEntities: WorldEntity[];
+  initialClock: ClockState;
 }
 
 // ── Unbounded pixel→hex (allows negative coords) ────────────────────────────
@@ -58,13 +75,17 @@ function pixelToHexUnbounded(px: number, py: number, hexSize: number): [number, 
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export default function WorldMapClient({ world, initialHexes }: Props) {
+export default function WorldMapClient({ world, initialHexes, initialEntities, initialClock }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [hexes, setHexes] = useState<WorldHex[]>(initialHexes);
+  const [entities, setEntities] = useState<WorldEntity[]>(initialEntities);
+  const [clock, setClock] = useState<ClockState>(initialClock);
   const [mode, setMode] = useState<Mode>('reveal');
   const [hover, setHover] = useState<[number, number] | null>(null);
+  const [placeKind, setPlaceKind] = useState<WorldEntityKind>('caravan');
+  const [advanceErr, setAdvanceErr] = useState<string | null>(null);
 
   // Pan offset in world-space pixels. Initialized to center the centroid of
   // known hexes (or the origin if empty) on the canvas.
@@ -189,8 +210,21 @@ export default function WorldMapClient({ world, initialHexes }: Props) {
       }
     }
 
+    // Draw entities — small glyph on the hex they currently occupy
+    for (const ent of entities) {
+      const { cx, cy } = hexCenter(ent.current_q, ent.current_r, HEX_SIZE);
+      const meta = ENTITY_KINDS.find((k) => k.kind === ent.kind);
+      ctx.save();
+      ctx.font = '20px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = meta?.color ?? '#e8dcc4';
+      ctx.fillText(meta?.glyph ?? '●', cx, cy);
+      ctx.restore();
+    }
+
     ctx.restore();
-  }, [pan, hexMap, drawWindow, hover]);
+  }, [pan, hexMap, drawWindow, hover, entities]);
 
   useEffect(() => {
     draw();
@@ -304,10 +338,54 @@ export default function WorldMapClient({ world, initialHexes }: Props) {
         } catch (err) {
           console.warn('reveal toggle error', err);
         }
+      } else if (mode === 'place-entity') {
+        try {
+          const res = await fetch('/api/world/entities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ kind: placeKind, q, r }),
+          });
+          if (!res.ok) {
+            console.warn('place entity failed', await res.text());
+            return;
+          }
+          const ent: WorldEntity = await res.json();
+          setEntities((prev) => [...prev, ent]);
+        } catch (err) {
+          console.warn('place entity error', err);
+        }
       }
     },
-    [mode, hexMap, screenToHex, router]
+    [mode, hexMap, screenToHex, router, placeKind]
   );
+
+  // Advance the campaign clock by N seconds. World entities tick along
+  // their waypoint paths inside the same DB transaction (lib/game-clock.ts).
+  const advance = useCallback(async (seconds: number) => {
+    setAdvanceErr(null);
+    try {
+      const res = await fetch('/api/clock/advance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seconds }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setAdvanceErr(data.error || 'Advance failed');
+        return;
+      }
+      const data = await res.json();
+      setClock(data.clock);
+      // Refetch entities so positions reflect the tick fan-out
+      const entRes = await fetch('/api/world/entities');
+      if (entRes.ok) {
+        const ents: WorldEntity[] = await entRes.json();
+        setEntities(ents);
+      }
+    } catch {
+      setAdvanceErr('Network error');
+    }
+  }, []);
 
   // ── UI ────────────────────────────────────────────────────────────────────
 
@@ -317,11 +395,87 @@ export default function WorldMapClient({ world, initialHexes }: Props) {
         <div>
           <h1 className="text-2xl font-serif text-[#c9a84c]">{world.name}</h1>
           <p className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7a4c] font-sans mt-1">
-            World Map &middot; {hexes.length} hex{hexes.length === 1 ? '' : 'es'} touched
+            World Map &middot; {hexes.length} hex{hexes.length === 1 ? '' : 'es'} touched &middot; {entities.length} entit{entities.length === 1 ? 'y' : 'ies'}
           </p>
         </div>
         <ModeToggle mode={mode} onChange={setMode} />
       </header>
+
+      {/* Game clock readout + advance controls */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          marginBottom: 12,
+          padding: '10px 14px',
+          background: '#1a2118',
+          border: '1px solid #4a7a5a',
+          borderRadius: 2,
+        }}
+      >
+        <div>
+          <div className="font-serif text-[1rem] text-[#e8dcc4]">
+            {formatGameTime(clock.game_time_seconds)}
+          </div>
+          <div
+            className="text-[0.62rem] uppercase tracking-[0.18em] font-sans"
+            style={{ color: clock.clock_paused ? '#c9a84c' : '#7ac28a' }}
+          >
+            {clock.clock_paused ? 'Clock Paused' : 'Clock Running'}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <AdvanceButton label="+1h" onClick={() => advance(3600)} disabled={clock.clock_paused} />
+          <AdvanceButton label="+8h" onClick={() => advance(8 * 3600)} disabled={clock.clock_paused} />
+          <AdvanceButton label="+1d" onClick={() => advance(24 * 3600)} disabled={clock.clock_paused} />
+        </div>
+        {advanceErr && (
+          <div className="text-[0.7rem] font-sans uppercase tracking-[0.15em]" style={{ color: '#c07a8a' }}>
+            {advanceErr}
+          </div>
+        )}
+      </div>
+
+      {/* Entity kind picker — visible only in place-entity mode */}
+      {mode === 'place-entity' && (
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            marginBottom: 12,
+            padding: '10px 14px',
+            background: '#1a1614',
+            border: '1px solid #5a4632',
+            borderRadius: 2,
+          }}
+        >
+          <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7a4c] font-sans self-center">
+            Placing
+          </span>
+          {ENTITY_KINDS.map((k) => {
+            const active = k.kind === placeKind;
+            return (
+              <button
+                key={k.kind}
+                type="button"
+                onClick={() => setPlaceKind(k.kind)}
+                className="font-sans text-[0.7rem] uppercase tracking-[0.15em]"
+                style={{
+                  padding: '6px 12px',
+                  background: active ? `${k.color}22` : 'transparent',
+                  color: active ? k.color : '#8a7a4c',
+                  border: `1px solid ${active ? k.color : '#5a4632'}`,
+                  cursor: 'pointer',
+                }}
+              >
+                {k.glyph} {k.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <canvas
         ref={canvasRef}
@@ -354,11 +508,32 @@ export default function WorldMapClient({ world, initialHexes }: Props) {
 
 // ── Mode toggle (segmented button group, no dropdowns) ─────────────────────
 
+function AdvanceButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="font-sans text-[0.7rem] uppercase tracking-[0.15em]"
+      style={{
+        padding: '6px 12px',
+        background: disabled ? 'transparent' : '#c9a84c',
+        color: disabled ? '#5a6a52' : '#1a1614',
+        border: `1px solid ${disabled ? '#3a4036' : '#c9a84c'}`,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
   const options: { key: Mode; label: string }[] = [
     { key: 'reveal', label: 'Reveal' },
     { key: 'pan', label: 'Pan' },
     { key: 'navigate', label: 'Navigate' },
+    { key: 'place-entity', label: 'Place' },
   ];
   return (
     <div className="inline-flex" style={{ gap: 0 }}>

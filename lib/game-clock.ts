@@ -8,7 +8,7 @@
 // Game time is "seconds since campaign start". The presentation layer turns
 // that into an in-fiction date/time with formatGameTime().
 
-import { query } from './db';
+import { query, withTransaction } from './db';
 
 export interface GameClock {
   game_time_seconds: number;
@@ -52,29 +52,72 @@ export class ClockPausedError extends Error {
   }
 }
 
-// Advance the game clock by `seconds`. Rejects with ClockPausedError if the
-// clock is currently paused. Entity tick fan-out is wired in by a later unit —
-// this helper intentionally does nothing with world_entities yet.
+// Advance the game clock by `seconds` and tick every world_entity along its
+// waypoint path. The clock write and the entity ticks happen inside one
+// transaction so the world is never half-advanced.
+//
+// Rejects with ClockPausedError if the clock is currently paused.
 export async function advanceGameTime(seconds: number): Promise<GameClock> {
   if (seconds <= 0) {
     throw new Error(`advanceGameTime: seconds must be > 0 (got ${seconds})`);
   }
 
-  const clock = await getGameClock();
-  if (clock.clock_paused) {
-    throw new ClockPausedError();
-  }
+  return withTransaction(async (client) => {
+    // Lock the campaign row so a concurrent advance cannot interleave
+    const lockRes = await client.query(
+      `SELECT game_time_seconds, clock_paused FROM campaign WHERE id = 'default' FOR UPDATE`
+    );
+    if (lockRes.rows.length === 0) {
+      throw new Error('campaign singleton missing');
+    }
+    if (lockRes.rows[0].clock_paused) {
+      throw new ClockPausedError();
+    }
 
-  const rows = await query<GameClock>(
-    `UPDATE campaign
-     SET game_time_seconds       = game_time_seconds + $1,
-         clock_last_advanced_at  = EXTRACT(EPOCH FROM now())::bigint
-     WHERE id = 'default'
-     RETURNING game_time_seconds, clock_paused, clock_last_advanced_at`,
-    [seconds]
-  );
-  return rows[0];
+    // Advance the clock
+    const advRes = await client.query(
+      `UPDATE campaign
+       SET game_time_seconds       = game_time_seconds + $1,
+           clock_last_advanced_at  = EXTRACT(EPOCH FROM now())::bigint
+       WHERE id = 'default'
+       RETURNING game_time_seconds, clock_paused, clock_last_advanced_at`,
+      [seconds]
+    );
+    const newClock = advRes.rows[0] as GameClock;
+
+    // Tick every entity that has a waypoint path. For each, advance
+    // waypoint_index by floor(seconds / seconds_per_step), capped at the
+    // last waypoint, and set current_q/r to the new waypoint.
+    const entRes = await client.query(
+      `SELECT id, waypoints, waypoint_index, seconds_per_step
+       FROM world_entities
+       WHERE jsonb_array_length(waypoints) > 0`
+    );
+    for (const ent of entRes.rows) {
+      const waypoints = ent.waypoints as Array<{ q: number; r: number }>;
+      if (!Array.isArray(waypoints) || waypoints.length === 0) continue;
+      const stepsPossible = Math.floor(seconds / Number(ent.seconds_per_step));
+      if (stepsPossible <= 0) continue;
+      const lastIndex = waypoints.length - 1;
+      const newIndex = Math.min(ent.waypoint_index + stepsPossible, lastIndex);
+      if (newIndex === ent.waypoint_index) continue;
+      const target = waypoints[newIndex];
+      if (!target || typeof target.q !== 'number' || typeof target.r !== 'number') continue;
+      await client.query(
+        `UPDATE world_entities
+         SET waypoint_index = $1,
+             current_q      = $2,
+             current_r      = $3,
+             updated_at     = EXTRACT(EPOCH FROM now())::bigint
+         WHERE id = $4`,
+        [newIndex, target.q, target.r, ent.id]
+      );
+    }
+
+    return newClock;
+  });
 }
+
 
 // Pure presentation helpers (formatGameTime, isNight) live in
 // lib/game-clock-format.ts so client components can import them without
