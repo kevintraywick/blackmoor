@@ -31,6 +31,47 @@ Living document for UI/UX decisions and constraints. Review before making visual
 
 ## Map Builder (`/dm/map-builder`)
 
+### Primary purpose
+The Map Builder is a **map editor**, not a from-scratch map creator. Its design goal is to let the DM upload an existing map image and modify it in two ways:
+
+1. **Add assets to an overlay layer** — props, tokens, markers, and other placed elements live above the uploaded image without altering the original pixels.
+2. **Extend the map edges** — grow the canvas beyond the uploaded image's bounds (e.g. add a new room, push the world out one hex further). Out of scope for now: anything else (no in-place pixel editing, no tile painting, no procedural generation).
+
+The blank-map flow still exists but is a secondary entry point — the feature is optimized for "I have a map, let me edit it."
+
+### Map workflow
+
+**World map vs local map — the core hierarchy.**
+
+- A **world map** is a singleton. It always exists; the default is an empty hex grid with an established N. It may be incomplete and grow over time as the DM reveals hexes. There is only ever one world map.
+- A **local map** is any map that isn't the world map. Each local map is anchored to exactly one world hex (its world location). Sub-locations (dungeon rooms, building interiors) attach to a *parent local map*, not directly to a hex. Multi-hex local maps are deferred.
+
+**Adding a map.** When the user adds a map, they must first decide:
+- **World addition** → edits apply to the singleton world map (extend the world's hexes, add world assets, etc.).
+- **Local map** → a new local map is created and represented as a **hex tile**. The user drags the hex tile onto the world map to set its world location. The drop target hex becomes the local map's anchor.
+
+**World map state & game time.**
+The world map maintains live state driven by a DM-controlled **game clock**:
+- **Game clock** — advanced by the DM via explicit "advance N hours / N days" actions on the world map. Tied into the Session Control Bar so the clock pauses when the session pauses. No auto-tick — in-fiction time and wall time diverge constantly (long rests, travel montages).
+- **Weather** — stored as state per region (`clear`, `storm`, etc.). Passing storms move along stored waypoint paths; each clock advance steps them one tick.
+- **Day/night** — derived from the game clock.
+- **Horde / caravan / army / other-party movement** — manually placed, with optional stored waypoint paths. Each clock advance steps them one tick along their path. No AI movement in v1.
+
+**Hex reveal state.** Every world hex is in one of three states:
+- `unrevealed` — parchment blank, no terrain shown.
+- `revealed` — terrain visible, no local map attached.
+- `mapped` — has a local map attached; clickable to open the local map.
+
+**Local map responsibilities.**
+- **Session report integration** — the local map publishes events (party entered, NPC interaction, asset triggered). The session report subscribes. Event-based, not poll-based — the DM never types the same thing twice.
+- **Local NPC movement** — manually placed NPCs with optional waypoint patrols. Advancement ticks are driven by the same DM game clock that advances world state. No AI movement in v1.
+- **Environmental inheritance** — the local map reads current environmental state (weather, day/night) from its parent world hex at game time. Rendered as a top-bar pill or corner badge on the local map, not as pixel overlays on the image. A world-map storm that rolls into the hex automatically shows on the local map.
+
+**Mappy responsibilities.**
+- **N direction detection** — on any uploaded map, attempt to detect a marked N symbol (assume a consistent N symbol convention for local maps). On failure or low confidence, default to "up = N" and expose a manual rotation control. Never block grid confirmation on N detection.
+- **Dimensions / scale sanity check** — flag discrepancies between AI-inferred scale and the user-confirmed grid + scale. Does not override user confirmation.
+- **TODO (future)** — real-time camera feed of the physical table to detect placement of player minis on the live map.
+
 ### Home layout
 - **Row 1 — three creation cards**, left to right:
   1. `[+ New Map]` — opens OS file picker (hidden `<input type="file">` triggered by ref).
