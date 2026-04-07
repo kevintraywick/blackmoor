@@ -35,6 +35,33 @@ This is a tool for heroes and the people who run their world. It should feel lik
 ## Gotchas
 
 - **Image uploads are capped at 4MB.** Midjourney outputs (typically 2048x2048 PNG, ~6MB) will be rejected by the upload API. Resize with `magick <file> -resize 1024x1024 <file>` before uploading or committing to `public/`.
+- **`ensureSchema` is memoized.** After adding new DDL (tables/columns, ALTER TABLE), the dev server must be restarted — the schema won't re-run on refresh. Kill port 3000 and restart with `npx next dev -p 3000`.
+- **`.next/types/validator.ts` stale errors on feature branches.** On a feature branch, `tsc --noEmit` will emit "Cannot find module '../../app/.../route.js'" errors for routes that exist on main but not this branch. Filter them out with `npx tsc --noEmit 2>&1 | grep -v ".next/types"`. They regenerate correctly on next build.
+- **Scope-trimming feature units.** When a planned implementation unit turns out to be two features hiding inside one (e.g., "apply canonical scale to the builder" turned into "also render images in the builder for the first time"), trim scope and defer the larger piece with a plan note. Deliver user value in the current commit; don't pretend the scope was always smaller.
+
+## Output conventions
+
+- **Server links / URLs on their own line in backticks.** They render blue and are easy to click. Never inline a clickable URL in prose.
 
 ## GITHUB
 Alert the user on a local push or commit if the change has not been pushed to Github.
+
+## Code Quality Rules
+
+- Always use TypeScript (.ts/.tsx) with proper type annotations on functions, variables, and props.
+- Never skip type checks — no `any`, `as unknown as`, `// @ts-ignore`, `// @ts-expect-error`, or non-null assertions (`!`) to silence errors. Fix the underlying type problem.
+- Run linting (`npm run lint`) before marking any feature complete, and fix all reported errors.
+- Run the production build (`npm run build`) before marking any feature complete — dev mode is more forgiving than production.
+- Never commit `node_modules`, build artifacts, or local database files.
+
+## External API Rules
+
+- Never hardcode API keys or secrets — always load them from environment variables (`process.env.*`).
+- Add `.env` and `.env.*` to `.gitignore` before committing anything.
+- Never call external APIs directly from the browser — always proxy through a server route so keys stay server-side.
+- Always handle API errors explicitly with try/catch and user-visible error states. No silent failures.
+- Validate and sanitize all data coming from external APIs (e.g. with Zod) before using it.
+- Never log full API responses, request bodies, tokens, or PII in production.
+- Set explicit timeouts on all external API calls (e.g. via `AbortController`).
+- Respect rate limits — implement retries with exponential backoff for 429 responses.
+- Pin external API versions explicitly (e.g. Stripe `2024-06-20`) rather than relying on the provider default.
