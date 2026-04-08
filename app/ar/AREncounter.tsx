@@ -46,6 +46,17 @@ const SPAWN_POINTS: SpawnPoint[] = [
     glbSrc: '/models/axe.glb',
     usdzSrc: '/models/axe.usdz',
   },
+  {
+    id: 'citadel-tree',
+    name: 'The Citadel Tree',
+    creature: 'The Dragon Chalice',
+    lore: 'In bocca al lupo.',
+    lat: 36.34289,
+    lng: -88.85022,
+    radius: 40,
+    glbSrc: '/models/dragonChalice.glb',
+    usdzSrc: '/models/dragonChalice.usdz',
+  },
 ];
 
 // ---------------------------------------------------------------------------
