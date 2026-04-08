@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, Component, useRef, type ReactNode } from 'react';
+import { Suspense, Component, useRef, useMemo, type ReactNode } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
-import type { Group, Mesh } from 'three';
+import type { Group, Mesh, Object3D } from 'three';
 
 // Loads the spawn's GLB from /public/models/ — spins slowly in the encounter
 // preview. Falls back to a gold wireframe crystal if the model isn't present.
@@ -12,13 +12,31 @@ interface ARViewerProps {
   glbSrc: string;
 }
 
+// Names of stray top-level nodes sometimes left in exported GLBs
+// (e.g. Blender's default Cube). Strip these before rendering so they
+// don't dominate the frame in the R3F preview.
+const STRIP_NODE_NAMES = new Set(['Cube']);
+
 function RotatingModel({ glbSrc }: ARViewerProps) {
   const { scene } = useGLTF(glbSrc);
   const ref = useRef<Group>(null);
+
+  // Clone the loaded scene and remove any stray top-level stage geometry.
+  // Cloning avoids mutating the cached scene shared across mounts.
+  const cleaned = useMemo(() => {
+    const clone = scene.clone(true);
+    const toRemove: Object3D[] = [];
+    for (const child of clone.children) {
+      if (STRIP_NODE_NAMES.has(child.name)) toRemove.push(child);
+    }
+    for (const child of toRemove) clone.remove(child);
+    return clone;
+  }, [scene]);
+
   useFrame((_, delta) => {
     if (ref.current) ref.current.rotation.y += delta * 0.4;
   });
-  return <primitive ref={ref} object={scene} scale={1.5} position={[0, -0.5, 0]} />;
+  return <primitive ref={ref} object={cleaned} scale={1.5} position={[0, -0.5, 0]} />;
 }
 
 function GoldCrystal() {
