@@ -66,6 +66,11 @@ When making changes that need a server restart (new DDL, cache issues, etc.), ha
 ## GITHUB
 Alert the user on a local push or commit if the change has not been pushed to Github.
 
+## AR Assets
+Whenever a new `.glb` or `.usdz` file lands in `public/models/` (or an existing one is replaced), run the `ar-asset-optimizer` skill at `.claude/skills/ar-asset-optimizer/SKILL.md` before committing. It assesses, downsizes, and validates the file. Raw Fab/Blender exports are routinely 20–40 MB; the skill targets a ≤2 MB hero budget. Never commit a raw export without running this skill first.
+
+**TODO**: build a DM-facing AR asset upload tool (`/dm/ar` or similar) that lets the DM drop a `.glb` / `.usdz` and automatically runs the optimizer pipeline server-side. Until that exists, new AR models are added by hand and the optimizer skill is invoked by Claude before the commit.
+
 ## Code Quality Rules
 
 - Always use TypeScript (.ts/.tsx) with proper type annotations on functions, variables, and props.
