@@ -8,6 +8,8 @@ Living document for UI/UX decisions and constraints. Review before making visual
 
 **Never a blank canvas.** Creation flows should start with something, not nothing. When AI is available, auto-fill forms with reasonable defaults so the DM tweaks rather than writes from scratch. The starting point is a draft, not an empty form.
 
+**Zero friction to the game.** The DM and players are at the table with a session in motion. The app exists to help them do game things — take a turn, check a stat, see a map, read a note. Every tap, scroll, dropdown, confirmation, extra link, or typed character that isn't directly in service of a game task is a delay they'll feel mid-session. Prefill when possible. Land them on the thing they came for. Don't gate content behind intro screens, "continue" buttons, or progressive reveals. If two taps accomplish what one can, use one.
+
 ## Rotating Images
 
 **Drop a file in the folder, and it joins the rotation.** Any component that rotates through a set of images (banners, backdrops, splash art) must discover its image list at runtime by scanning the folder — never hardcode counts or filenames in the component. Adding a new image should require zero code changes.
