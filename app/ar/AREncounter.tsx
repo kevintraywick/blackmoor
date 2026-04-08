@@ -43,8 +43,8 @@ const SPAWN_POINTS: SpawnPoint[] = [
     lat: 36.36584,
     lng: -88.85562,
     radius: 40,
-    glbSrc: '/models/robot.glb',
-    usdzSrc: '/models/robot.usdz',
+    glbSrc: '/models/axe.glb',
+    usdzSrc: '/models/axe.usdz',
   },
 ];
 
