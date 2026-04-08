@@ -2,7 +2,7 @@
 
 import { Suspense, Component, useRef, useMemo, type ReactNode } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
+import { useGLTF, Environment } from '@react-three/drei';
 import type { Group, Mesh, Object3D } from 'three';
 
 // Loads the spawn's GLB from /public/models/ — spins slowly in the encounter
@@ -82,8 +82,12 @@ export default function ARViewer({ glbSrc }: ARViewerProps) {
     <div className="w-full" style={{ height: '260px' }}>
       <SceneErrorBoundary>
         <Canvas camera={{ position: [0, 0.5, 3] }}>
-          <ambientLight intensity={0.5} />
-          <pointLight position={[2, 4, 2]} intensity={1.5} color="#c9a84c" />
+          {/* Neutral IBL so PBR metallics (axe, chalice) show their materials.
+              Point lights alone can't light metals — they need environment
+              reflections to render anything but near-black. */}
+          <Environment preset="warehouse" background={false} />
+          <ambientLight intensity={0.3} />
+          <pointLight position={[2, 4, 2]} intensity={1.2} color="#c9a84c" />
           <pointLight position={[-2, -1, -2]} intensity={0.3} color="#8b3a3a" />
           <Suspense fallback={<GoldCrystal />}>
             <RotatingModel glbSrc={glbSrc} />
