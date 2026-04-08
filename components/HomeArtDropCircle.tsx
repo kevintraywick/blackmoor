@@ -123,7 +123,7 @@ export default function HomeArtDropCircle() {
         <span className="text-[0.65rem] text-[var(--color-gold)] font-sans">{status}</span>
       )}
       {error && (
-        <span className="text-[0.65rem] text-[#c07a8a] font-sans text-center max-w-[200px]">{error}</span>
+        <span className="text-[0.65rem] text-[#c07a8a] font-sans text-center max-w-[260px] leading-relaxed">{error}</span>
       )}
 
       {/* Radio dialog for ambiguous filenames */}

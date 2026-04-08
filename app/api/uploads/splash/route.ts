@@ -17,6 +17,32 @@ const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const VALID_SLOTS = new Set(['splash', 'banner', 'other']);
 
+// Split-brain guard. Local dev writes files to the laptop's disk but
+// the DB is shared with Railway production — so a local splash/banner
+// upload updates the campaign row to a path that only exists locally,
+// breaking the live site until someone notices and clears the column.
+//
+// Refuse the write if we detect the mismatch: NODE_ENV is 'development'
+// (i.e. `next dev`) AND the DB hostname isn't local. A fully local
+// setup (local Postgres) is still allowed. Production (`next start`
+// on Railway) is allowed because NODE_ENV='production'.
+function isSplitBrain(): boolean {
+  if (process.env.NODE_ENV !== 'development') return false;
+  const dbUrl = process.env.DATABASE_URL ?? '';
+  try {
+    const host = new URL(dbUrl).hostname;
+    const isLocal =
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '::1' ||
+      host.endsWith('.local');
+    return !isLocal;
+  } catch {
+    // Unparseable URL — assume local so we don't block unrelated setups.
+    return false;
+  }
+}
+
 // GET /api/uploads/splash — list all files in the folder
 export async function GET() {
   try {
@@ -69,6 +95,18 @@ function withCollisionSuffix(files: Set<string>, target: string): string {
 
 export async function POST(request: Request) {
   try {
+    // Refuse writes when the process and DB disagree about where we are —
+    // see isSplitBrain() above.
+    if (isSplitBrain()) {
+      return NextResponse.json(
+        {
+          error:
+            'Uploads can only be performed on the deployed site. Your local dev server shares the production database, so a local upload would write the file to your laptop while pointing the DB at a path that only exists there. Open the production URL and drop the file there instead.',
+        },
+        { status: 409 },
+      );
+    }
+
     const formData = await request.formData();
     const image = formData.get('image') as File | null;
     const slot = formData.get('slot') as string | null;
