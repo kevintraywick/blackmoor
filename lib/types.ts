@@ -144,6 +144,8 @@ export interface Campaign {
   description: string;
   background: string;
   narrative_notes: string;
+  home_splash_path: string;
+  home_banner_path: string;
 }
 
 export interface Invitation {

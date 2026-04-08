@@ -392,6 +392,17 @@ async function _initSchema() {
     ALTER TABLE campaign ADD COLUMN IF NOT EXISTS background TEXT NOT NULL DEFAULT ''
   `).catch(() => {});
 
+  // Active home splash + campaign banner paths. Empty string means "use the
+  // committed default in public/images/...". Uploaded replacements live on the
+  // persistent disk at DATA_DIR/uploads/splash/ and are served via
+  // /api/uploads/splash/[filename].
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS home_splash_path TEXT NOT NULL DEFAULT ''
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS home_banner_path TEXT NOT NULL DEFAULT ''
+  `).catch(() => {});
+
   // ── Invitations (shareable availability polls) ─────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS invitations (

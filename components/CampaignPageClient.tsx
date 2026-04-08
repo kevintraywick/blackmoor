@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import type { Campaign, Invitation } from '@/lib/types';
+import HomeArtDropCircle from './HomeArtDropCircle';
 
 // ── Calendar helpers ────────────────────────────────────────────────────────
 
@@ -251,6 +252,9 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
               )}
             </div>
           ))}
+
+          {/* Home art drop circle — upload splash / banner / other */}
+          <HomeArtDropCircle />
         </div>
       </div>
     </div>
