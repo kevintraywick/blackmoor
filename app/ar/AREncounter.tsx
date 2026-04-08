@@ -47,6 +47,17 @@ const SPAWN_POINTS: SpawnPoint[] = [
     usdzSrc: '/models/axe.usdz',
   },
   {
+    id: 'troll-bridge',
+    name: 'The Troll Bridge',
+    creature: 'Dwarven-forged Axe',
+    lore: 'Dwarven-forged Axe: +1 attack, +2 ddmg',
+    lat: 36.351417,
+    lng: -88.865972,
+    radius: 40,
+    glbSrc: '/models/axe.glb',
+    usdzSrc: '/models/axe.usdz',
+  },
+  {
     id: 'citadel-tree',
     name: 'The Citadel Tree',
     creature: 'The Dragon Chalice',
