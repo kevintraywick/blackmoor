@@ -8,6 +8,15 @@ Living document for UI/UX decisions and constraints. Review before making visual
 
 **Never a blank canvas.** Creation flows should start with something, not nothing. When AI is available, auto-fill forms with reasonable defaults so the DM tweaks rather than writes from scratch. The starting point is a draft, not an empty form.
 
+## Rotating Images
+
+**Drop a file in the folder, and it joins the rotation.** Any component that rotates through a set of images (banners, backdrops, splash art) must discover its image list at runtime by scanning the folder — never hardcode counts or filenames in the component. Adding a new image should require zero code changes.
+
+- **Source of truth**: files in `public/images/<topic>/`, named with a common prefix (e.g. `player_banner_1.png`, `player_banner_2.png`, …).
+- **Listing API**: `GET /api/banners/[folder]` returns `{ images: string[] }` sorted numerically by suffix. New rotating surfaces register a folder in the `BANNER_FOLDERS` allowlist in `app/api/banners/[folder]/route.ts` — allowlisted folders only, no arbitrary path scanning.
+- **Client pattern**: fetch once on mount, store URLs in state, rotate via index. Fall back silently (render nothing) if the fetch fails or the list is empty. See `components/PlayerBanner.tsx` for the reference implementation.
+- **Ordering**: images sort by the numeric suffix after the prefix (`_1, _2, _3, …`), so renaming or gaps (`_1, _3, _7`) still sort correctly.
+
 ## Layout
 
 - **Player sheets**: `max-w-[860px]` — this is the design minimum for content pages.

@@ -3,33 +3,60 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
-const BANNER_COUNT = 5;
 const ROTATE_MS = 3 * 60 * 1000; // rotate every 3 minutes
 
 // Spread players across starting banners so they don't all show the same one
 const PLAYER_ORDER = ['levi', 'jeanette', 'nicole', 'katie', 'brandon', 'ashton'];
 
 export default function PlayerBanner({ playerId }: { playerId: string }) {
-  const startIndex = PLAYER_ORDER.indexOf(playerId) % BANNER_COUNT;
-  const [index, setIndex] = useState(startIndex < 0 ? 0 : startIndex);
+  const [banners, setBanners] = useState<string[]>([]);
+  const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(true);
 
+  // Load the current list of banner images on mount. New files dropped
+  // into the folder automatically join the rotation on next page load.
   useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/banners/players');
+        if (!res.ok) return;
+        const data = (await res.json()) as { images: string[] };
+        if (!alive || data.images.length === 0) return;
+        const orderIdx = PLAYER_ORDER.indexOf(playerId);
+        const start = orderIdx < 0 ? 0 : orderIdx % data.images.length;
+        setBanners(data.images);
+        setIndex(start);
+      } catch {
+        /* ignore — falls through to empty state (no banner rendered) */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [playerId]);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
     const timer = setInterval(() => {
       // Fade out, swap image, fade back in
       setVisible(false);
       setTimeout(() => {
-        setIndex(i => (i + 1) % BANNER_COUNT);
+        setIndex((i) => (i + 1) % banners.length);
         setVisible(true);
       }, 600);
     }, ROTATE_MS);
     return () => clearInterval(timer);
-  }, []);
+  }, [banners.length]);
+
+  if (banners.length === 0) {
+    return <div className="relative w-full h-48 sm:h-72 overflow-hidden flex-shrink-0" />;
+  }
 
   return (
     <div className="relative w-full h-48 sm:h-72 overflow-hidden flex-shrink-0">
       <Image
-        src={`/images/players/player_banners/player_banner_${index + 1}.png`}
+        src={banners[index]}
         alt=""
         fill
         className={`object-cover object-center transition-opacity duration-500 ${visible ? 'opacity-100' : 'opacity-0'}`}
