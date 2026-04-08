@@ -104,7 +104,7 @@ function compassWord(deg: number): string {
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-type EncounterState = 'requesting' | 'denied' | 'searching' | 'nearby' | 'revealed';
+type EncounterState = 'requesting' | 'denied' | 'searching' | 'revealed';
 
 interface ActiveSpawn extends SpawnPoint {
   distance: number;
@@ -248,13 +248,11 @@ function SearchingState({ nearest }: SearchingStateProps) {
   );
 }
 
-interface NearbyStateProps {
+interface RevealedStateProps {
   spawn: ActiveSpawn;
-  revealed: boolean;
-  onReveal: () => void;
 }
 
-function NearbyState({ spawn, revealed, onReveal }: NearbyStateProps) {
+function RevealedState({ spawn }: RevealedStateProps) {
   return (
     <div className="w-full max-w-[500px] text-center">
       <SectionLabel>{spawn.name}</SectionLabel>
@@ -265,35 +263,21 @@ function NearbyState({ spawn, revealed, onReveal }: NearbyStateProps) {
         {spawn.distance}m
       </p>
       <Divider />
-
-      {!revealed ? (
-        <>
-          <p className="text-[var(--color-text-body)] font-serif italic mb-10">
-            {spawn.lore}
-          </p>
-          <button
-            onClick={onReveal}
-            className="border border-[var(--color-gold)] text-[var(--color-gold)] font-serif text-sm px-10 py-3 hover:bg-[var(--color-gold)]/10 transition-colors cursor-pointer"
-          >
-            Step into the Encounter
-          </button>
-        </>
-      ) : (
-        <>
-          <ARViewer glbSrc={spawn.glbSrc} />
-          <Divider />
-          <p className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-4">
-            View in your world
-          </p>
-          <ModelViewer
-            glbSrc={spawn.glbSrc}
-            usdzSrc={spawn.usdzSrc}
-          />
-          <p className="text-[var(--color-text-dim)] text-xs font-serif mt-4 italic">
-            Tap the AR button on the model to place {spawn.creature} in your surroundings.
-          </p>
-        </>
-      )}
+      <p className="text-[var(--color-text-body)] font-serif italic mb-6">
+        {spawn.lore}
+      </p>
+      <ARViewer glbSrc={spawn.glbSrc} />
+      <Divider />
+      <p className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-4">
+        View in your world
+      </p>
+      <ModelViewer
+        glbSrc={spawn.glbSrc}
+        usdzSrc={spawn.usdzSrc}
+      />
+      <p className="text-[var(--color-text-dim)] text-xs font-serif mt-4 italic">
+        Tap the AR button on the model to place {spawn.creature} in your surroundings.
+      </p>
     </div>
   );
 }
@@ -329,8 +313,7 @@ export default function AREncounter() {
 
         if (closest && closest.dist <= closest.spawn.radius) {
           setActiveSpawn({ ...closest.spawn, distance: Math.round(closest.dist) });
-          // Don't collapse the revealed state when GPS ticks again
-          setState((prev) => (prev === 'revealed' ? 'revealed' : 'nearby'));
+          setState('revealed');
           return;
         }
 
@@ -387,12 +370,8 @@ export default function AREncounter() {
           {state === 'requesting' && <RequestingState />}
           {state === 'denied'    && <DeniedState />}
           {state === 'searching' && <SearchingState nearest={nearest} />}
-          {(state === 'nearby' || state === 'revealed') && activeSpawn && (
-            <NearbyState
-              spawn={activeSpawn}
-              revealed={state === 'revealed'}
-              onReveal={() => setState('revealed')}
-            />
+          {state === 'revealed' && activeSpawn && (
+            <RevealedState spawn={activeSpawn} />
           )}
         </div>
       </div>
