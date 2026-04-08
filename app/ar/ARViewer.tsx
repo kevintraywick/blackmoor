@@ -15,7 +15,7 @@ interface ARViewerProps {
 // Names of stray top-level nodes sometimes left in exported GLBs
 // (e.g. Blender's default Cube). Strip these before rendering so they
 // don't dominate the frame in the R3F preview.
-const STRIP_NODE_NAMES = new Set(['Cube']);
+const STRIP_NODE_NAMES = new Set(['Cube', 'Sylvaxe']);
 
 function RotatingModel({ glbSrc }: ARViewerProps) {
   const { scene } = useGLTF(glbSrc);
