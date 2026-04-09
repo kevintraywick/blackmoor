@@ -1,4 +1,11 @@
-import { Pool, type PoolClient } from 'pg';
+import { Pool, type PoolClient, types as pgTypes } from 'pg';
+
+// node-postgres returns NUMERIC as a string by default to preserve precision.
+// For Blackmoor's use cases (marketplace prices, budget spend in USD, item
+// stats), JS float precision is sufficient and treating them as numbers is
+// far more ergonomic than parseFloat at every call site. Register the parser
+// once at module load so every NUMERIC column returns a number.
+pgTypes.setTypeParser(1700, parseFloat); // 1700 = OID for NUMERIC
 
 // Reuse the pool across hot reloads in dev
 const globalForPg = globalThis as unknown as { pool: Pool };
