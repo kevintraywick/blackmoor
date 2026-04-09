@@ -48,8 +48,6 @@ export async function PUT(req: Request) {
 
       const notified = Array.isArray(campaign?.quorum_notified) ? campaign.quorum_notified : [];
 
-      console.log('Quorum check:', { saturday, status, count, quorum: campaign?.quorum, dm_email: campaign?.dm_email, notified, hasKey: !!process.env.RESEND_API_KEY });
-
       if (campaign && campaign.dm_email) {
         const d = new Date(saturday + 'T12:00:00');
         const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
