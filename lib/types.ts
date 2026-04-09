@@ -41,6 +41,8 @@ export interface MarketplaceItem {
 export interface PlayerSheet {
   id: string;              // e.g. 'levi'
   discord: string;
+  sms_phone: string;
+  sms_optin: boolean;
   species: string;
   class: string;
   level: string;

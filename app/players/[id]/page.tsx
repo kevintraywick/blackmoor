@@ -11,6 +11,9 @@ import { Sheet } from '@/components/PlayerSheet';
 import PlayerMapPanel from '@/components/PlayerMapPanel';
 import PlayerBanner from '@/components/PlayerBanner';
 import WolfHowl from '@/components/WolfHowl';
+import NewsieCallout from '@/components/NewsieCallout';
+import OverheardWatcher from '@/components/OverheardWatcher';
+import RavenNavPulse from '@/components/RavenNavPulse';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -36,7 +39,7 @@ export default async function PlayerPage({ params }: Props) {
   const boonUnseen = boonRows[0]?.unseen ?? 0;
 
   const empty: PlayerSheetType = {
-    id, discord: '', species: '', class: '', level: '', hp: '', xp: '',
+    id, discord: '', sms_phone: '', sms_optin: false, species: '', class: '', level: '', hp: '', xp: '',
     speed: '', size: '', ac: '', gold: '', boons: '', class_features: '',
     species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [], items: [],
     str: '', dex: '', con: '', int: '', wis: '', cha: '',
@@ -59,11 +62,22 @@ export default async function PlayerPage({ params }: Props) {
         <span className="text-[var(--color-border)]">|</span>
         <Link href={`/dm/marketplace?player=${player.id}`} className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline">Marketplace</Link>
         <span className="text-[var(--color-border)]">|</span>
+        <Link
+          href={`/raven-post?playerId=${player.id}`}
+          id="raven-post-nav-link"
+          className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline"
+        >
+          The Raven
+        </Link>
+        <span className="text-[var(--color-border)]">|</span>
         <Link href="/dm/journey" className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline italic">The story so far…</Link>
       </div>
 
       <WolfHowl playerId={player.id} />
       <PlayerBanner playerId={player.id} />
+      <RavenNavPulse />
+      <NewsieCallout playerId={player.id} />
+      <OverheardWatcher playerId={player.id} smsOptin={data.sms_optin === true} />
 
       <div className="relative z-10 -mt-[169px] max-w-[860px] mx-auto px-4 pt-6 pb-16 bg-[var(--color-bg)] rounded-t-2xl">
         <Sheet
