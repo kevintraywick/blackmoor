@@ -384,7 +384,19 @@ export interface MtdSpend {
 
 export type RavenMedium = 'broadsheet' | 'raven' | 'sending' | 'overheard' | 'ad';
 export type RavenTrust = 'official' | 'whispered' | 'rumored' | 'prophesied';
-export type WeatherCondition = 'clear' | 'rain' | 'snow' | 'fog' | 'storm' | 'mist' | 'dust' | 'embers';
+export type WeatherCondition =
+  // Precipitation
+  | 'clear' | 'drizzle' | 'light_rain' | 'rain' | 'heavy_rain' | 'sleet' | 'snow' | 'hail'
+  // Wind
+  | 'windy' | 'gale' | 'calm'
+  // Visibility
+  | 'fog' | 'mist' | 'haze'
+  // Sky
+  | 'overcast' | 'hot' | 'cold'
+  // Storms
+  | 'storm' | 'thunderstorm' | 'sandstorm'
+  // Magical / Fantasy
+  | 'dust' | 'embers' | 'fae' | 'blood_moon' | 'aurora';
 
 export interface RavenItem {
   id: string;

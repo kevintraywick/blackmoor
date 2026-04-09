@@ -1,25 +1,23 @@
 import type { WeatherCondition } from '@/lib/types';
 
 const ICONS: Record<WeatherCondition, string> = {
-  clear:  '☀',
-  rain:   '🌧',
-  snow:   '❄',
-  fog:    '🌫',
-  storm:  '⛈',
-  mist:   '🌁',
-  dust:   '🟫',
-  embers: '🔥',
+  clear: '☀', drizzle: '🌦', light_rain: '🌦', rain: '🌧', heavy_rain: '🌧',
+  sleet: '🌨', snow: '❄', hail: '🧊',
+  windy: '💨', gale: '🌬', calm: '🍃',
+  fog: '🌫', mist: '🌁', haze: '🌤',
+  overcast: '☁', hot: '🔆', cold: '🥶',
+  storm: '⛈', thunderstorm: '⛈', sandstorm: '🏜',
+  dust: '🟫', embers: '🔥', fae: '✨', blood_moon: '🌕', aurora: '🌌',
 };
 
 const LABELS: Record<WeatherCondition, string> = {
-  clear:  'Clear',
-  rain:   'Rain',
-  snow:   'Snow',
-  fog:    'Fog',
-  storm:  'Storm',
-  mist:   'Mist',
-  dust:   'Dust',
-  embers: 'Embers',
+  clear: 'Clear', drizzle: 'Drizzle', light_rain: 'Light Rain', rain: 'Rain', heavy_rain: 'Heavy Rain',
+  sleet: 'Sleet', snow: 'Snow', hail: 'Hail',
+  windy: 'Windy', gale: 'Gale', calm: 'Calm',
+  fog: 'Fog', mist: 'Mist', haze: 'Haze',
+  overcast: 'Overcast', hot: 'Hot', cold: 'Cold',
+  storm: 'Storm', thunderstorm: 'Thunderstorm', sandstorm: 'Sandstorm',
+  dust: 'Dust', embers: 'Embers', fae: 'Fae', blood_moon: 'Blood Moon', aurora: 'Aurora',
 };
 
 interface Props {

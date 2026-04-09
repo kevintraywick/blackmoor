@@ -3,8 +3,14 @@ import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import type { WeatherCondition } from '@/lib/types';
 
-const VALID_CONDITIONS: WeatherCondition[] =
-  ['clear', 'rain', 'snow', 'fog', 'storm', 'mist', 'dust', 'embers'];
+const VALID_CONDITIONS: WeatherCondition[] = [
+  'clear', 'drizzle', 'light_rain', 'rain', 'heavy_rain', 'sleet', 'snow', 'hail',
+  'windy', 'gale', 'calm',
+  'fog', 'mist', 'haze',
+  'overcast', 'hot', 'cold',
+  'storm', 'thunderstorm', 'sandstorm',
+  'dust', 'embers', 'fae', 'blood_moon', 'aurora',
+];
 
 // POST /api/weather — DM override (sets the 'default' row in v1)
 // Body: { condition: WeatherCondition, temp_c?: number, wind_label?: string, hex_id?: string }
