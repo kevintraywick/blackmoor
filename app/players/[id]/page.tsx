@@ -81,7 +81,7 @@ export default async function PlayerPage({ params }: Props) {
           id="raven-post-nav-link"
           className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline"
         >
-          The Raven
+          Raven Post
         </Link>
         <span className="text-[var(--color-border)]">|</span>
         <Link href="/dm/journey" className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline italic">The story so far…</Link>
