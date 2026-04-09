@@ -1,0 +1,81 @@
+export const dynamic = 'force-dynamic';
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { query } from '@/lib/db';
+import { ensureSchema } from '@/lib/schema';
+import RavenBroadsheet from '@/components/RavenBroadsheet';
+import type { RavenItem, RavenWeatherRow, Campaign } from '@/lib/types';
+
+interface SearchParams {
+  searchParams: Promise<{ playerId?: string }>;
+}
+
+export default async function RavenPostPage({ searchParams }: SearchParams) {
+  await ensureSchema();
+  const { playerId } = await searchParams;
+
+  const [items, weatherRows, campaignRows] = await Promise.all([
+    playerId
+      ? query<RavenItem>(
+          `SELECT * FROM raven_items
+           WHERE medium IN ('broadsheet', 'ad', 'overheard')
+              OR (medium IN ('raven', 'sending') AND target_player = $1)
+           ORDER BY published_at DESC
+           LIMIT 200`,
+          [playerId],
+        )
+      : query<RavenItem>(
+          `SELECT * FROM raven_items
+           WHERE medium IN ('broadsheet', 'ad', 'overheard')
+           ORDER BY published_at DESC
+           LIMIT 200`,
+        ),
+    query<RavenWeatherRow>(`SELECT * FROM raven_weather WHERE hex_id = 'default'`),
+    query<Campaign & { raven_volume: number; raven_issue: number }>(
+      `SELECT * FROM campaign WHERE id = 'default'`,
+    ),
+  ]);
+
+  const weather: RavenWeatherRow = weatherRows[0] ?? {
+    hex_id: 'default',
+    condition: 'clear',
+    temp_c: null,
+    wind_label: null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const volume = campaignRows[0]?.raven_volume ?? 1;
+  const issue = campaignRows[0]?.raven_issue ?? 1;
+
+  // v1 placeholder for an in-fiction date — eventually this comes from the
+  // game-clock formatter once that's wired in.
+  const inFictionDate = '14th of Mirtul, 1496 DR';
+
+  return (
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-serif">
+      {/* Slim nav bar matching other player surfaces */}
+      <div
+        className="sticky top-0 bg-[var(--color-surface)] border-b border-[var(--color-border)] px-8 py-3 flex items-center gap-3 z-10 text-sm"
+      >
+        <Link href="/" title="Shadow of the Wolf" className="flex-shrink-0">
+          <div className="relative rounded-full overflow-hidden" style={{ width: 30, height: 30 }}>
+            <Image src="/images/invite/dice_home.png" alt="Home" fill className="object-cover" />
+          </div>
+        </Link>
+        <span className="text-[var(--color-border)]">|</span>
+        <span className="text-[var(--color-gold)]">The Raven Post</span>
+      </div>
+
+      <div className="max-w-[860px] mx-auto px-4 py-8">
+        <RavenBroadsheet
+          items={items}
+          weather={weather}
+          volume={volume}
+          issue={issue}
+          inFictionDate={inFictionDate}
+        />
+      </div>
+    </div>
+  );
+}
