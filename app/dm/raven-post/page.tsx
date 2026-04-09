@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import DmNav from '@/components/DmNav';
+import RavenWorldAiSuggestions from '@/components/dm/RavenWorldAiSuggestions';
 import RavenManualCompose from '@/components/dm/RavenManualCompose';
 import RavenOverheardQueue from '@/components/dm/RavenOverheardQueue';
 import RavenPublishedItems from '@/components/dm/RavenPublishedItems';
@@ -21,6 +22,7 @@ export default async function DmRavenPostPage() {
           </p>
         </header>
 
+        <RavenWorldAiSuggestions />
         <RavenManualCompose players={players.filter(p => p.id !== 'dm')} />
         <RavenOverheardQueue />
         <RavenPublishedItems />
