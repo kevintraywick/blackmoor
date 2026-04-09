@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Campaign, Invitation } from '@/lib/types';
 import HomeArtDropCircle from './HomeArtDropCircle';
+import CampaignSpendTracker from './CampaignSpendTracker';
 
 // ── Calendar helpers ────────────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
   const [world, setWorld] = useState(initial.world);
   const [dmEmail, setDmEmail] = useState(initial.dm_email ?? '');
   const [description, setDescription] = useState(initial.description ?? '');
-  const [background, setBackground] = useState(initial.background ?? '');
+
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -67,7 +68,7 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
   function handleWorldBlur() { if (world !== initial.world) save({ world }); }
   function handleDmEmailBlur() { if (dmEmail !== (initial.dm_email ?? '')) save({ dm_email: dmEmail }); }
   function handleDescriptionBlur() { if (description !== (initial.description ?? '')) save({ description }); }
-  function handleBackgroundBlur() { if (background !== (initial.background ?? '')) save({ background }); }
+
 
   function toggleDate(iso: string) {
     setSelectedDates(prev => {
@@ -129,17 +130,6 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
             <label className="block text-sm text-[var(--color-text-muted)] mb-1.5">Site Description</label>
             <input type="text" value={description} onChange={e => setDescription(e.target.value)} onBlur={handleDescriptionBlur} placeholder="Shown in Discord embeds" className={inputClass} />
             <p className="text-xs text-[var(--color-text-muted)] mt-1">Appears in Discord/social previews when someone shares a link</p>
-          </div>
-          <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1.5">Background</label>
-            <textarea
-              rows={8}
-              value={background}
-              onChange={e => setBackground(e.target.value)}
-              onBlur={handleBackgroundBlur}
-              placeholder="The campaign backstory…"
-              className="w-full bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded px-3 py-2 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]/40 focus:outline-none focus:border-[var(--color-gold)] font-serif text-[0.95rem] leading-relaxed resize-y"
-            />
           </div>
           <div className="h-6 text-sm">
             {saving && <span className="text-[var(--color-text-muted)]">Saving...</span>}
@@ -257,6 +247,7 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
           <HomeArtDropCircle />
         </div>
       </div>
+      <CampaignSpendTracker />
     </div>
   );
 }

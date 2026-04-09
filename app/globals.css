@@ -83,3 +83,29 @@ body {
   animation: compass-spin 20s linear infinite;
   transform-origin: center;
 }
+
+/* ── Raven Post: nav link pulse triggered by NewsieCallout ─────────── */
+@keyframes raven-link-pulse {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 10px rgba(255, 48, 48, 0.8), 0 0 20px rgba(255, 48, 48, 0.5);
+  }
+  50% {
+    opacity: 0.6;
+    text-shadow: 0 0 14px rgba(255, 48, 48, 1), 0 0 28px rgba(255, 48, 48, 0.7);
+  }
+}
+
+.raven-link-pulse {
+  color: #ff3030 !important;
+  font-weight: 700;
+  animation: raven-link-pulse 1.4s ease-in-out infinite;
+}
+
+.raven-link-pulse-fade {
+  transition: color 30s ease, text-shadow 30s ease, opacity 30s ease;
+  color: var(--color-text);
+  text-shadow: none;
+  opacity: 1;
+  animation: none;
+}

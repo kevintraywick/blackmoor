@@ -13,7 +13,7 @@ async function getSheets(playerIds: string[]): Promise<Record<string, PlayerShee
   const rows = await query<PlayerSheet>('SELECT * FROM player_sheets');
 
   const empty: Omit<PlayerSheet, 'id'> = {
-    discord: '', species: '', class: '', level: '', hp: '', xp: '',
+    discord: '', sms_phone: '', sms_optin: false, species: '', class: '', level: '', hp: '', xp: '',
     speed: '', size: '', ac: '', gold: '', boons: '', class_features: '',
     species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [], items: [],
     str: '', dex: '', con: '', int: '', wis: '', cha: '',

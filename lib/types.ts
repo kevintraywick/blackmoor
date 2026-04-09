@@ -41,6 +41,8 @@ export interface MarketplaceItem {
 export interface PlayerSheet {
   id: string;              // e.g. 'levi'
   discord: string;
+  sms_phone: string;
+  sms_optin: boolean;
   species: string;
   class: string;
   level: string;
@@ -346,4 +348,140 @@ export interface Npc {
   actions: string;
   notes: string;
   image_path: string | null;
+}
+
+// ── Raven Post: budget tracker ─────────────────────────────────────────────
+
+export type SpendService = 'elevenlabs' | 'anthropic' | 'twilio' | 'websearch' | 'railway' | 'openai_embeddings';
+
+export interface BudgetCap {
+  service: SpendService;
+  soft_cap_usd: number;
+  paused: boolean;
+  updated_at: string;
+}
+
+export interface SpendLedgerRow {
+  id: string;
+  service: SpendService;
+  amount_usd: number;
+  units: number | null;
+  unit_kind: string | null;
+  details: Record<string, unknown> | null;
+  occurred_at: string;
+  ref_table: string | null;
+  ref_id: string | null;
+}
+
+export interface MtdSpend {
+  service: SpendService;
+  soft_cap_usd: number;
+  mtd_usd: number;
+  paused: boolean;
+}
+
+// ── Raven Post ─────────────────────────────────────────────────────────────
+
+export type RavenMedium = 'broadsheet' | 'raven' | 'sending' | 'overheard' | 'ad';
+export type RavenTrust = 'official' | 'whispered' | 'rumored' | 'prophesied';
+export type WeatherCondition = 'clear' | 'rain' | 'snow' | 'fog' | 'storm' | 'mist' | 'dust' | 'embers';
+
+export interface RavenItem {
+  id: string;
+  medium: RavenMedium;
+  body: string;
+  headline: string | null;
+  sender: string | null;
+  target_player: string | null;
+  trust: RavenTrust;
+  tags: string[];
+  ad_image_url: string | null;
+  ad_real_link: string | null;
+  ad_real_copy: string | null;
+  newsie_mp3: string | null;
+  published_at: string;
+  created_at: string;
+}
+
+export interface RavenOverheardQueueRow {
+  id: string;
+  location: string;
+  body: string;
+  trust: RavenTrust;
+  position: number;
+  created_at: string;
+  delivered_to: string[]; // joined on read for convenience
+}
+
+export interface RavenWeatherRow {
+  hex_id: string;
+  condition: WeatherCondition;
+  temp_c: number | null;
+  wind_label: string | null;
+  updated_at: string;
+}
+
+export interface RavenHeadlinesPayload {
+  headlines: { id: string; headline: string; published_at: string }[];
+  newsie_mp3_url: string | null;
+  last_read_at: string | null;
+  newest_published_at: string | null;
+}
+
+// ── Raven Post: World AI ───────────────────────────────────────────────────
+
+export interface WorldAiState {
+  campaign_id: string;
+  active_themes: string[];
+  paused: boolean;
+  pgvector_available: boolean;
+  last_tick_at: string | null;
+  next_tick_at: string | null;
+  active_window_start: string;
+  active_window_end: string;
+  daily_cap_ticks: number;
+  daily_cap_drafts: number;
+  daily_cap_websearch: number;
+  prompt_version: number;
+  updated_at: string;
+}
+
+export interface WorldAiProposal {
+  id: string;
+  proposed_at: string;
+  medium: RavenMedium;
+  body: string;
+  headline: string | null;
+  reasoning: string;
+  tags: string[];
+  confidence: number;
+  status: 'pending' | 'published' | 'pushed_down' | 'expired';
+  pushdown_count: number;
+  published_item_id: string | null;
+  prompt_version: number;
+  original_body: string | null;
+  created_at: string;
+}
+
+export interface WorldAiTick {
+  id: string;
+  ticked_at: string;
+  trigger: 'auto' | 'manual';
+  haiku_input_tokens: number | null;
+  haiku_output_tokens: number | null;
+  sonnet_input_tokens: number | null;
+  sonnet_output_tokens: number | null;
+  websearch_calls: number;
+  proposals_generated: number;
+  cost_usd: number | null;
+  notes: string | null;
+}
+
+export interface WorldAiCorpusRow {
+  id: string;
+  source_type: 'journal' | 'journey' | 'raven_items' | 'player_sheet';
+  source_id: string;
+  chunk_text: string;
+  embedding: number[] | null;
+  indexed_at: string;
 }

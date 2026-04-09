@@ -626,6 +626,24 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
         </div>
       </div>
 
+      {/* SMS opt-in row — checkbox only; the DM manages phone numbers */}
+      <div className="border-x border-[var(--color-border)] bg-[var(--color-surface)] px-3 sm:px-4 py-2">
+        <div className="flex items-center gap-3">
+          <label className="text-xs text-[var(--color-text-muted)] uppercase tracking-widest font-sans">SMS notifications</label>
+          <input
+            type="checkbox"
+            checked={data.sms_optin === true}
+            onChange={async e => {
+              await fetch('/api/sms/optin', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ playerId, optin: e.target.checked }),
+              });
+            }}
+          />
+        </div>
+      </div>
+
       {/* Boon detail pane */}
       <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: showBoons ? '400px' : '0px', opacity: showBoons ? 1 : 0 }}>
         <div className="border-x border-[var(--color-border)] px-4 py-3 bg-[#1e1d1a]">
