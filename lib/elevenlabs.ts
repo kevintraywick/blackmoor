@@ -65,7 +65,8 @@ export async function renderNewsie({ headlines }: RenderArgs): Promise<RenderRes
     );
 
     if (!res.ok) {
-      console.error('renderNewsie failed:', res.status, await res.text().catch(() => ''));
+      // Status + statusText only — never log the response body (CLAUDE.md)
+      console.error('renderNewsie failed:', res.status, res.statusText);
       return null;
     }
 
