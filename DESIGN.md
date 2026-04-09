@@ -10,6 +10,8 @@ Living document for UI/UX decisions and constraints. Review before making visual
 
 **Zero friction to the game.** The DM and players are at the table with a session in motion. The app exists to help them do game things — take a turn, check a stat, see a map, read a note. Every tap, scroll, dropdown, confirmation, extra link, or typed character that isn't directly in service of a game task is a delay they'll feel mid-session. Prefill when possible. Land them on the thing they came for. Don't gate content behind intro screens, "continue" buttons, or progressive reveals. If two taps accomplish what one can, use one.
 
+**Immediate engagement.** The moment a player opens the site, something should catch their attention — weather on their banner, a pulsing notification, a newsie calling headlines, a new raven waiting. The page is never static or waiting for them to act first. The world has been moving while they were away, and the site shows it.
+
 ## Ideas
 
 In-flight feature concepts that have been brainstormed but not yet specced or built. Each entry captures the agreed direction and known constraints. Promote to a real spec in `docs/superpowers/specs/` when ready to plan.

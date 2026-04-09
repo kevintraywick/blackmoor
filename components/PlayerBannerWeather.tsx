@@ -96,9 +96,12 @@ function weatherLayerStyle(condition: WeatherCondition): React.CSSProperties {
         animation: 'raven-snow 4s linear infinite',
       };
     case 'fog':
+      return {
+        background: 'linear-gradient(0deg, rgba(200,200,210,0.8) 0%, rgba(200,200,210,0.55) 40%, rgba(200,200,210,0.2) 75%, transparent 100%)',
+      };
     case 'mist':
       return {
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.25), rgba(255,255,255,0.05) 70%)',
+        background: 'linear-gradient(0deg, rgba(220,220,230,0.45) 0%, rgba(220,220,230,0.25) 50%, transparent 85%)',
       };
     case 'dust':
       return {

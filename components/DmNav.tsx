@@ -35,23 +35,24 @@ function groupByPlayer(changes: PlayerChangeRow[]): Record<string, PlayerChangeR
   return grouped;
 }
 
-const LINKS: { key: NavSection; label: string; href: string }[] = [
-  { key: 'campaign',    label: 'Campaign',         href: '/dm/campaign' },
-  { key: 'journal',     label: 'Journal',         href: '/dm/journal' },
-  { key: 'raven-post',  label: 'Raven Post',      href: '/dm/raven-post' },
-  { key: 'sessions',    label: 'Sessions',        href: '/dm' },
-  { key: 'players',     label: 'Players',         href: '/dm/players' },
-  { key: 'npcs',        label: 'NPCs',            href: '/dm/npcs' },
-  { key: 'initiative',  label: 'Initiative',      href: '/dm/initiative' },
-  { key: 'world',       label: 'World',           href: '/dm/world' },
-  { key: 'maps',        label: 'Maps',            href: '/dm/maps' },
-  { key: 'map-builder', label: 'Map Builder',     href: '/dm/map-builder' },
-  { key: 'magic',       label: 'Magic',           href: '/dm/magic' },
-  { key: 'marketplace', label: 'Marketplace',     href: '/dm/marketplace' },
-  { key: 'inventory',   label: 'Inventory',       href: '/dm/inventory' },
-  { key: 'poisons',     label: 'Poisons & Traps', href: '/dm/poisons' },
-  { key: 'boons',       label: 'Boons',           href: '/dm/boons' },
-  { key: 'journey',     label: 'Journey',         href: '/dm/journey' },
+// kind: 'session' = green (used at the table), 'build' = white (prep & world-building)
+const LINKS: { key: NavSection; label: string; href: string; kind: 'session' | 'build' }[] = [
+  { key: 'campaign',    label: 'Campaign',         href: '/dm/campaign',    kind: 'build' },
+  { key: 'journal',     label: 'Journal',         href: '/dm/journal',     kind: 'build' },
+  { key: 'raven-post',  label: 'Raven Post',      href: '/dm/raven-post',  kind: 'build' },
+  { key: 'sessions',    label: 'Sessions',        href: '/dm',             kind: 'session' },
+  { key: 'players',     label: 'Players',         href: '/dm/players',     kind: 'build' },
+  { key: 'npcs',        label: 'NPCs',            href: '/dm/npcs',        kind: 'build' },
+  { key: 'initiative',  label: 'Initiative',      href: '/dm/initiative',  kind: 'session' },
+  { key: 'world',       label: 'World',           href: '/dm/world',       kind: 'build' },
+  { key: 'maps',        label: 'Maps',            href: '/dm/maps',        kind: 'session' },
+  { key: 'map-builder', label: 'Map Builder',     href: '/dm/map-builder', kind: 'build' },
+  { key: 'magic',       label: 'Magic',           href: '/dm/magic',       kind: 'build' },
+  { key: 'marketplace', label: 'Marketplace',     href: '/dm/marketplace', kind: 'build' },
+  { key: 'inventory',   label: 'Inventory',       href: '/dm/inventory',   kind: 'build' },
+  { key: 'poisons',     label: 'Poisons & Traps', href: '/dm/poisons',     kind: 'session' },
+  { key: 'boons',       label: 'Boons',           href: '/dm/boons',       kind: 'session' },
+  { key: 'journey',     label: 'Journey',         href: '/dm/journey',     kind: 'build' },
 ];
 
 // Gold wireframe icosahedron used as the AR / "The Field" nav link.
@@ -139,9 +140,13 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
         {LINKS.map(link => {
           const href = link.key === 'maps' && sessionId ? `/dm/maps?session=${sessionId}` : link.href;
           const isPoisonGlow = link.key === 'poisons' && poisonCount > 0 && current !== 'poisons';
+          // Session tools: green. Building tools: white/muted.
+          const activeColor = link.kind === 'session' ? '#5ab87a' : '#e8dcc8';
+          const restColor = link.kind === 'session' ? '#4a8a5a' : '#9a8e7e';
+          const hoverColor = link.kind === 'session' ? '#5ab87a' : '#d4c8b8';
           return link.key === current
-            ? <span key={link.key} className="text-[#5ab87a] font-semibold whitespace-nowrap">{link.label}</span>
-            : <Link key={link.key} href={href} className={`transition-colors no-underline whitespace-nowrap ${isPoisonGlow ? 'text-[#7ac28a] animate-pulse' : 'text-[#4a8a5a] hover:text-[#5ab87a]'}`}>{link.label}</Link>;
+            ? <span key={link.key} style={{ color: activeColor }} className="font-semibold whitespace-nowrap">{link.label}</span>
+            : <Link key={link.key} href={href} style={{ color: isPoisonGlow ? '#7ac28a' : restColor }} className={`transition-colors no-underline whitespace-nowrap ${isPoisonGlow ? 'animate-pulse' : ''}`} onMouseEnter={e => (e.currentTarget.style.color = hoverColor)} onMouseLeave={e => (e.currentTarget.style.color = isPoisonGlow ? '#7ac28a' : restColor)}>{link.label}</Link>;
         })}
         {/* The Field — AR encounter. Icon-only (gold crystal) to signal it's a different kind of page. */}
         <Link
