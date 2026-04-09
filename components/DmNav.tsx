@@ -8,7 +8,7 @@ export type NavSection =
   | 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative'
   | 'world' | 'maps' | 'map-builder'
   | 'magic' | 'marketplace' | 'poisons' | 'inventory'
-  | 'boons' | 'journey' | 'journal' | 'ar';
+  | 'boons' | 'journey' | 'journal' | 'ar' | 'raven-post';
 
 interface PlayerChangeRow {
   player_id: string;
@@ -38,6 +38,7 @@ function groupByPlayer(changes: PlayerChangeRow[]): Record<string, PlayerChangeR
 const LINKS: { key: NavSection; label: string; href: string }[] = [
   { key: 'campaign',    label: 'Campaign',         href: '/dm/campaign' },
   { key: 'journal',     label: 'Journal',         href: '/dm/journal' },
+  { key: 'raven-post',  label: 'Raven Post',      href: '/dm/raven-post' },
   { key: 'sessions',    label: 'Sessions',        href: '/dm' },
   { key: 'players',     label: 'Players',         href: '/dm/players' },
   { key: 'npcs',        label: 'NPCs',            href: '/dm/npcs' },
