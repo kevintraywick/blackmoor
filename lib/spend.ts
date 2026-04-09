@@ -6,24 +6,35 @@ import type { SpendService, MtdSpend, BudgetCap, SpendLedgerRow } from './types'
 /**
  * Single source of truth for recording charges and gating external calls.
  *
- * Pattern:
- *   await assertCanSpend('elevenlabs');   // throws BudgetExceededError if paused or over hard kill
+ * Two ways to gate a call:
+ *
+ *   // Preferred — ergonomic boolean, silent no-op like lib/email.ts:
+ *   if (!(await canSpend('elevenlabs'))) return null;
  *   const result = await callExternalApi();
  *   await record({ service: 'elevenlabs', amount_usd: 0.012, units: 150, unit_kind: 'chars' });
  *
- * Soft cap (over 100% of soft_cap_usd) is silent — callers check `isOverCap()`
- * and degrade gracefully. Hard pause is the kill switch — `assertCanSpend()`
- * throws and the caller MUST handle (typically by no-oping like lib/email.ts).
+ *   // Or, if you need to distinguish the reason:
+ *   try { await assertCanSpend('elevenlabs'); }
+ *   catch (err) { if (err instanceof BudgetExceededError) return null; throw err; }
+ *
+ * `record()` is fire-and-forget — it silently logs and swallows any error
+ * because losing a few cents of accounting is preferable to losing the
+ * actual feature call.
+ *
+ * Soft cap (MTD ≥ soft_cap_usd) is not enforced here — callers check
+ * `isOverCap()` explicitly and degrade gracefully. Hard pause (the DM-set
+ * kill switch on `raven_budget_caps.paused`) is what `assertCanSpend` /
+ * `canSpend` gate on.
  */
 
 export class BudgetExceededError extends Error {
-  constructor(public service: SpendService, public reason: 'paused' | 'unknown') {
+  constructor(public service: SpendService, public reason: 'paused') {
     super(`spend gate: ${service} (${reason})`);
     this.name = 'BudgetExceededError';
   }
 }
 
-interface RecordArgs {
+export interface RecordArgs {
   service: SpendService;
   amount_usd: number;
   units?: number;
@@ -53,38 +64,27 @@ export async function record(args: RecordArgs): Promise<void> {
   } catch (err) {
     // Recording must never throw to the caller — losing a few cents of
     // accounting is worse than losing the actual feature.
-    console.error('spend.record failed:', err);
+    console.error('spend.record failed:', { service: args.service, amount_usd: args.amount_usd }, err);
   }
 }
 
 export async function mtdSpend(): Promise<MtdSpend[]> {
   await ensureSchema();
-  const rows = await query<{
-    service: SpendService;
-    soft_cap_usd: string;
-    paused: boolean;
-    mtd_usd: string;
-  }>(
+  const rows = await query<MtdSpend>(
     `SELECT
        c.service,
-       c.soft_cap_usd::text,
+       c.soft_cap_usd,
        c.paused,
        COALESCE((
-         SELECT SUM(amount_usd)::text
+         SELECT SUM(amount_usd)
          FROM raven_spend_ledger
          WHERE service = c.service
            AND occurred_at >= date_trunc('month', now())
-       ), '0') AS mtd_usd
+       ), 0) AS mtd_usd
      FROM raven_budget_caps c
      ORDER BY c.service`,
   );
-
-  return rows.map(r => ({
-    service: r.service,
-    soft_cap_usd: parseFloat(r.soft_cap_usd),
-    mtd_usd: parseFloat(r.mtd_usd),
-    paused: r.paused,
-  }));
+  return rows;
 }
 
 export async function assertCanSpend(service: SpendService): Promise<void> {
@@ -93,8 +93,33 @@ export async function assertCanSpend(service: SpendService): Promise<void> {
     `SELECT paused FROM raven_budget_caps WHERE service = $1`,
     [service],
   );
-  if (rows.length === 0) return; // unknown service — let it through
+  if (rows.length === 0) {
+    console.warn(`assertCanSpend: unknown service "${service}" — passing through. Check raven_budget_caps seed.`);
+    return;
+  }
   if (rows[0].paused) throw new BudgetExceededError(service, 'paused');
+}
+
+/**
+ * Ergonomic boolean wrapper around `assertCanSpend`. Returns true if the
+ * service is allowed to spend, false if it's paused. Use this at call sites
+ * that want the "silent no-op on budget gate" semantics of lib/email.ts:
+ *
+ *   if (!(await canSpend('elevenlabs'))) return null;
+ *   const result = await callElevenLabsApi();
+ *   await record({ service: 'elevenlabs', amount_usd: ... });
+ *
+ * Any other error (DB down, etc.) still propagates — only BudgetExceededError
+ * is swallowed.
+ */
+export async function canSpend(service: SpendService): Promise<boolean> {
+  try {
+    await assertCanSpend(service);
+    return true;
+  } catch (err) {
+    if (err instanceof BudgetExceededError) return false;
+    throw err;
+  }
 }
 
 export async function isOverCap(service: SpendService): Promise<boolean> {
@@ -114,12 +139,12 @@ export async function isOverCap(service: SpendService): Promise<boolean> {
 
 export async function listCaps(): Promise<BudgetCap[]> {
   await ensureSchema();
-  const rows = await query<BudgetCap & { soft_cap_usd: string }>(
-    `SELECT service, soft_cap_usd::text, paused, updated_at
+  const rows = await query<BudgetCap>(
+    `SELECT service, soft_cap_usd, paused, updated_at
      FROM raven_budget_caps
      ORDER BY service`,
   );
-  return rows.map(r => ({ ...r, soft_cap_usd: parseFloat(r.soft_cap_usd) }));
+  return rows;
 }
 
 export async function updateCap(
@@ -162,15 +187,16 @@ export async function recentLedger(args: {
     where.push(`occurred_at >= $${vals.length + 1}`);
     vals.push(args.from);
   }
-  const limit = Math.min(args.limit ?? 100, 500);
-  const rows = await query<SpendLedgerRow & { amount_usd: string }>(
-    `SELECT id, service, amount_usd::text, units, unit_kind, details,
+  const limit = Math.max(1, Math.floor(Math.min(args.limit ?? 100, 500)));
+  vals.push(limit);
+  const rows = await query<SpendLedgerRow>(
+    `SELECT id, service, amount_usd, units, unit_kind, details,
             occurred_at, ref_table, ref_id
      FROM raven_spend_ledger
      ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
      ORDER BY occurred_at DESC
-     LIMIT ${limit}`,
+     LIMIT $${vals.length}`,
     vals,
   );
-  return rows.map(r => ({ ...r, amount_usd: parseFloat(r.amount_usd) }));
+  return rows;
 }

@@ -35,10 +35,13 @@ export function anthropicCost(
 ): number {
   const p = ANTHROPIC_PRICING[model];
   if (!p) return 0;
-  const non_cached_input = Math.max(0, input_tokens - cached_input_tokens);
+  const input = Math.max(0, input_tokens);
+  const output = Math.max(0, output_tokens);
+  const cached = Math.max(0, Math.min(cached_input_tokens, input));
+  const non_cached_input = input - cached;
   return (
     (non_cached_input / 1_000_000) * p.input_per_mtok +
-    (cached_input_tokens / 1_000_000) * p.cached_input_per_mtok +
-    (output_tokens / 1_000_000) * p.output_per_mtok
+    (cached / 1_000_000) * p.cached_input_per_mtok +
+    (output / 1_000_000) * p.output_per_mtok
   );
 }
