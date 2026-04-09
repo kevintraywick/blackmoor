@@ -26,7 +26,6 @@ export interface TickResult {
 // ---------------------------------------------------------------------------
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
-const SONNET_MODEL = 'claude-sonnet-4-5';
 
 /** Number of seeds to draft per tick. Hardcoded to 1 for v1 — tune later. */
 const DRAFTS_PER_TICK = 1;
@@ -110,8 +109,8 @@ export async function runWorldAiTick(
     // ── Step 6: Pass 2 — Drafting ─────────────────────────────────────────
     let proposalsGenerated = 0;
     let webSearchCalls = 0;
-    let sonnetInputTokens: number | null = null;
-    let sonnetOutputTokens: number | null = null;
+    const sonnetInputTokens: number | null = null;
+    const sonnetOutputTokens: number | null = null;
 
     // Draft the top N seeds (N = DRAFTS_PER_TICK = 1 for v1)
     const seedsToDraft = triageResult.seeds
