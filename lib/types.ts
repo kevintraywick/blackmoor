@@ -347,3 +347,33 @@ export interface Npc {
   notes: string;
   image_path: string | null;
 }
+
+// ── Raven Post: budget tracker ─────────────────────────────────────────────
+
+export type SpendService = 'elevenlabs' | 'anthropic' | 'twilio' | 'websearch' | 'railway';
+
+export interface BudgetCap {
+  service: SpendService;
+  soft_cap_usd: number;
+  paused: boolean;
+  updated_at: string;
+}
+
+export interface SpendLedgerRow {
+  id: string;
+  service: SpendService;
+  amount_usd: number;
+  units: number | null;
+  unit_kind: string | null;
+  details: Record<string, unknown> | null;
+  occurred_at: string;
+  ref_table: string | null;
+  ref_id: string | null;
+}
+
+export interface MtdSpend {
+  service: SpendService;
+  soft_cap_usd: number;
+  mtd_usd: number;
+  paused: boolean;
+}

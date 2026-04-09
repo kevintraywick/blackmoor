@@ -693,4 +693,53 @@ async function _initSchema() {
       await pool.query(`UPDATE npcs SET ${sets.join(', ')} WHERE id = $${i}`, vals);
     }
   }
+
+  // ── Raven Post: budget tracker ─────────────────────────────────────────────
+  // Two tables: per-service caps + paused flags, and an append-only ledger of
+  // every charge from ElevenLabs / Anthropic / Twilio / Anthropic web search /
+  // Railway. The ledger is the source of truth for month-to-date spend; the
+  // caps row stores the soft cap and the hard kill-switch flag.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_budget_caps (
+      service       TEXT PRIMARY KEY,
+      soft_cap_usd  NUMERIC(10, 2) NOT NULL,
+      paused        BOOLEAN NOT NULL DEFAULT false,
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_spend_ledger (
+      id            TEXT PRIMARY KEY,
+      service       TEXT NOT NULL,
+      amount_usd    NUMERIC(10, 4) NOT NULL,
+      units         INTEGER,
+      unit_kind     TEXT,
+      details       JSONB,
+      occurred_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+      ref_table     TEXT,
+      ref_id        TEXT
+    )
+  `).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_spend_service_time
+       ON raven_spend_ledger(service, occurred_at DESC)`
+  ).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_spend_month
+       ON raven_spend_ledger(date_trunc('month', occurred_at))`
+  ).catch(() => {});
+
+  // Seed the default soft caps once. ON CONFLICT keeps existing DM tweaks.
+  await pool.query(`
+    INSERT INTO raven_budget_caps (service, soft_cap_usd) VALUES
+      ('elevenlabs', 5.00),
+      ('anthropic',  8.00),
+      ('twilio',     3.00),
+      ('websearch',  3.00),
+      ('railway',    0.00)
+    ON CONFLICT (service) DO NOTHING
+  `).catch(() => {});
 }
