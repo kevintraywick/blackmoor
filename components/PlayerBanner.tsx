@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import PlayerBannerWeather from './PlayerBannerWeather';
 
 const ROTATE_MS = 3 * 60 * 1000; // rotate every 3 minutes
 
@@ -50,7 +51,11 @@ export default function PlayerBanner({ playerId }: { playerId: string }) {
   }, [banners.length]);
 
   if (banners.length === 0) {
-    return <div className="relative w-full h-48 sm:h-72 overflow-hidden flex-shrink-0" />;
+    return (
+      <div className="relative w-full h-48 sm:h-72 overflow-hidden flex-shrink-0">
+        <PlayerBannerWeather playerId={playerId} />
+      </div>
+    );
   }
 
   return (
@@ -62,6 +67,7 @@ export default function PlayerBanner({ playerId }: { playerId: string }) {
         className={`object-cover object-center transition-opacity duration-500 ${visible ? 'opacity-100' : 'opacity-0'}`}
         priority
       />
+      <PlayerBannerWeather playerId={playerId} />
     </div>
   );
 }
