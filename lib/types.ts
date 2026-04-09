@@ -377,3 +377,51 @@ export interface MtdSpend {
   mtd_usd: number;
   paused: boolean;
 }
+
+// ── Raven Post ─────────────────────────────────────────────────────────────
+
+export type RavenMedium = 'broadsheet' | 'raven' | 'sending' | 'overheard' | 'ad';
+export type RavenTrust = 'official' | 'whispered' | 'rumored' | 'prophesied';
+export type WeatherCondition = 'clear' | 'rain' | 'snow' | 'fog' | 'storm' | 'mist' | 'dust' | 'embers';
+
+export interface RavenItem {
+  id: string;
+  medium: RavenMedium;
+  body: string;
+  headline: string | null;
+  sender: string | null;
+  target_player: string | null;
+  trust: RavenTrust;
+  tags: string[];
+  ad_image_url: string | null;
+  ad_real_link: string | null;
+  ad_real_copy: string | null;
+  newsie_mp3: string | null;
+  published_at: string;
+  created_at: string;
+}
+
+export interface RavenOverheardQueueRow {
+  id: string;
+  location: string;
+  body: string;
+  trust: RavenTrust;
+  position: number;
+  created_at: string;
+  delivered_to: string[]; // joined on read for convenience
+}
+
+export interface RavenWeatherRow {
+  hex_id: string;
+  condition: WeatherCondition;
+  temp_c: number | null;
+  wind_label: string | null;
+  updated_at: string;
+}
+
+export interface RavenHeadlinesPayload {
+  headlines: { id: string; headline: string; published_at: string }[];
+  newsie_mp3_url: string | null;
+  last_read_at: string | null;
+  newest_published_at: string | null;
+}

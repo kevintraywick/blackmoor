@@ -742,4 +742,114 @@ async function _initSchema() {
       ('railway',    0.00)
     ON CONFLICT (service) DO NOTHING
   `).catch(() => {});
+
+  // ── Raven Post: items, reads, overheard queue, weather, opt-in ─────────────
+  // The whole feature lives behind the raven_* prefix. Items are unified
+  // across mediums via a `medium` discriminator.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_items (
+      id            TEXT PRIMARY KEY,
+      medium        TEXT NOT NULL,
+      body          TEXT NOT NULL,
+      headline      TEXT,
+      sender        TEXT,
+      target_player TEXT,
+      trust         TEXT NOT NULL DEFAULT 'official',
+      tags          TEXT[] DEFAULT '{}',
+      ad_image_url  TEXT,
+      ad_real_link  TEXT,
+      ad_real_copy  TEXT,
+      newsie_mp3    TEXT,
+      published_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_items_medium ON raven_items(medium)`
+  ).catch(() => {});
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_items_target ON raven_items(target_player) WHERE target_player IS NOT NULL`
+  ).catch(() => {});
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_items_published ON raven_items(published_at DESC)`
+  ).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_reads (
+      player_id     TEXT NOT NULL,
+      item_id       TEXT NOT NULL REFERENCES raven_items(id) ON DELETE CASCADE,
+      read_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (player_id, item_id)
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_overheard_queue (
+      id            TEXT PRIMARY KEY,
+      location      TEXT NOT NULL,
+      body          TEXT NOT NULL,
+      trust         TEXT NOT NULL DEFAULT 'rumored',
+      position      INTEGER NOT NULL,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_overheard_loc_pos ON raven_overheard_queue(location, position)`
+  ).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_overheard_deliveries (
+      player_id     TEXT NOT NULL,
+      queue_id      TEXT NOT NULL REFERENCES raven_overheard_queue(id) ON DELETE CASCADE,
+      delivered_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (player_id, queue_id)
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_overheard_triggers (
+      player_id     TEXT NOT NULL,
+      location      TEXT NOT NULL,
+      last_at       TIMESTAMPTZ NOT NULL,
+      PRIMARY KEY (player_id, location)
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_weather (
+      hex_id        TEXT PRIMARY KEY,
+      condition     TEXT NOT NULL DEFAULT 'clear',
+      temp_c        INTEGER,
+      wind_label    TEXT,
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `).catch(() => {});
+
+  // Seed the 'default' weather row so /api/weather/current always has something
+  await pool.query(`
+    INSERT INTO raven_weather (hex_id, condition, temp_c, wind_label)
+    VALUES ('default', 'clear', 16, 'calm')
+    ON CONFLICT (hex_id) DO NOTHING
+  `).catch(() => {});
+
+  // Player sheets gain SMS opt-in fields
+  await pool.query(
+    `ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS sms_phone TEXT`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS sms_optin BOOLEAN NOT NULL DEFAULT false`
+  ).catch(() => {});
+
+  // Campaign gains the broadsheet's Volume / Issue counter
+  await pool.query(
+    `ALTER TABLE campaign ADD COLUMN IF NOT EXISTS raven_volume INTEGER NOT NULL DEFAULT 1`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE campaign ADD COLUMN IF NOT EXISTS raven_issue INTEGER NOT NULL DEFAULT 1`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE campaign ADD COLUMN IF NOT EXISTS raven_issues_per_volume INTEGER NOT NULL DEFAULT 12`
+  ).catch(() => {});
 }
