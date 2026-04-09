@@ -20,6 +20,8 @@ A multi-medium news service that pushes the campaign world into players' lives b
 
 **TODO: Raven Radio.** Eventual evolution — a 24/7 in-fiction radio stream layered on top of the news service. Pre-rendered news segments cross-faded with public-domain or licensed period music. Players tune in. Out of v1 scope.
 
+**TODO (v2): External-service failure alerts.** When ElevenLabs or Twilio calls fail (budget cap hit, API key missing, upstream down), surface a heads-up banner on `/dm/campaign` so the DM learns about it immediately rather than discovering it through missing newsie audio or silent SMS. Should also catch failures logged by `lib/elevenlabs.ts` and `lib/twilio.ts`. Out of v1 scope — v1 silently degrades per `lib/email.ts` pattern.
+
 **Mediums (in scope):**
 - **Broadsheet** — the `/raven-post` page itself. Discworld-style front page, parchment + black-letter masthead, 4–6 headlines, classifieds, weather, omens. Always available, no notification required to view.
 - **Raven** — short, urgent, named-sender messages. Surfaced on the RP page; not pushed via channel.
