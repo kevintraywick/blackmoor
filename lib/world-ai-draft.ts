@@ -251,7 +251,7 @@ export async function draftProposal(
           body,
           headline,
           reasoning,
-          JSON.stringify(tags),
+          tags,
           confidence,
           promptVersion,
         ],
