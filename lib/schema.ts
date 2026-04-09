@@ -739,7 +739,8 @@ async function _initSchema() {
       ('anthropic',  8.00),
       ('twilio',     3.00),
       ('websearch',  3.00),
-      ('railway',    0.00)
+      ('railway',    0.00),
+      ('openai_embeddings', 1.00)
     ON CONFLICT (service) DO NOTHING
   `).catch(() => {});
 
@@ -851,5 +852,113 @@ async function _initSchema() {
   ).catch(() => {});
   await pool.query(
     `ALTER TABLE campaign ADD COLUMN IF NOT EXISTS raven_issues_per_volume INTEGER NOT NULL DEFAULT 12`
+  ).catch(() => {});
+
+  // ── Raven Post: World AI engine ────────────────────────────────────────────
+  // pgvector extension for embedding-based RAG. Silently fails on hosts
+  // that don't support it — the embedding pipeline checks pgvector_available
+  // at runtime and degrades to SQL-based context selection.
+  await pool.query(`CREATE EXTENSION IF NOT EXISTS vector`).catch(() => {
+    console.log('pgvector extension not available — RAG will use SQL fallback');
+  });
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_world_ai_state (
+      campaign_id        TEXT PRIMARY KEY,
+      active_themes      TEXT[] DEFAULT '{}',
+      paused             BOOLEAN NOT NULL DEFAULT false,
+      pgvector_available BOOLEAN NOT NULL DEFAULT true,
+      last_tick_at       TIMESTAMPTZ,
+      next_tick_at       TIMESTAMPTZ,
+      active_window_start TIME DEFAULT '18:00',
+      active_window_end   TIME DEFAULT '23:00',
+      daily_cap_ticks    INTEGER NOT NULL DEFAULT 4,
+      daily_cap_drafts   INTEGER NOT NULL DEFAULT 12,
+      daily_cap_websearch INTEGER NOT NULL DEFAULT 10,
+      prompt_version     INTEGER NOT NULL DEFAULT 1,
+      updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `).catch(() => {});
+
+  // Seed the singleton state row
+  await pool.query(`
+    INSERT INTO raven_world_ai_state (campaign_id)
+    VALUES ('default')
+    ON CONFLICT (campaign_id) DO NOTHING
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_world_ai_proposals (
+      id                TEXT PRIMARY KEY,
+      proposed_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+      medium            TEXT NOT NULL,
+      body              TEXT NOT NULL,
+      headline          TEXT,
+      reasoning         TEXT NOT NULL,
+      tags              TEXT[] DEFAULT '{}',
+      confidence        INTEGER NOT NULL,
+      status            TEXT NOT NULL DEFAULT 'pending',
+      pushdown_count    INTEGER NOT NULL DEFAULT 0,
+      published_item_id TEXT REFERENCES raven_items(id),
+      prompt_version    INTEGER NOT NULL DEFAULT 1,
+      original_body     TEXT,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_proposals_status
+       ON raven_world_ai_proposals(status, confidence DESC)`
+  ).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_proposals_prompt_version
+       ON raven_world_ai_proposals(prompt_version)`
+  ).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_world_ai_ticks (
+      id                   TEXT PRIMARY KEY,
+      ticked_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+      trigger              TEXT NOT NULL,
+      haiku_input_tokens   INTEGER,
+      haiku_output_tokens  INTEGER,
+      sonnet_input_tokens  INTEGER,
+      sonnet_output_tokens INTEGER,
+      websearch_calls      INTEGER NOT NULL DEFAULT 0,
+      proposals_generated  INTEGER NOT NULL DEFAULT 0,
+      cost_usd             NUMERIC(10, 4),
+      notes                TEXT
+    )
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_world_ai_corpus (
+      id            TEXT PRIMARY KEY,
+      source_type   TEXT NOT NULL,
+      source_id     TEXT NOT NULL,
+      chunk_text    TEXT NOT NULL,
+      embedding     vector(1536),
+      indexed_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `).catch(() => {});
+
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_corpus_source
+       ON raven_world_ai_corpus(source_type, source_id)`
+  ).catch(() => {});
+
+  // ivfflat index — requires at least some rows to be present,
+  // so we create it but it may need a REINDEX after bootstrapping.
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_raven_corpus_embedding
+      ON raven_world_ai_corpus
+      USING ivfflat (embedding vector_cosine_ops)
+      WITH (lists = 10)
+  `).catch(() => {});
+
+  // Tag whether an item was DM-authored or World AI-authored
+  await pool.query(
+    `ALTER TABLE raven_items ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual'`
   ).catch(() => {});
 }

@@ -352,7 +352,7 @@ export interface Npc {
 
 // ── Raven Post: budget tracker ─────────────────────────────────────────────
 
-export type SpendService = 'elevenlabs' | 'anthropic' | 'twilio' | 'websearch' | 'railway';
+export type SpendService = 'elevenlabs' | 'anthropic' | 'twilio' | 'websearch' | 'railway' | 'openai_embeddings';
 
 export interface BudgetCap {
   service: SpendService;
@@ -426,4 +426,62 @@ export interface RavenHeadlinesPayload {
   newsie_mp3_url: string | null;
   last_read_at: string | null;
   newest_published_at: string | null;
+}
+
+// ── Raven Post: World AI ───────────────────────────────────────────────────
+
+export interface WorldAiState {
+  campaign_id: string;
+  active_themes: string[];
+  paused: boolean;
+  pgvector_available: boolean;
+  last_tick_at: string | null;
+  next_tick_at: string | null;
+  active_window_start: string;
+  active_window_end: string;
+  daily_cap_ticks: number;
+  daily_cap_drafts: number;
+  daily_cap_websearch: number;
+  prompt_version: number;
+  updated_at: string;
+}
+
+export interface WorldAiProposal {
+  id: string;
+  proposed_at: string;
+  medium: RavenMedium;
+  body: string;
+  headline: string | null;
+  reasoning: string;
+  tags: string[];
+  confidence: number;
+  status: 'pending' | 'published' | 'pushed_down' | 'expired';
+  pushdown_count: number;
+  published_item_id: string | null;
+  prompt_version: number;
+  original_body: string | null;
+  created_at: string;
+}
+
+export interface WorldAiTick {
+  id: string;
+  ticked_at: string;
+  trigger: 'auto' | 'manual';
+  haiku_input_tokens: number | null;
+  haiku_output_tokens: number | null;
+  sonnet_input_tokens: number | null;
+  sonnet_output_tokens: number | null;
+  websearch_calls: number;
+  proposals_generated: number;
+  cost_usd: number | null;
+  notes: string | null;
+}
+
+export interface WorldAiCorpusRow {
+  id: string;
+  source_type: 'journal' | 'journey' | 'raven_items' | 'player_sheet';
+  source_id: string;
+  chunk_text: string;
+  embedding: number[] | null;
+  indexed_at: string;
 }
