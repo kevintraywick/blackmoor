@@ -339,7 +339,7 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
 
 
 // ── Full player sheet form ────────────────────────────────────────────────────
-export function Sheet({ playerId, playerName, character, initial, img, data, unreadCount = 0, poisonCount = 0, boonCount = 0, boonUnseen = 0 }: { playerId: string; playerName: string; character: string; initial: string; img?: string; data: PlayerSheetType; unreadCount?: number; poisonCount?: number; boonCount?: number; boonUnseen?: number }) {
+export function Sheet({ playerId, playerName, character, initial, img, data, unreadCount = 0, poisonCount = 0, boonCount = 0, boonUnseen = 0, sendingCount = 0, ravenCount = 0 }: { playerId: string; playerName: string; character: string; initial: string; img?: string; data: PlayerSheetType; unreadCount?: number; poisonCount?: number; boonCount?: number; boonUnseen?: number; sendingCount?: number; ravenCount?: number }) {
   const [values, setValues] = useState<PlayerSheetType>(data);
   const [charName, setCharName] = useState(character);
   const [showMessages, setShowMessages] = useState(false);
@@ -526,33 +526,61 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
               </div>
             </div>
 
-            {/* Action circles — 3 dots group */}
-            <div className="flex items-center" style={{ gap: 5, marginLeft: 20 }}>
+            {/* Notification icons */}
+            <div className="flex items-center" style={{ gap: 6, marginLeft: 20 }}>
+              {/* Boon — white lightning bolt */}
               {boonCount > 0 ? (
                 <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}>
-                  <div style={{ width: 14, height: 14, backgroundColor: '#ffffff', borderRadius: '50%', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} />
+                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}>
+                    <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="#ffffff" stroke="#ffffff" strokeWidth="0.5"/>
+                  </svg>
                 </div>
-              ) : (
-                <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1px solid #3d3530' }} />
-              )}
+              ) : null}
+              {/* Poison — green skull */}
               {poisonCount > 0 ? (
                 <div className="animate-pulse cursor-default" title="Poisoned!">
-                  <div style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#4a7a5a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '9px', lineHeight: 1 }}>🤢</span>
-                  </div>
+                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 4px rgba(74,122,90,0.6))' }}>
+                    <path d="M12 2C8 2 5 5 5 9c0 2.5 1.2 4.7 3 6v2h8v-2c1.8-1.3 3-3.5 3-6 0-4-3-7-7-7z" fill="#4a7a5a"/>
+                    <circle cx="9" cy="9" r="1.5" fill="#1a1614"/><circle cx="15" cy="9" r="1.5" fill="#1a1614"/>
+                    <path d="M9 14h2v3H9zM13 14h2v3h-2z" fill="#4a7a5a"/>
+                    <path d="M10 12.5c0 0 1 1.2 2 0s2 0 2 0" fill="none" stroke="#1a1614" strokeWidth="1"/>
+                  </svg>
                 </div>
-              ) : (
-                <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1px solid #3d3530' }} />
-              )}
+              ) : null}
+              {/* DM message — red exclamation mark */}
               {unread > 0 ? (
                 <div onClick={toggleMessages} className="animate-pulse cursor-pointer" title={`${unread} unread message${unread > 1 ? 's' : ''}`}>
-                  <div style={{ width: 14, height: 14, backgroundColor: '#dc2626', borderRadius: '50%' }} />
+                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}>
+                    <path d="M12 2C10 2 9.5 3 10 7l1 6h2l1-6c.5-4 0-5-2-5z" fill="#dc2626" stroke="#ff4444" strokeWidth="0.5"/>
+                    <circle cx="12" cy="18" r="2" fill="#dc2626" stroke="#ff4444" strokeWidth="0.5"/>
+                  </svg>
                 </div>
               ) : messages.length > 0 ? (
-                <div onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#3a2e2e' }} title="View messages" />
-              ) : (
-                <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1px solid #3d3530' }} />
-              )}
+                <div onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" title="View messages">
+                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, opacity: 0.4 }}>
+                    <path d="M12 2C10 2 9.5 3 10 7l1 6h2l1-6c.5-4 0-5-2-5z" fill="#dc2626"/>
+                    <circle cx="12" cy="18" r="2" fill="#dc2626"/>
+                  </svg>
+                </div>
+              ) : null}
+              {/* Sending — bright blue star */}
+              {sendingCount > 0 ? (
+                <div className="animate-pulse cursor-default" title={`${sendingCount} sending${sendingCount > 1 ? 's' : ''}`}>
+                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 5px rgba(100,180,255,0.7))' }}>
+                    <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8 2.4-7.2-6-4.8h7.6z" fill="#64b4ff" stroke="#88ccff" strokeWidth="0.5"/>
+                  </svg>
+                </div>
+              ) : null}
+              {/* Raven letter — post stamp */}
+              {ravenCount > 0 ? (
+                <div className="animate-pulse cursor-default" title={`${ravenCount} letter${ravenCount > 1 ? 's' : ''}`}>
+                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 3px rgba(201,168,76,0.5))' }}>
+                    <rect x="3" y="5" width="18" height="14" rx="1.5" fill="none" stroke="#c9a84c" strokeWidth="1.5"/>
+                    <path d="M3 5l9 7 9-7" fill="none" stroke="#c9a84c" strokeWidth="1.5"/>
+                    <rect x="14" y="12" width="5" height="5" rx="0.5" fill="#c9a84c" opacity="0.6"/>
+                  </svg>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -595,31 +623,56 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                   <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.85rem] text-center outline-none font-serif" style={{ width: 32 }} />
                 </div>
               </div>
-              {/* Action circles */}
+              {/* Notification icons (mobile) */}
               <div className="flex items-center" style={{ gap: 5, marginLeft: 16 }}>
                 {boonCount > 0 ? (
                   <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} title="Boon active">
-                    <div style={{ width: 11, height: 11, backgroundColor: '#ffffff', borderRadius: '50%', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} />
+                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}>
+                      <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="#ffffff" stroke="#ffffff" strokeWidth="0.5"/>
+                    </svg>
                   </div>
-                ) : (
-                  <div style={{ width: 11, height: 11, borderRadius: '50%', border: '1px solid #3d3530' }} />
-                )}
+                ) : null}
                 {poisonCount > 0 ? (
                   <div className="animate-pulse cursor-default" title="Poisoned!">
-                    <div style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#4a7a5a' }} />
+                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, filter: 'drop-shadow(0 0 4px rgba(74,122,90,0.6))' }}>
+                      <path d="M12 2C8 2 5 5 5 9c0 2.5 1.2 4.7 3 6v2h8v-2c1.8-1.3 3-3.5 3-6 0-4-3-7-7-7z" fill="#4a7a5a"/>
+                      <circle cx="9" cy="9" r="1.5" fill="#1a1614"/><circle cx="15" cy="9" r="1.5" fill="#1a1614"/>
+                      <path d="M9 14h2v3H9zM13 14h2v3h-2z" fill="#4a7a5a"/>
+                      <path d="M10 12.5c0 0 1 1.2 2 0s2 0 2 0" fill="none" stroke="#1a1614" strokeWidth="1"/>
+                    </svg>
                   </div>
-                ) : (
-                  <div style={{ width: 11, height: 11, borderRadius: '50%', border: '1px solid #3d3530' }} />
-                )}
+                ) : null}
                 {unread > 0 ? (
                   <div onClick={toggleMessages} className="animate-pulse cursor-pointer" title={`${unread} unread`}>
-                    <div style={{ width: 11, height: 11, backgroundColor: '#dc2626', borderRadius: '50%' }} />
+                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}>
+                      <path d="M12 2C10 2 9.5 3 10 7l1 6h2l1-6c.5-4 0-5-2-5z" fill="#dc2626" stroke="#ff4444" strokeWidth="0.5"/>
+                      <circle cx="12" cy="18" r="2" fill="#dc2626" stroke="#ff4444" strokeWidth="0.5"/>
+                    </svg>
                   </div>
                 ) : messages.length > 0 ? (
-                  <div onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#3a2e2e' }} title="View messages" />
-                ) : (
-                  <div style={{ width: 11, height: 11, borderRadius: '50%', border: '1px solid #3d3530' }} />
-                )}
+                  <div onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" title="View messages">
+                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, opacity: 0.4 }}>
+                      <path d="M12 2C10 2 9.5 3 10 7l1 6h2l1-6c.5-4 0-5-2-5z" fill="#dc2626"/>
+                      <circle cx="12" cy="18" r="2" fill="#dc2626"/>
+                    </svg>
+                  </div>
+                ) : null}
+                {sendingCount > 0 ? (
+                  <div className="animate-pulse cursor-default" title={`${sendingCount} sending${sendingCount > 1 ? 's' : ''}`}>
+                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, filter: 'drop-shadow(0 0 5px rgba(100,180,255,0.7))' }}>
+                      <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8 2.4-7.2-6-4.8h7.6z" fill="#64b4ff" stroke="#88ccff" strokeWidth="0.5"/>
+                    </svg>
+                  </div>
+                ) : null}
+                {ravenCount > 0 ? (
+                  <div className="animate-pulse cursor-default" title={`${ravenCount} letter${ravenCount > 1 ? 's' : ''}`}>
+                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, filter: 'drop-shadow(0 0 3px rgba(201,168,76,0.5))' }}>
+                      <rect x="3" y="5" width="18" height="14" rx="1.5" fill="none" stroke="#c9a84c" strokeWidth="1.5"/>
+                      <path d="M3 5l9 7 9-7" fill="none" stroke="#c9a84c" strokeWidth="1.5"/>
+                      <rect x="14" y="12" width="5" height="5" rx="0.5" fill="#c9a84c" opacity="0.6"/>
+                    </svg>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
