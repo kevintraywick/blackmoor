@@ -17,8 +17,8 @@ export default function RavenBroadsheet({ items, weather, volume, issue, inFicti
   const [adModal, setAdModal] = useState<RavenItem | null>(null);
 
   const broadsheetItems = items.filter(i => i.medium === 'broadsheet');
-  const ravens = items.filter(i => i.medium === 'raven');
-  const sendings = items.filter(i => i.medium === 'sending');
+  // Ravens and sendings are personal — they appear on the player's own page,
+  // not on the public broadsheet. Only broadsheet headlines and ads here.
   const ads = items.filter(i => i.medium === 'ad');
 
   return (
@@ -116,72 +116,8 @@ export default function RavenBroadsheet({ items, weather, volume, issue, inFicti
         ))}
       </div>
 
-      {/* Ravens — sealed letter cards */}
-      {ravens.length > 0 && (
-        <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #2b1f14' }}>
-          {ravens.slice(0, 3).map(r => (
-            <div key={r.id} style={{
-              background: '#1a1210',
-              border: '1px solid #3d2a1a',
-              padding: '20px 22px',
-              color: '#e8dbc0',
-              marginBottom: 12,
-              position: 'relative',
-            }}>
-              <div style={{
-                position: 'absolute', top: -14, right: 22, width: 38, height: 38,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle at 35% 30%, #b02020, #5a0a0a 70%, #2a0404)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1rem', color: '#1a0404', fontWeight: 900,
-              }}>♛</div>
-              <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#c9a84c', marginBottom: 8 }}>
-                — A raven arrives —
-              </div>
-              {r.sender && (
-                <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: '#8b7a5a', marginBottom: 10 }}>
-                  From: {r.sender}
-                </div>
-              )}
-              <div style={{ fontSize: '1rem', lineHeight: 1.5, fontStyle: 'italic' }}>{r.body}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Sendings — own card */}
-      {sendings.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          {sendings.slice(0, 1).map(s => (
-            <div key={s.id} style={{
-              background: 'radial-gradient(ellipse at center, #1a2a3a 0%, #0a1420 70%)',
-              border: '1px solid #2a4a6a',
-              padding: 24,
-              color: '#a8c8e8',
-              textAlign: 'center',
-              boxShadow: '0 0 30px rgba(80,140,220,0.15) inset',
-            }}>
-              <div style={{ fontSize: '1.8rem', filter: 'drop-shadow(0 0 6px #6ab0ff)' }}>✦</div>
-              <div style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.25em', color: '#6ab0ff', margin: '8px 0' }}>
-                — A sending reaches you —
-              </div>
-              <div style={{
-                fontFamily: 'Cinzel, serif',
-                fontSize: '1rem',
-                lineHeight: 1.45,
-                color: '#d8e8ff',
-                textShadow: '0 0 8px rgba(106,176,255,0.4)',
-                padding: '8px 4px',
-              }}>
-                {s.body}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#6a8aaa', marginTop: 10, fontStyle: 'italic' }}>
-                no sender · no reply
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Ravens and sendings are personal — they will appear on each
+          player's own sheet page, not on the public broadsheet. */}
 
       {/* Classifieds + ads */}
       {ads.length > 0 && (

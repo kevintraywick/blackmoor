@@ -7,30 +7,20 @@ import { ensureSchema } from '@/lib/schema';
 import RavenBroadsheet from '@/components/RavenBroadsheet';
 import type { RavenItem, RavenWeatherRow, Campaign } from '@/lib/types';
 
-interface SearchParams {
-  searchParams: Promise<{ playerId?: string }>;
-}
+// The Raven Post is the PUBLIC broadsheet — visible to all players.
+// Personal items (ravens, sendings) belong on the player's own sheet page,
+// not here. Only broadsheet headlines, ads, and weather appear.
 
-export default async function RavenPostPage({ searchParams }: SearchParams) {
+export default async function RavenPostPage() {
   await ensureSchema();
-  const { playerId } = await searchParams;
 
   const [items, weatherRows, campaignRows] = await Promise.all([
-    playerId
-      ? query<RavenItem>(
-          `SELECT * FROM raven_items
-           WHERE medium IN ('broadsheet', 'ad', 'overheard')
-              OR (medium IN ('raven', 'sending') AND target_player = $1)
-           ORDER BY published_at DESC
-           LIMIT 200`,
-          [playerId],
-        )
-      : query<RavenItem>(
-          `SELECT * FROM raven_items
-           WHERE medium IN ('broadsheet', 'ad', 'overheard')
-           ORDER BY published_at DESC
-           LIMIT 200`,
-        ),
+    query<RavenItem>(
+      `SELECT * FROM raven_items
+       WHERE medium IN ('broadsheet', 'ad')
+       ORDER BY published_at DESC
+       LIMIT 200`,
+    ),
     query<RavenWeatherRow>(`SELECT * FROM raven_weather WHERE hex_id = 'default'`),
     query<Campaign & { raven_volume: number; raven_issue: number }>(
       `SELECT * FROM campaign WHERE id = 'default'`,
