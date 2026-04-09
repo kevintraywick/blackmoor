@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
-import type { RavenItem } from '@/lib/types';
+import type { RavenItem, RavenTrust } from '@/lib/types';
+
+const VALID_TRUST: RavenTrust[] = ['official', 'whispered', 'rumored', 'prophesied'];
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -34,6 +36,9 @@ export async function PATCH(req: Request, { params }: Props) {
       vals.push(body.tags.filter((t: unknown): t is string => typeof t === 'string').slice(0, 30));
     }
     if (typeof body.trust === 'string') {
+      if (!VALID_TRUST.includes(body.trust as RavenTrust)) {
+        return NextResponse.json({ error: 'invalid trust tier' }, { status: 400 });
+      }
       sets.push(`trust = $${vals.length + 1}`);
       vals.push(body.trust);
     }

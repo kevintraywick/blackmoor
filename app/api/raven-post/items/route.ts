@@ -82,7 +82,10 @@ export async function POST(req: Request) {
       body: text.trim(),
       headline: typeof headline === 'string' ? headline.trim() : null,
       sender: typeof sender === 'string' ? sender.trim() : null,
-      target_player: typeof target_player === 'string' ? target_player : null,
+      target_player:
+        typeof target_player === 'string' && target_player.trim().length > 0
+          ? target_player.trim()
+          : null,
       trust: (trust as RavenTrust) ?? 'official',
       tags: tagsArray,
       ad_image_url: typeof ad_image_url === 'string' ? ad_image_url : null,
