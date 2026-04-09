@@ -64,7 +64,8 @@ const SPAWN_POINTS: SpawnPoint[] = [
     lore: 'In bocca al lupo.',
     lat: 36.34289,
     lng: -88.85022,
-    radius: 40,
+    // Library shares these coords; matched to the Raven Post Overheard radius
+    radius: 100,
     glbSrc: '/models/dragonChalice.glb',
     usdzSrc: '/models/dragonChalice.usdz',
   },

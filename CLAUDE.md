@@ -59,6 +59,7 @@ This is a tool for heroes and the people who run their world. It should feel lik
 ## Output conventions
 
 - **Server links / URLs on their own line in backticks.** They render blue and are easy to click. Never inline a clickable URL in prose.
+- **Always number questions to the user.** When asking the user any question, prefix it with `Q1.`, `Q2.`, etc. Even a single question gets `Q1.` so the user can refer back to it by number in their reply.
 
 ## Local Dev Server
 When making changes that need a server restart (new DDL, cache issues, etc.), handle it directly — kill port 3000 and restart with `npx next dev -p 3000` using the Bash tool. Run the server in the background. Don't ask the user to do it.

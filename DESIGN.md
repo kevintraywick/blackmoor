@@ -10,6 +10,79 @@ Living document for UI/UX decisions and constraints. Review before making visual
 
 **Zero friction to the game.** The DM and players are at the table with a session in motion. The app exists to help them do game things — take a turn, check a stat, see a map, read a note. Every tap, scroll, dropdown, confirmation, extra link, or typed character that isn't directly in service of a game task is a delay they'll feel mid-session. Prefill when possible. Land them on the thing they came for. Don't gate content behind intro screens, "continue" buttons, or progressive reveals. If two taps accomplish what one can, use one.
 
+## Ideas
+
+In-flight feature concepts that have been brainstormed but not yet specced or built. Each entry captures the agreed direction and known constraints. Promote to a real spec in `docs/superpowers/specs/` when ready to plan.
+
+### The Raven Post — living-world news service
+
+A multi-medium news service that pushes the campaign world into players' lives between sessions. The DM **curates** short beats produced by a persistent **World AI**; the system delivers them at the right time through the right channel. Brand it **The Raven Post (RP)**. Lives at `/raven-post`, with a link in the player nav between Marketplace and *The story so far…*.
+
+**TODO: Raven Radio.** Eventual evolution — a 24/7 in-fiction radio stream layered on top of the news service. Pre-rendered news segments cross-faded with public-domain or licensed period music. Players tune in. Out of v1 scope.
+
+**Mediums (in scope):**
+- **Broadsheet** — the `/raven-post` page itself. Discworld-style front page, parchment + black-letter masthead, 4–6 headlines, classifieds, weather, omens. Always available, no notification required to view.
+- **Raven** — short, urgent, named-sender messages. Surfaced on the RP page; not pushed via channel.
+- **Sending** — cryptic, ≤25 words, DM-direct to one PC. **No replies of any kind.** Surfaced on the RP page.
+- **Overheard** — location-triggered tavern rumor. When a player is within **100 m of the library** (Citadel Tree, lat `36.34289`, lng `-88.85022`), they receive an SMS with the overheard text. Reuses the AR encounter geolocation pattern. Only fires once per item per player. (TODO: cooldown rules.)
+- **Town Crier (audio)** — see *Newsie call-out* below.
+- **Weather layer** — current world weather is rendered both as a staple of the RP front page AND as a visual overlay on the **player banner** at the top of `/players/[id]` (rain streaks, fog, snow, storm flicker, etc.). Driven by the same world-weather state.
+
+**Mediums explicitly out of scope (for now):**
+- Email delivery (drop entirely)
+- Discord delivery (drop for now; **TODO:** dedicated `#raven-post` channel + bot push)
+- Session-start "what you hear on the road" recap screen (drop)
+
+**Newsie call-out (player page audio):**
+- After the player has been on `/players/[id]` for a random **10–20 seconds**, an audio clip plays of a newsie crying *"News, &lt;top headlines&gt;, News..."* with the current top headlines stitched in.
+- Immediately after the audio, the **The Raven** nav link pulses bright red for **10 seconds**, then **fades over the next 30 seconds** back to normal.
+- **TODO:** suppress both the audio and the pulse if the player has already read the current top headlines.
+
+**SMS delivery:**
+- SMS is the **only** push channel in v1. Front and center in the player's settings.
+- Always **opt-in / opt-out** per player. Default off.
+- Used for high-stakes pushes: Overheards (location-triggered), Ravens marked urgent by the DM, Sendings.
+
+**Engine principles (carry forward into spec):**
+- Hooks into the existing **game clock** (`lib/game-clock.ts`). Items publish when the DM advances time or explicitly at session end.
+- Each item is tagged with entities (NPC, location, faction) so the **callback engine** can chain related items into running threads — what makes the world *feel* alive.
+- Trust tiers (Official / Whispered / Rumored / Prophesied) are visible to players. The medium implies the trust.
+
+**The World AI (the heart of the system):**
+- A persistent agent that runs on a loop, reads the campaign state (journal, journey, world map, weather, army positions, current hex, player notes), and **proposes new plausible events** that extend the established fiction.
+- *Examples of plausible events*: a tavern burns down (tied to a city the party is nearing), a king's decree, a ship leaving that needs sailors, a ship arriving with cargo and rumor, a comet crossing the sky, a plague rumor from the next valley over, a missing-children whisper, a faction tax, a public hanging, **guild news** (promotions, expulsions, contracts), **mentor news** (the party's mentors growing, dying, reaching out), **skill-building hooks** (a master willing to teach for a price).
+- *Knows each player intimately* — the agent reads every PC's species, class, level, alignment, **backstory**, gear, spells, items, boons, poisons, and **play history** (recent sessions, marketplace activity, initiative rolls, the journal entries they featured in). Proposals for Pip the Halfling Ranger reference Pip's actual mentor by name and the actual manner of their death from the actual journal entry. The agent isn't writing for *a* party — it's writing for *this* party.
+- *Authority*: agentic, full web search. Can study fantasy literature, fiction, films, and games and pull from Wikipedia/Wikia/etc. to draw genre-appropriate parallels.
+- *Real-world awareness*: the World AI knows the **real-world moon phase** and lunar calendar, so a real full moon tonight can become an in-fiction full moon in the broadsheet — the wolves are restless, the wyrd-women sing, the tide pulls strange. Same for solstices, eclipses, and notable astronomical events.
+- *Loop trigger*: time-based background loop **plus** an explicit DM "Generate now" button. No automatic ticks on game-clock advance — DM is in control of the cadence.
+- *Persistent state*: maintains its own memory of what it's proposed, what was accepted, what was rejected (deferred — unchecked items aren't rejections, they're queue-pushdowns), and which themes are currently in play.
+- *Output*: a stream of **suggested beats** that land in the DM's RP curation pane (see "DM curation window" below). The DM is always the author of record — the World AI never publishes directly to players.
+- *Resourcing*: needs its own planning pass via `/ce:plan` to scope the loop, model, budget, and guardrails. Likely Anthropic Claude (Haiku-first triage, Sonnet for high-quality drafts) with web search permissions.
+
+**DM curation window (`/dm/raven-post`):**
+The DM's view of the Raven Post is a multi-pane curation surface, similar in spirit to the Player Notes box on the player sheet:
+
+1. **World AI Suggestions** — top pane. Streamed proposals from the World AI. **No edit/publish/reject buttons.** Each proposal is a checkbox row the DM edits inline directly in the box. **Checking the box = publish.** Leaving a box unchecked **does not reject it** — it pushes that item further down the queue so the next loop can revisit, evolve, or replace it.
+2. **Manual Compose** — DM-authored beats from scratch. Same fields as a published item.
+3. **Library Overheard Queue** — a list of rumors waiting to fire when a player walks within 100 m of the Citadel Tree library. FIFO. No replays. The DM can add, edit, reorder, and see which players have already received which rumor.
+4. **Published Items** — recently-published items, editable until they're seen by players.
+
+**Advertising:**
+- The Raven Post **carries advertising** as part of its in-fiction texture (Discworld's classifieds are the model).
+- *In-world ads*: a smith on Copper Lane, a caravan recruiting guards, a fortuneteller's tent.
+- *Real-world ads*: actual products that fit the fiction (dice, dice trays, leather journals, miniatures). Manual entry by the DM with image, link, and copy.
+- **Real-world stays out of the broadsheet.** The ad as printed on the Raven Post is fully in-fiction — period typography, in-world prose, no pricing, no URLs. The real-world product details (price, link, vendor) only appear when the player **clicks the ad**. The fiction is never broken on the page itself.
+- **TODO: bookstore + D&D specialty directory** — maintain a list of FLGS bookstores (especially those near the table) and D&D specialty sites (minis, dice, books). The World AI scans these for sales and proposes ads when something on sale fits a current beat.
+
+**Spend tracker (`/dm/campaign`):**
+- A live $-spend widget on the Campaign page, **page-width, placed at the bottom of the page** (after all existing fields and the home art drop circle).
+- Tracks running monthly cost across: **ElevenLabs** (TTS), **Anthropic** (Claude — World AI loops + manual drafts), **Twilio** (SMS), **web search**, and **Railway** (hosting + DB).
+- **Soft target: under $20/month** with default caps (see budget breakdown in the spec).
+- **Hard kill switches** — DM can pause the World AI loop and the SMS push from the same widget.
+
+**Campaign page cleanup (related):**
+- **Remove the Background textarea** from `/dm/campaign` (`components/CampaignPageClient.tsx` line ~134, the "The campaign backstory…" field). The campaign backstory belongs in the **journal**, not on the campaign settings page. The DB column can stay; the field stops rendering.
+
 ## Rotating Images
 
 **Drop a file in the folder, and it joins the rotation.** Any component that rotates through a set of images (banners, backdrops, splash art) must discover its image list at runtime by scanning the folder — never hardcode counts or filenames in the component. Adding a new image should require zero code changes.
