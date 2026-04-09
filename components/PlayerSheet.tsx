@@ -626,6 +626,40 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
         </div>
       </div>
 
+      {/* SMS opt-in row */}
+      <div className="border-x border-[var(--color-border)] bg-[var(--color-surface)] px-3 sm:px-4 py-2">
+        <div className="flex items-center gap-3">
+          <label className="text-xs text-[var(--color-text-muted)] uppercase tracking-widest font-sans">SMS push</label>
+          <input
+            type="checkbox"
+            checked={data.sms_optin === true}
+            onChange={async e => {
+              await fetch('/api/sms/optin', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ playerId, optin: e.target.checked }),
+              });
+            }}
+          />
+          <input
+            type="tel"
+            placeholder="+15551234567"
+            defaultValue={data.sms_phone ?? ''}
+            onBlur={async e => {
+              const phone = e.target.value.trim();
+              if (!phone || /^\+\d{8,15}$/.test(phone)) {
+                await fetch('/api/sms/optin', {
+                  method: 'POST',
+                  headers: { 'content-type': 'application/json' },
+                  body: JSON.stringify({ playerId, optin: data.sms_optin === true, phone }),
+                });
+              }
+            }}
+            className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text)] font-sans"
+          />
+        </div>
+      </div>
+
       {/* Boon detail pane */}
       <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: showBoons ? '400px' : '0px', opacity: showBoons ? 1 : 0 }}>
         <div className="border-x border-[var(--color-border)] px-4 py-3 bg-[#1e1d1a]">
