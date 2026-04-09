@@ -40,11 +40,29 @@ export default function TermsPage() {
           </p>
         </section>
 
-        <section>
+        <section style={{ marginBottom: 24 }}>
           <h2 style={{ fontSize: '1.2rem', marginBottom: 8 }}>6. Changes</h2>
           <p style={{ lineHeight: 1.7, color: '#d4c8b8' }}>
             These terms may be updated from time to time. Continued use of the Service constitutes acceptance of any changes.
           </p>
+        </section>
+
+        <section style={{ marginTop: 40, paddingTop: 24, borderTop: '1px solid rgba(201,168,76,0.2)' }}>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: 12 }}>The Nine Agreements</h2>
+          <p style={{ lineHeight: 1.7, color: '#8a7d6e', fontSize: '0.85rem', marginBottom: 16 }}>
+            Adapted from <a href="https://notermsnoconditions.com" target="_blank" rel="noopener noreferrer" style={{ color: '#c9a84c' }}>notermsnoconditions.com</a>
+          </p>
+          <ol style={{ lineHeight: 2, color: '#d4c8b8', paddingLeft: 20 }}>
+            <li>You may use this site for any lawful purpose.</li>
+            <li>You may build with it, on top of it, or in reference to it.</li>
+            <li>Nothing here is reviewed, curated, or approved in advance.</li>
+            <li>Nothing here is guaranteed, including availability, correctness, continuity, or fitness for any purpose.</li>
+            <li>Access is not conditioned on approval.</li>
+            <li>Nothing here should be assumed reversible, recoverable, or preserved.</li>
+            <li>There is no support obligation, service commitment, or warranty of any kind.</li>
+            <li>You are responsible for what you do, what you build, and what follows from either.</li>
+            <li>There are no additional terms.</li>
+          </ol>
         </section>
       </div>
     </div>

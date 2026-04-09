@@ -5,6 +5,10 @@ export default function PrivacyPage() {
         <h1 style={{ fontFamily: 'EB Garamond, serif', fontSize: '2rem', marginBottom: 8 }}>Privacy Policy</h1>
         <p style={{ color: '#8a7d6e', fontSize: '0.85rem', marginBottom: 24 }}>Last updated: April 9, 2026</p>
 
+        <p style={{ lineHeight: 1.8, color: '#d4c8b8', fontSize: '1.1rem', marginBottom: 32, fontStyle: 'italic' }}>
+          We don&apos;t have any of your personal information except, if you signed up for text messages, your phone number which we don&apos;t give, sell, transfer or otherwise use. Nothing, zip, zero, except send you messages from or about the game.
+        </p>
+
         <section style={{ marginBottom: 24 }}>
           <h2 style={{ fontSize: '1.2rem', marginBottom: 8 }}>1. Information We Collect</h2>
           <p style={{ lineHeight: 1.7, color: '#d4c8b8' }}>
