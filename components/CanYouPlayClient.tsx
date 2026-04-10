@@ -8,9 +8,20 @@ import type { Availability } from '@/lib/types';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-// Hardcoded dates — replace with calendar system later
+/** Next 3 Saturdays, skipping any less than 2 days away. */
 function getNextSaturdays(): string[] {
-  return ['2026-04-04', '2026-04-11', '2026-04-18'];
+  const result: string[] = [];
+  const today = new Date();
+  // Start from tomorrow to ensure at least 1 full day of lead time
+  const cursor = new Date(today);
+  cursor.setDate(cursor.getDate() + 2); // at least 2 days out
+  // Find next Saturday
+  while (cursor.getDay() !== 6) cursor.setDate(cursor.getDate() + 1);
+  for (let i = 0; i < 3; i++) {
+    result.push(cursor.toISOString().slice(0, 10));
+    cursor.setDate(cursor.getDate() + 7);
+  }
+  return result;
 }
 
 function formatSaturday(iso: string): { month: string; day: string } {
@@ -32,8 +43,9 @@ interface Props {
 
 // ── component ────────────────────────────────────────────────────────────────
 
-export default function CanYouPlayClient({ players, initialAvailability, quorum, dates }: Props) {
+export default function CanYouPlayClient({ players: initialPlayers, initialAvailability, quorum, dates }: Props) {
   const saturdays = dates ?? getNextSaturdays();
+  const [players, setPlayers] = useState<Player[]>(initialPlayers);
 
   // Build availability map: "playerId:saturday" → status
   const [avMap, setAvMap] = useState<Map<string, string>>(() => {
@@ -43,6 +55,17 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
     }
     return m;
   });
+
+  // Registration state
+  const [showJoin, setShowJoin] = useState(false);
+  const [joinName, setJoinName] = useState('');
+  const [joinCharacter, setJoinCharacter] = useState('');
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [joining, setJoining] = useState(false);
+  const [welcomePlayer, setWelcomePlayer] = useState<{ id: string; character: string } | null>(null);
+
+  // Share state
+  const [copied, setCopied] = useState(false);
 
   const getStatus = useCallback((playerId: string, saturday: string): 'in' | 'maybe' | 'out' | 'unseen' => {
     return (avMap.get(`${playerId}:${saturday}`) as 'in' | 'maybe' | 'out') ?? 'unseen';
@@ -81,11 +104,59 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ player_id: playerId, saturday, status: next }),
     });
-  }, [getStatus]);
+  }, [getStatus, playSound]);
 
   const getInCount = useCallback((saturday: string): number => {
     return players.filter(p => getStatus(p.id, saturday) === 'in').length;
   }, [players, getStatus]);
+
+  async function handleJoin() {
+    const name = joinName.trim();
+    const character = joinCharacter.trim();
+    if (!name || !character) {
+      setJoinError('Both fields are required');
+      return;
+    }
+    setJoining(true);
+    setJoinError(null);
+    try {
+      const res = await fetch('/api/players/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerName: name, character }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setJoinError(data.error ?? 'Registration failed');
+        return;
+      }
+      const data: { id: string; playerName: string; character: string; initial: string } = await res.json();
+      // Add new player to local state
+      setPlayers(prev => [...prev, {
+        id: data.id,
+        playerName: data.playerName,
+        character: data.character,
+        initial: data.initial,
+        img: '',
+      }]);
+      setShowJoin(false);
+      setJoinName('');
+      setJoinCharacter('');
+      setWelcomePlayer({ id: data.id, character: data.character });
+      // Auto-dismiss welcome after 10s
+      setTimeout(() => setWelcomePlayer(null), 10000);
+    } catch {
+      setJoinError('Registration failed');
+    } finally {
+      setJoining(false);
+    }
+  }
+
+  function handleShare() {
+    navigator.clipboard.writeText(window.location.href).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   return (
     <div className="min-h-screen relative" style={{ background: '#1a1614' }}>
@@ -111,12 +182,35 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
           Tap your name
         </p>
 
+        {/* Welcome banner for new player */}
+        {welcomePlayer && (
+          <div
+            style={{
+              background: 'rgba(45,138,78,0.15)',
+              border: '1px solid rgba(45,138,78,0.4)',
+              padding: '10px 16px',
+              marginBottom: 16,
+              textAlign: 'center',
+            }}
+          >
+            <span className="font-serif text-sm" style={{ color: '#7ac28a' }}>
+              Welcome, {welcomePlayer.character}!{' '}
+              <Link
+                href={`/players/${welcomePlayer.id}`}
+                className="underline"
+                style={{ color: '#c9a84c' }}
+              >
+                Your character page →
+              </Link>
+            </span>
+          </div>
+        )}
+
         {/* Saturday columns */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-6 mb-12">
           {saturdays.map(sat => {
             const { month, day } = formatSaturday(sat);
             const inCount = getInCount(sat);
-            const quorumMet = inCount >= quorum;
             return (
               <div key={sat} className="flex flex-col items-center">
                 {/* Date */}
@@ -160,7 +254,16 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
                             border: `2px solid ${unseen ? '#3d3530' : '#8b1a1a'}`,
                           }}
                         >
-                          <Image src={p.img} alt={p.character} fill className="object-cover" />
+                          {p.img ? (
+                            <Image src={p.img} alt={p.character} fill className="object-cover" />
+                          ) : (
+                            <div
+                              className="w-full h-full flex items-center justify-center font-serif"
+                              style={{ background: '#2a2420', color: '#8a7d6e', fontSize: '1rem' }}
+                            >
+                              {p.initial || p.character.charAt(0)}
+                            </div>
+                          )}
                         </div>
 
                         {/* Name */}
@@ -202,6 +305,122 @@ export default function CanYouPlayClient({ players, initialAvailability, quorum,
             );
           })}
         </div>
+
+        {/* Join + Share row */}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+          {!showJoin && (
+            <button
+              onClick={() => setShowJoin(true)}
+              className="font-serif"
+              style={{
+                background: 'transparent',
+                border: '2px dashed rgba(201,168,76,0.4)',
+                color: '#c9a84c',
+                padding: '8px 20px',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+              }}
+            >
+              + Join the Party
+            </button>
+          )}
+          <button
+            onClick={handleShare}
+            className="font-sans"
+            style={{
+              background: 'transparent',
+              border: '1px solid rgba(138,125,110,0.3)',
+              color: copied ? '#7ac28a' : '#8a7d6e',
+              padding: '8px 16px',
+              fontSize: '0.7rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              cursor: 'pointer',
+            }}
+          >
+            {copied ? 'Copied!' : 'Share Link'}
+          </button>
+        </div>
+
+        {/* Join form */}
+        {showJoin && (
+          <div
+            style={{
+              background: 'rgba(26,22,20,0.9)',
+              border: '1px solid rgba(201,168,76,0.3)',
+              padding: 20,
+              maxWidth: 360,
+              margin: '0 auto 24px',
+            }}
+          >
+            <div className="font-serif text-[#c9a84c] text-sm mb-3">New Adventurer</div>
+            <input
+              type="text"
+              value={joinName}
+              onChange={e => setJoinName(e.target.value)}
+              placeholder="Your name"
+              maxLength={50}
+              className="w-full mb-2 px-3 py-2 font-serif text-sm"
+              style={{
+                background: 'rgba(90,79,70,0.2)',
+                border: '1px solid rgba(201,168,76,0.2)',
+                color: '#e8ddd0',
+                outline: 'none',
+              }}
+            />
+            <input
+              type="text"
+              value={joinCharacter}
+              onChange={e => setJoinCharacter(e.target.value)}
+              placeholder="Character name"
+              maxLength={50}
+              className="w-full mb-3 px-3 py-2 font-serif text-sm"
+              style={{
+                background: 'rgba(90,79,70,0.2)',
+                border: '1px solid rgba(201,168,76,0.2)',
+                color: '#e8ddd0',
+                outline: 'none',
+              }}
+              onKeyDown={e => { if (e.key === 'Enter') handleJoin(); }}
+            />
+            {joinError && (
+              <div className="text-sm mb-2" style={{ color: '#c07a8a' }}>{joinError}</div>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={handleJoin}
+                disabled={joining}
+                className="font-serif"
+                style={{
+                  background: '#c9a84c',
+                  color: '#1a1410',
+                  border: 'none',
+                  padding: '6px 16px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: joining ? 'wait' : 'pointer',
+                  opacity: joining ? 0.5 : 1,
+                }}
+              >
+                {joining ? 'Joining...' : 'Join'}
+              </button>
+              <button
+                onClick={() => { setShowJoin(false); setJoinError(null); }}
+                className="font-serif"
+                style={{
+                  background: 'transparent',
+                  color: '#8a7d6e',
+                  border: '1px solid rgba(138,125,110,0.3)',
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Home button */}
         <div className="flex justify-center mt-8 mb-4">
