@@ -103,12 +103,10 @@ export default function MarketplaceClient({
 
   return (
     <>
-      {/* Shoppers bar */}
+      {/* Shopper bar */}
       <div className="px-6 pt-4 pb-3 border-b border-[var(--color-border)] flex items-center gap-4">
-        <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">Shoppers</div>
-
-        {/* Player circle */}
-        <div className="flex flex-col items-center gap-0.5">
+        {/* Player circle — links back to player page */}
+        <Link href={`/players/${initialShopper.id}`} className="flex flex-col items-center gap-0.5 no-underline">
           <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-[var(--color-gold)] bg-[#2e2825]">
             <img src={initialShopper.img} alt={initialShopper.character}
               className="w-full h-full object-cover absolute inset-0"
@@ -121,16 +119,6 @@ export default function MarketplaceClient({
             {initialShopper.character}
           </span>
           <span className="text-[0.5rem] text-[#8a7452] leading-none">{gold} gp</span>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Exit */}
-        <Link href={`/players/${initialShopper.id}`}
-          className="w-10 h-10 rounded-full border-2 border-white/80 flex items-center justify-center
-                     text-white text-base hover:bg-white/10 no-underline transition-colors -ml-5"
-          title="Exit marketplace">
-          →
         </Link>
       </div>
 
