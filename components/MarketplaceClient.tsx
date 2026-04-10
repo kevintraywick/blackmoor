@@ -104,10 +104,10 @@ export default function MarketplaceClient({
   return (
     <>
       {/* Shopper bar */}
-      <div className="px-6 pt-4 pb-3 border-b border-[var(--color-border)] flex items-center gap-4">
+      <div className="px-4 sm:px-6 pt-4 pb-3 border-b border-[var(--color-border)]" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {/* Player circle — links back to player page */}
         <Link href={`/players/${initialShopper.id}`} className="flex flex-col items-center gap-0.5 no-underline">
-          <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-[var(--color-gold)] bg-[#2e2825]">
+          <div className="relative rounded-full overflow-hidden border-2 border-[var(--color-gold)] bg-[#2e2825]" style={{ width: 48, height: 48 }}>
             <img src={initialShopper.img} alt={initialShopper.character}
               className="w-full h-full object-cover absolute inset-0"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -132,15 +132,15 @@ export default function MarketplaceClient({
       )}
 
       {/* Marketplace items — clickable */}
-      <div className="px-6 pt-5 pb-6 min-h-[320px]">
+      <div className="px-4 sm:px-6 pt-5 pb-6 min-h-[320px]">
         <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none tracking-tight mb-1">Marketplace</h2>
-        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)] mb-4">Click an item to buy</p>
+        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)] mb-4">Tap an item to buy</p>
         <div className="border-t border-[var(--color-border)] mb-6" />
 
         {items.length === 0 ? (
           <p className="text-[var(--color-text-dim)] text-sm italic">No items available.</p>
         ) : (
-          <div className="flex flex-wrap gap-4">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             {items.flatMap(item =>
               Array.from({ length: item.marketplace_qty }, (_, i) => {
                 const isConfirming = confirmItem?.id === item.id;
@@ -148,7 +148,7 @@ export default function MarketplaceClient({
                 <button key={`${item.id}-${i}`} type="button"
                   onClick={() => !isConfirming && handleItemClick(item)} disabled={buying}
                   className="flex flex-col items-center bg-transparent border-none cursor-pointer group p-0">
-                  <div className="relative w-24 h-24 transition-transform group-hover:scale-105">
+                  <div className="relative transition-transform group-hover:scale-105" style={{ width: 80, height: 80 }}>
                     <div className="absolute inset-0 rounded-full overflow-hidden" style={rarityBorderStyle(item.rarity)}>
                       {item.image_path ? (
                         <img src={resolveImageUrl(item.image_path)} alt={item.title} className="w-full h-full object-cover" />
@@ -157,57 +157,57 @@ export default function MarketplaceClient({
                       )}
                     </div>
                     {/* Gold price badge */}
-                    <div className="absolute -bottom-1 -left-1 w-[26px] h-[26px] rounded-full overflow-hidden border border-[var(--color-bg)] z-10 flex items-center justify-center">
+                    <div className="absolute -bottom-1 -left-1 rounded-full overflow-hidden border border-[var(--color-bg)] z-10" style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
                       <span className="relative text-[9px] font-bold text-black drop-shadow-sm">{item.price}</span>
                     </div>
                     {/* Type badge */}
                     {item.item_type && TYPE_COLORS[item.item_type] && (
-                      <div className="absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full flex items-center justify-center text-[9px] font-bold text-white border border-[var(--color-bg)] z-10"
-                        style={{ backgroundColor: TYPE_COLORS[item.item_type!] }}>
+                      <div className="absolute -bottom-1 -right-1 rounded-full text-[9px] font-bold text-white border border-[var(--color-bg)] z-10"
+                        style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: TYPE_COLORS[item.item_type!] }}>
                         {TYPE_LABELS[item.item_type!]}
                       </div>
                     )}
                     {/* Legacy stat badge — only if no item_type */}
                     {!item.item_type && item.stat_type && item.stat_value !== null && (
                       item.stat_type === 'heal' ? (
-                        <div className="absolute -bottom-1 -right-1 w-[26px] h-[26px] flex items-center justify-center z-10">
+                        <div className="absolute -bottom-1 -right-1 z-10" style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <svg viewBox="0 0 24 24" className="absolute inset-0 w-full h-full drop-shadow-sm" fill="#b91c1c">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                           </svg>
                           <span className="relative text-[9px] font-bold text-white z-10 leading-none">{item.stat_value}</span>
                         </div>
                       ) : (
-                        <div className={`absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full flex items-center justify-center text-[9px] font-bold border border-[var(--color-bg)] z-10 ${statBadgeClass(item.stat_type)}`}>
+                        <div className={`absolute -bottom-1 -right-1 rounded-full text-[9px] font-bold border border-[var(--color-bg)] z-10 ${statBadgeClass(item.stat_type)}`} style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {item.stat_value}
                         </div>
                       )
                     )}
                   </div>
                   {isConfirming ? (
-                    <div className="flex flex-col items-center mt-1 w-24">
-                      <p className="text-[0.6rem] text-center text-[var(--color-text)] leading-tight mb-1">
-                        Buy for {item.price} gold?
+                    <div className="flex flex-col items-center mt-1" style={{ width: 80 }}>
+                      <p className="text-[0.65rem] text-center text-[var(--color-text)] leading-tight mb-1">
+                        Buy for {item.price} gp?
                       </p>
-                      <div style={{ display: 'flex', gap: 4 }}>
+                      <div style={{ display: 'flex', gap: 6 }}>
                         <span
                           role="button"
                           onClick={(e) => { e.stopPropagation(); purchase(item); }}
-                          className="text-[0.6rem] uppercase font-sans cursor-pointer"
-                          style={{ backgroundColor: '#c9a84c', color: '#000', borderRadius: 9999, padding: '2px 12px' }}>
+                          className="text-[0.65rem] uppercase font-sans cursor-pointer"
+                          style={{ backgroundColor: '#c9a84c', color: '#000', borderRadius: 9999, padding: '4px 14px' }}>
                           Yes
                         </span>
                         <span
                           role="button"
                           onClick={(e) => { e.stopPropagation(); setConfirmItem(null); }}
-                          className="text-[0.6rem] uppercase font-sans text-[var(--color-text-muted)] cursor-pointer"
-                          style={{ border: '1px solid var(--color-border)', borderRadius: 9999, padding: '2px 12px' }}>
+                          className="text-[0.65rem] uppercase font-sans text-[var(--color-text-muted)] cursor-pointer"
+                          style={{ border: '1px solid var(--color-border)', borderRadius: 9999, padding: '4px 14px' }}>
                           No
                         </span>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-[0.65rem] text-center text-[var(--color-text)] mt-1 w-24 leading-tight line-clamp-2 group-hover:text-[var(--color-gold)] transition-colors">
+                    <p className="text-[0.65rem] text-center text-[var(--color-text)] mt-1 leading-tight line-clamp-2 group-hover:text-[var(--color-gold)] transition-colors" style={{ width: 80 }}>
                       {item.title}
                     </p>
                   )}
