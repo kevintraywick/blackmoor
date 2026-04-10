@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
-import { getPlayers } from '@/lib/getPlayers';
+import { getPlayerById } from '@/lib/getPlayers';
 import type { PlayerSheet as PlayerSheetType } from '@/lib/types';
 import { Sheet } from '@/components/PlayerSheet';
 import PlayerMapPanel from '@/components/PlayerMapPanel';
@@ -23,8 +23,7 @@ export default async function PlayerPage({ params }: Props) {
   const { id } = await params;
 
   await ensureSchema();
-  const players = await getPlayers();
-  const player = players.find(p => p.id === id);
+  const player = await getPlayerById(id);
   if (!player) notFound();
 
   const [rows, unreadRows, poisonRows, boonRows, sendingRows, ravenRows] = await Promise.all([
