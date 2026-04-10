@@ -115,17 +115,6 @@ export default function PoisonClient({ players, initialPoisons }: Props) {
               }}
             >
               <div className="flex items-center gap-4">
-                {/* Circle indicator */}
-                <div
-                  className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-200"
-                  style={{
-                    border: `2px solid ${isPoisoned ? '#4a7a5a' : '#5a4f46'}`,
-                    background: isPoisoned ? '#4a7a5a' : 'transparent',
-                  }}
-                >
-                  {isPoisoned && <span className="text-white text-[0.5rem]">✓</span>}
-                </div>
-
                 {/* Portrait */}
                 <div
                   className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0"

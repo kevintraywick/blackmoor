@@ -551,7 +551,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                 <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
               ) : null}
               {poisonCount > 0 ? (
-                <svg className="animate-pulse cursor-default" viewBox="0 0 24 24" fill="#22b14c" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(34,177,76,0.6))' }} title="Poisoned!"><path d="M12 2c-1 2-5 7-5 11a5 5 0 0 0 10 0c0-4-4-9-5-11z"/><circle cx="10.5" cy="13" r="1.2" fill="rgba(255,255,255,0.3)"/><circle cx="9.5" cy="15" r="0.7" fill="rgba(255,255,255,0.2)"/></svg>
+                <span className="animate-pulse cursor-default" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
               ) : null}
               {unreadSendings > 0 ? (
                 <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" title={`${unreadSendings} sending${unreadSendings > 1 ? 's' : ''}`} style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
@@ -614,7 +614,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                 <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
               ) : null}
               {poisonCount > 0 ? (
-                <svg className="animate-pulse cursor-default" viewBox="0 0 24 24" fill="#22b14c" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(34,177,76,0.6))' }} title="Poisoned!"><path d="M12 2c-1 2-5 7-5 11a5 5 0 0 0 10 0c0-4-4-9-5-11z"/><circle cx="10.5" cy="13" r="1.2" fill="rgba(255,255,255,0.3)"/><circle cx="9.5" cy="15" r="0.7" fill="rgba(255,255,255,0.2)"/></svg>
+                <span className="animate-pulse cursor-default" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
               ) : null}
               {unreadSendings > 0 ? (
                 <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>

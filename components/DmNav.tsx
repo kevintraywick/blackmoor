@@ -51,7 +51,7 @@ const LINKS: { key: NavSection; label: string; href: string; kind: 'session' | '
   { key: 'magic',       label: 'Magic',           href: '/dm/magic',       kind: 'build' },
   { key: 'marketplace', label: 'Marketplace',     href: '/dm/marketplace', kind: 'build' },
   { key: 'inventory',   label: 'Inventory',       href: '/dm/inventory',   kind: 'build' },
-  { key: 'poisons',     label: 'Poisons & Traps', href: '/dm/poisons',     kind: 'session' },
+  { key: 'poisons',     label: 'Poisons',         href: '/dm/poisons',     kind: 'session' },
   { key: 'boons',       label: 'Boons',           href: '/dm/boons',       kind: 'session' },
   { key: 'journey',     label: 'Journey',         href: '/dm/journey',     kind: 'build' },
 ];
