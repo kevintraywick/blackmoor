@@ -58,7 +58,7 @@ const LINKS: { key: NavSection; label: string; href: string; kind: 'session' | '
 // Gold wireframe icosahedron used as the AR / "The Field" nav link.
 // Matches the fallback GoldCrystal in app/ar/ARViewer.tsx.
 function GoldCrystalIcon({ active }: { active: boolean }) {
-  const stroke = active ? '#c9a84c' : '#4a8a5a';
+  const stroke = active ? '#e8dcc8' : '#9a8e7e';
   return (
     <svg
       viewBox="0 0 24 24"
@@ -136,27 +136,36 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
             <Image src="/images/dm.png" alt="" fill className="object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           </div>
         </Link>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 16, marginLeft: 16 }}>
-        {LINKS.map(link => {
-          const href = link.key === 'maps' && sessionId ? `/dm/maps?session=${sessionId}` : link.href;
-          const isPoisonGlow = link.key === 'poisons' && poisonCount > 0 && current !== 'poisons';
-          // Session tools: green. Building tools: white/muted.
-          const activeColor = link.kind === 'session' ? '#5ab87a' : '#e8dcc8';
-          const restColor = link.kind === 'session' ? '#4a8a5a' : '#9a8e7e';
-          const hoverColor = link.kind === 'session' ? '#5ab87a' : '#d4c8b8';
-          return link.key === current
-            ? <span key={link.key} style={{ color: activeColor }} className="font-semibold whitespace-nowrap">{link.label}</span>
-            : <Link key={link.key} href={href} style={{ color: isPoisonGlow ? '#7ac28a' : restColor }} className={`transition-colors no-underline whitespace-nowrap ${isPoisonGlow ? 'animate-pulse' : ''}`} onMouseEnter={e => (e.currentTarget.style.color = hoverColor)} onMouseLeave={e => (e.currentTarget.style.color = isPoisonGlow ? '#7ac28a' : restColor)}>{link.label}</Link>;
-        })}
-        {/* The Field — AR encounter. Icon-only (gold crystal) to signal it's a different kind of page. */}
-        <Link
-          href="/ar"
-          title="The Field"
-          className="flex items-center transition-opacity hover:opacity-80"
-          style={{ marginLeft: 4 }}
-        >
-          <GoldCrystalIcon active={current === 'ar'} />
-        </Link>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, marginLeft: 16 }}>
+          {/* Row 1: Build / prep links (white) */}
+          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 16 }}>
+            {LINKS.filter(l => l.kind === 'build').map(link => {
+              const href = link.href;
+              const activeColor = '#e8dcc8';
+              const restColor = '#9a8e7e';
+              const hoverColor = '#d4c8b8';
+              return link.key === current
+                ? <span key={link.key} style={{ color: activeColor }} className="font-semibold whitespace-nowrap">{link.label}</span>
+                : <Link key={link.key} href={href} style={{ color: restColor }} className="transition-colors no-underline whitespace-nowrap" onMouseEnter={e => (e.currentTarget.style.color = hoverColor)} onMouseLeave={e => (e.currentTarget.style.color = restColor)}>{link.label}</Link>;
+            })}
+            {/* The Field — AR encounter */}
+            <Link href="/ar" title="The Field" className="flex items-center transition-opacity hover:opacity-80" style={{ marginLeft: 4 }}>
+              <GoldCrystalIcon active={current === 'ar'} />
+            </Link>
+          </div>
+          {/* Row 2: Session / at-the-table links (green) */}
+          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 16 }}>
+            {LINKS.filter(l => l.kind === 'session').map(link => {
+              const href = link.key === 'maps' && sessionId ? `/dm/maps?session=${sessionId}` : link.href;
+              const isPoisonGlow = link.key === 'poisons' && poisonCount > 0 && current !== 'poisons';
+              const activeColor = '#5ab87a';
+              const restColor = '#4a8a5a';
+              const hoverColor = '#5ab87a';
+              return link.key === current
+                ? <span key={link.key} style={{ color: activeColor }} className="font-semibold whitespace-nowrap">{link.label}</span>
+                : <Link key={link.key} href={href} style={{ color: isPoisonGlow ? '#7ac28a' : restColor }} className={`transition-colors no-underline whitespace-nowrap ${isPoisonGlow ? 'animate-pulse' : ''}`} onMouseEnter={e => (e.currentTarget.style.color = hoverColor)} onMouseLeave={e => (e.currentTarget.style.color = isPoisonGlow ? '#7ac28a' : restColor)}>{link.label}</Link>;
+            })}
+          </div>
         </div>
         {/* Change notification dot — right end of nav */}
         <div className="flex-shrink-0" style={{ marginLeft: 16 }}>
