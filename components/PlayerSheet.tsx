@@ -523,6 +523,10 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             />
             <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 60, width: 80 }} />
             <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 60, width: 80 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              <label className="text-[0.6rem] text-[var(--color-text-muted)] uppercase tracking-widest font-sans">SMS</label>
+              <input type="checkbox" checked={data.sms_optin === true} onChange={async e => { await fetch('/api/sms/optin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ playerId, optin: e.target.checked }) }); }} style={{ accentColor: '#1a1614' }} />
+            </div>
             <div style={{ flex: 1 }} />
             {/* HP + Gold — centered */}
             <div style={{ display: 'flex', gap: 8 }}>
@@ -538,16 +542,16 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             <div style={{ flex: 1 }} />
             {/* Notification dots */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+              {unread > 0 ? (
+                <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }} title={`${unread} unread message${unread > 1 ? 's' : ''}`}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+              ) : messages.length > 0 ? (
+                <svg onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', opacity: 0.3 }} title="View messages"><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+              ) : null}
               {boonCount > 0 ? (
                 <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
               ) : null}
               {poisonCount > 0 ? (
                 <svg className="animate-pulse cursor-default" viewBox="0 0 24 24" fill="#22b14c" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(34,177,76,0.6))' }} title="Poisoned!"><path d="M12 2c-1 2-5 7-5 11a5 5 0 0 0 10 0c0-4-4-9-5-11z"/><circle cx="10.5" cy="13" r="1.2" fill="rgba(255,255,255,0.3)"/><circle cx="9.5" cy="15" r="0.7" fill="rgba(255,255,255,0.2)"/></svg>
-              ) : null}
-              {unread > 0 ? (
-                <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }} title={`${unread} unread message${unread > 1 ? 's' : ''}`}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
-              ) : messages.length > 0 ? (
-                <svg onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', opacity: 0.3 }} title="View messages"><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
               ) : null}
               {unreadSendings > 0 ? (
                 <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" title={`${unreadSendings} sending${unreadSendings > 1 ? 's' : ''}`} style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
@@ -581,6 +585,10 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             />
             <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 0, width: 60, fontSize: '0.85rem' }} />
             <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 0, width: 60, fontSize: '0.85rem' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+              <label className="text-[0.55rem] text-[var(--color-text-muted)] uppercase tracking-widest font-sans">SMS</label>
+              <input type="checkbox" checked={data.sms_optin === true} onChange={async e => { await fetch('/api/sms/optin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ playerId, optin: e.target.checked }) }); }} style={{ accentColor: '#1a1614' }} />
+            </div>
           </div>
           {/* Row 2: HP + Gold + Notification dots */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 58 }}>
@@ -597,16 +605,16 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             <div style={{ flex: 1 }} />
             {/* Dots */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              {unread > 0 ? (
+                <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+              ) : messages.length > 0 ? (
+                <svg onClick={toggleMessages} className="cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', opacity: 0.3 }}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+              ) : null}
               {boonCount > 0 ? (
                 <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
               ) : null}
               {poisonCount > 0 ? (
-                <div className="animate-pulse" style={{ width: 12, height: 12, borderRadius: '50%', background: '#7ac28a', boxShadow: '0 0 6px rgba(122,194,138,0.6)' }} />
-              ) : null}
-              {unread > 0 ? (
-                <span onClick={toggleMessages} className="animate-pulse cursor-pointer select-none font-sans" style={{ fontSize: 32, lineHeight: 1, color: '#dc2626', fontWeight: 900, WebkitTextStroke: '1px #dc2626', transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}>!</span>
-              ) : messages.length > 0 ? (
-                <span onClick={toggleMessages} className="cursor-pointer select-none font-sans" style={{ fontSize: 32, lineHeight: 1, color: '#dc2626', fontWeight: 900, WebkitTextStroke: '1px #dc2626', transform: 'rotate(-15deg)', opacity: 0.3 }}>!</span>
+                <svg className="animate-pulse cursor-default" viewBox="0 0 24 24" fill="#22b14c" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(34,177,76,0.6))' }} title="Poisoned!"><path d="M12 2c-1 2-5 7-5 11a5 5 0 0 0 10 0c0-4-4-9-5-11z"/><circle cx="10.5" cy="13" r="1.2" fill="rgba(255,255,255,0.3)"/><circle cx="9.5" cy="15" r="0.7" fill="rgba(255,255,255,0.2)"/></svg>
               ) : null}
               {unreadSendings > 0 ? (
                 <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
@@ -619,23 +627,6 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
 
       </div>
 
-      {/* SMS opt-in row — checkbox only; the DM manages phone numbers */}
-      <div className="border-x border-[var(--color-border)] bg-[var(--color-surface)] px-3 sm:px-4 py-2">
-        <div className="flex items-center gap-3">
-          <label className="text-xs text-[var(--color-text-muted)] uppercase tracking-widest font-sans">SMS notifications</label>
-          <input
-            type="checkbox"
-            checked={data.sms_optin === true}
-            onChange={async e => {
-              await fetch('/api/sms/optin', {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ playerId, optin: e.target.checked }),
-              });
-            }}
-          />
-        </div>
-      </div>
 
       {/* Boon detail pane */}
       <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: showBoons ? '400px' : '0px', opacity: showBoons ? 1 : 0 }}>
