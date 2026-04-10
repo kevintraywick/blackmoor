@@ -317,7 +317,7 @@ export default function InventoryPageClient() {
       </div>
 
       {/* Builder + Preview — side by side */}
-      <div style={{ display: 'flex', gap: 24, alignItems: 'center', maxWidth: 860 }}>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
         {/* Pane 1: Card Builder + Publish */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: 480, flexShrink: 0 }}>
           <InventoryCreateForm
