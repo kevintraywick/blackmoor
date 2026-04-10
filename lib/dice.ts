@@ -15,6 +15,17 @@ export function parseDice(notation: string): { count: number; sides: number; mod
   };
 }
 
+export function diceRange(notation: string): { min: number; max: number } | null {
+  const parsed = parseDice(notation);
+  if (!parsed) {
+    const n = parseInt(notation.trim(), 10);
+    return isNaN(n) ? null : { min: n, max: n };
+  }
+  const min = Math.max(1, parsed.count + parsed.modifier);
+  const max = Math.max(1, parsed.count * parsed.sides + parsed.modifier);
+  return { min, max };
+}
+
 export function rollDice(notation: string): number | null {
   const parsed = parseDice(notation);
   if (!parsed) {

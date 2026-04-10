@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import type { Npc } from '@/lib/types';
-import { rollDice } from '@/lib/dice';
-import { lookupSrd } from '@/lib/srd-hp';
+import { diceRange, rollDice } from '@/lib/dice';
+import { lookupSrd, SRD_CREATURES } from '@/lib/srd-hp';
 import { useAutosave } from '@/lib/useAutosave';
 import { resolveImageUrl } from '@/lib/imageUrl';
 import { lookupNpcImage } from '@/lib/npc-images';
@@ -28,6 +28,18 @@ function StatField({ label, value, onChange }: { label: string; value: string; o
   );
 }
 
+function HpRangeDisplay({ hpRoll }: { hpRoll: string }) {
+  const range = hpRoll ? diceRange(hpRoll) : null;
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">HP Range</span>
+      <span className="text-[var(--color-text)] font-serif text-lg font-bold pb-0.5 text-center w-20">
+        {range ? `${range.min}–${range.max}` : '—'}
+      </span>
+    </div>
+  );
+}
+
 export default function NpcPageClient({ initial }: { initial: Npc[] }) {
   const [npcs, setNpcs] = useState<Npc[]>(initial);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -36,19 +48,116 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
   );
   const { save: autosave, status: saveStatus } = useAutosave(() => `/api/npcs/${activeId}`);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [addDragOver, setAddDragOver] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(-1);
+  const [recentIds, setRecentIds] = useState<string[]>([]);
+  const [addedFlash, setAddedFlash] = useState<string | null>(null);
   const creating = useRef(false);
   const portraitFileRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const active = npcs.find(n => n.id === activeId) ?? null;
+  const recentNpcs = recentIds.map(id => npcs.find(n => n.id === id)).filter(Boolean) as Npc[];
 
-  function handleOutsideClick() {
-    setActiveId(null);
+  // Load recently used from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('blackmoor-recent-npcs');
+      if (stored) setRecentIds(JSON.parse(stored));
+    } catch { /* silent */ }
+  }, []);
+
+  function addToRecents(npcId: string) {
+    setRecentIds(prev => {
+      const next = [npcId, ...prev.filter(id => id !== npcId)].slice(0, 12);
+      try { localStorage.setItem('blackmoor-recent-npcs', JSON.stringify(next)); } catch { /* silent */ }
+      return next;
+    });
   }
+
+  // Alt+click: add NPC instance to current session
+  const addToSession = useCallback(async (npc: Npc) => {
+    const sessionId = typeof window !== 'undefined' ? localStorage.getItem('blackmoor-last-session') : null;
+    if (!sessionId) return;
+
+    // Fetch current session to get npc_ids + menagerie
+    const res = await fetch(`/api/sessions/${sessionId}`);
+    if (!res.ok) return;
+    const session = await res.json();
+    const curIds: string[] = Array.isArray(session.npc_ids) ? session.npc_ids : [];
+    const curMenagerie: { npc_id: string; hp: number; maxHp?: number; label?: string }[] = Array.isArray(session.menagerie) ? session.menagerie : [];
+
+    // Find highest label number for this template
+    let maxLabel = 0;
+    for (const e of curMenagerie) {
+      if (e.npc_id === npc.id && e.label) {
+        const m = e.label.match(/(\d+)$/);
+        if (m) maxLabel = Math.max(maxLabel, parseInt(m[1], 10));
+      }
+    }
+    const label = `${npc.name} ${maxLabel + 1}`;
+    const rolled = npc.hp_roll ? rollDice(npc.hp_roll) : (parseInt(npc.hp, 10) || 1);
+    const hp = rolled ?? 1;
+
+    const nextIds = [...curIds, npc.id];
+    const nextMenagerie = [...curMenagerie, { npc_id: npc.id, hp, maxHp: hp, label }];
+
+    await fetch(`/api/sessions/${sessionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ npc_ids: nextIds, menagerie: nextMenagerie }),
+    });
+
+    // Flash confirmation
+    setAddedFlash(npc.id);
+    setTimeout(() => setAddedFlash(null), 1200);
+  }, []);
+
+  // Auto-suggest: merge library NPCs + SRD creatures
+  type Suggestion = { type: 'library'; npc: Npc } | { type: 'srd'; name: string; cr: string; hpRoll: string };
+
+  const suggestions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [] as Suggestion[];
+
+    const results: Suggestion[] = [];
+    const matchedNames = new Set<string>();
+
+    // Library NPCs first
+    for (const npc of npcs) {
+      if (npc.name.toLowerCase().includes(q)) {
+        results.push({ type: 'library', npc });
+        matchedNames.add(npc.name.toLowerCase());
+      }
+    }
+
+    // SRD creatures not already in library
+    for (const [key, stats] of Object.entries(SRD_CREATURES)) {
+      if (key.includes(q) && !matchedNames.has(key)) {
+        const displayName = key.split(/[\s_]+/).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+        results.push({ type: 'srd', name: displayName, cr: stats.cr, hpRoll: stats.hp });
+      }
+    }
+
+    return results;
+  }, [npcs, searchQuery]);
+
+  // Show "+ New" option when no exact match in either source
+  const showNewOption = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return false;
+    if (npcs.some(n => n.name.toLowerCase() === q)) return false;
+    if (SRD_CREATURES[q]) return false;
+    return true;
+  }, [npcs, searchQuery]);
 
   function handleSelect(npc: Npc) {
     setActiveId(npc.id);
     setValues(Object.fromEntries(Object.entries({ ...EMPTY_NPC, ...npc }).map(([k, v]) => [k, v ?? ''])));
+    setSearchQuery('');
+    setHighlightIdx(-1);
+    addToRecents(npc.id);
   }
 
   function handleChange(key: string, value: string) {
@@ -56,80 +165,14 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
     const updated = { ...values, [key]: value };
     setValues(updated);
     autosave({ [key]: value });
-    // Keep npcs array in sync so clicking away and back doesn't lose changes
     setNpcs(prev => prev.map(n => n.id === activeId ? { ...n, [key]: value } : n));
   }
 
-  function handleRollHp(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    let formula = values.hp_roll;
-    // Fallback: if hp_roll is empty, try SRD lookup by name
-    if (!formula.trim()) {
-      const match = lookupSrd(values.name);
-      if (!match) return;
-      formula = match.hp;
-      handleChange('hp_roll', formula);
-    }
-    const result = rollDice(formula);
-    if (result !== null) {
-      handleChange('hp', String(result));
-    }
-  }
-
-  function incrementedName(name: string): string {
-    const baseName = name.replace(/_\d+$/, '');
-    if (!baseName) return '';
-    const escaped = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const existing = npcs.filter(n => n.name === baseName || n.name.match(new RegExp(`^${escaped}_\\d+$`)));
-    let max = 1;
-    for (const n of existing) {
-      const m = n.name.match(/_(\d+)$/);
-      if (m) max = Math.max(max, parseInt(m[1], 10));
-      else max = Math.max(max, 1);
-    }
-    return `${baseName}_${max + 1}`;
-  }
-
-  async function handleNew(imageFile?: File) {
+  async function handleNew(prefillName?: string) {
     if (creating.current) return;
     creating.current = true;
     try {
       const id = Date.now().toString(36);
-      let npc: Npc;
-
-      if (imageFile) {
-        const fd = new FormData();
-        fd.append('id', id);
-        fd.append('image', imageFile);
-        const res = await fetch('/api/npcs', { method: 'POST', body: fd });
-        if (!res.ok) return;
-        npc = await res.json();
-      } else {
-        const res = await fetch('/api/npcs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id }),
-        });
-        if (!res.ok) return;
-        npc = await res.json();
-      }
-
-      setNpcs(prev => [...prev, npc]);
-      handleSelect(npc);
-    } finally {
-      creating.current = false;
-    }
-  }
-
-  async function handleDuplicate(source: Npc) {
-    if (creating.current) return;
-    creating.current = true;
-    try {
-      const id = Date.now().toString(36);
-      const newName = incrementedName(source.name);
-
-      // Create the NPC on the server
       const res = await fetch('/api/npcs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -138,33 +181,27 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
       if (!res.ok) return;
       let npc: Npc = await res.json();
 
-      // Copy all fields from source, with incremented name and blank HP.
-      // If source has no image, try to auto-link from the base creature name.
-      const imagePath = source.image_path || lookupNpcImage(source.name) || '';
-      const patch: Record<string, string> = {
-        name: newName,
-        species: source.species ?? '',
-        cr: source.cr ?? '',
-        hp: '',
-        hp_roll: source.hp_roll ?? '',
-        ac: source.ac ?? '',
-        speed: source.speed ?? '',
-        attacks: source.attacks ?? '',
-        traits: source.traits ?? '',
-        actions: source.actions ?? '',
-        notes: source.notes ?? '',
-        image_path: imagePath,
-      };
+      if (prefillName) {
+        const patch: Record<string, string> = { name: prefillName };
+        // Auto-fill from SRD
+        const match = lookupSrd(prefillName);
+        if (match) {
+          patch.hp_roll = match.hp;
+          patch.ac = match.ac;
+          patch.speed = match.speed;
+          patch.cr = match.cr;
+        }
+        // Auto-link image
+        const img = lookupNpcImage(prefillName);
+        if (img) patch.image_path = img;
 
-      const patchRes = await fetch(`/api/npcs/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
-      });
-      if (patchRes.ok) {
-        npc = await patchRes.json();
-      } else {
-        npc = { ...npc, ...patch };
+        const patchRes = await fetch(`/api/npcs/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(patch),
+        });
+        if (patchRes.ok) npc = await patchRes.json();
+        else npc = { ...npc, ...patch };
       }
 
       setNpcs(prev => [...prev, npc]);
@@ -199,7 +236,6 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
     }
   }
 
-  // When an NPC name is first set (on creation), auto-fill stats from SRD
   function handleNameChange(value: string) {
     handleChange('name', value);
 
@@ -208,7 +244,6 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
 
     const patch: Record<string, string> = {};
 
-    // Auto-fill stats from SRD (only when hp_roll is empty)
     if (!values.hp_roll) {
       const match = lookupSrd(value);
       if (match) {
@@ -219,7 +254,6 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
       }
     }
 
-    // Auto-link image if no image is currently set
     if (!values.image_path) {
       const img = lookupNpcImage(value);
       if (img) patch.image_path = img;
@@ -232,6 +266,42 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
     }
   }
 
+  function selectSuggestion(s: Suggestion) {
+    if (s.type === 'library') {
+      handleSelect(s.npc);
+    } else {
+      // SRD creature — create in library then open
+      handleNew(s.name);
+      setSearchQuery('');
+    }
+  }
+
+  function handleSearchKeyDown(e: React.KeyboardEvent) {
+    const totalItems = suggestions.length + (showNewOption ? 1 : 0);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightIdx(prev => (prev + 1) % totalItems);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightIdx(prev => (prev - 1 + totalItems) % totalItems);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightIdx >= 0 && highlightIdx < suggestions.length) {
+        selectSuggestion(suggestions[highlightIdx]);
+      } else if (suggestions.length === 1 && !showNewOption) {
+        selectSuggestion(suggestions[0]);
+      } else if (showNewOption && (highlightIdx === suggestions.length || highlightIdx === -1)) {
+        handleNew(searchQuery.trim());
+        setSearchQuery('');
+      }
+    } else if (e.key === 'Escape') {
+      setSearchQuery('');
+      setHighlightIdx(-1);
+      searchRef.current?.blur();
+    }
+  }
+
   const sh = 'text-[0.7rem] uppercase tracking-[0.18em] text-[var(--color-gold)] mb-2 pb-1.5 border-b border-[var(--color-border)] font-sans';
   const ta = 'w-full bg-transparent border-none text-[var(--color-text-body)] font-serif text-[0.88rem] leading-[1.55] resize-none outline-none min-h-[90px] placeholder:text-[#8a7452]';
   const fi = 'bg-transparent border-none border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-3xl font-bold outline-none focus:border-b-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5 flex-1';
@@ -239,83 +309,135 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
   const statusText  = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed' }[saveStatus];
   const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[var(--color-text-muted)]';
 
+  const showSuggestions = searchFocused && searchQuery.trim() && (suggestions.length > 0 || showNewOption);
+
   return (
-    <div className="max-w-[1000px] mx-auto px-4 pb-16" onClick={handleOutsideClick}>
+    <div className="max-w-[1000px] mx-auto px-4 pb-16" onClick={() => setActiveId(null)}>
 
-      {/* NPC selector row */}
-      <div
-        className="flex justify-center gap-4 flex-wrap py-5 bg-[var(--color-surface)] border-b border-[var(--color-border)] -mx-4 px-4 mb-6"
-        onClick={e => e.stopPropagation()}
-      >
-        {npcs.map(npc => {
-          const isActive = activeId === npc.id;
-          const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
-          const initial = npc.name.trim() ? npc.name.trim()[0].toUpperCase() : '?';
+      {/* Search bar with auto-suggest */}
+      <div className="relative mb-6" onClick={e => e.stopPropagation()}>
+        <input
+          ref={searchRef}
+          type="text"
+          value={searchQuery}
+          onChange={e => { setSearchQuery(e.target.value); setHighlightIdx(-1); }}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder="Search NPCs..."
+          className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2
+                     text-[var(--color-text)] font-serif text-sm placeholder:text-[var(--color-text-dim)]
+                     outline-none focus:border-[var(--color-gold)]"
+        />
 
-          return (
-            <button
-              key={npc.id}
-              onClick={e => { e.stopPropagation(); e.altKey ? handleDuplicate(npc) : handleSelect(npc); }}
-              className="flex flex-col items-center gap-1.5 cursor-pointer bg-transparent border-none"
-            >
-              <div
-                className={`relative w-20 h-20 rounded-full border-[3px] transition-all overflow-hidden
-                  bg-[#2e2825] ${isActive ? 'border-[var(--color-gold)]' : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)] hover:scale-105'}`}
-                onDragOver={isActive ? (e => e.preventDefault()) : undefined}
-                onDrop={isActive ? (e => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const file = e.dataTransfer.files[0];
-                  if (file) handleImageUpload(file);
-                }) : undefined}
+        {/* Suggestion dropdown */}
+        {showSuggestions && (
+          <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-[var(--color-surface)] border border-[var(--color-border)] rounded shadow-lg">
+            {suggestions.map((s, i) => {
+              const isLibrary = s.type === 'library';
+              const name = isLibrary ? s.npc.name : s.name;
+              const cr = isLibrary ? s.npc.cr : s.cr;
+              const hpRoll = isLibrary ? s.npc.hp_roll : s.hpRoll;
+              const imgUrl = isLibrary && s.npc.image_path ? resolveImageUrl(s.npc.image_path) : null;
+              const initial = name.trim() ? name.trim()[0].toUpperCase() : '?';
+              const range = hpRoll ? diceRange(hpRoll) : null;
+              return (
+                <button
+                  key={isLibrary ? s.npc.id : `srd-${name}`}
+                  onClick={() => selectSuggestion(s)}
+                  className="w-full text-left px-3 py-2 transition-colors cursor-pointer border-none"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    background: i === highlightIdx ? 'rgba(201,168,76,0.15)' : 'transparent',
+                  }}
+                  onMouseEnter={() => setHighlightIdx(i)}
+                >
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-[#2e2825] flex-shrink-0 flex items-center justify-center"
+                    style={{ border: `2px solid ${isLibrary ? 'rgba(201,168,76,0.4)' : 'rgba(201,168,76,0.2)'}` }}>
+                    {imgUrl
+                      ? <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                      : <span className="text-xs text-[var(--color-text-muted)] font-serif">{initial}</span>
+                    }
+                  </div>
+                  <span className="font-serif text-sm text-[var(--color-text)] flex-1">{name}</span>
+                  {cr && <span className="text-[0.65rem] text-[var(--color-gold)] font-sans uppercase">CR {cr}</span>}
+                  {range && <span className="text-[0.65rem] text-[var(--color-text-dim)] font-sans">HP {range.min}–{range.max}</span>}
+                </button>
+              );
+            })}
+            {showNewOption && (
+              <button
+                onClick={() => { handleNew(searchQuery.trim()); setSearchQuery(''); }}
+                className="w-full text-left px-3 py-2 transition-colors cursor-pointer border-none"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: highlightIdx === suggestions.length ? 'rgba(201,168,76,0.15)' : 'transparent',
+                }}
+                onMouseEnter={() => setHighlightIdx(suggestions.length)}
               >
-                {imgUrl ? (
-                  <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover absolute inset-0" />
-                ) : (
-                  <span className="text-[1.6rem] text-[var(--color-text-muted)] select-none font-serif absolute inset-0 flex items-center justify-center">
-                    {initial}
-                  </span>
-                )}
-              </div>
-              <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
-                isActive ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'
-              }`}>
-                {npc.name || 'Unnamed'}
-              </span>
-            </button>
-          );
-        })}
-
-        {/* + circle — click to create blank NPC, drop image to create with portrait */}
-        <div className="flex flex-col items-center gap-1.5">
-          <div
-            onClick={() => handleNew()}
-            onDragOver={e => { e.preventDefault(); setAddDragOver(true); }}
-            onDragLeave={() => setAddDragOver(false)}
-            onDrop={e => {
-              e.preventDefault();
-              setAddDragOver(false);
-              const file = e.dataTransfer.files[0];
-              if (file) handleNew(file);
-              else handleNew();
-            }}
-            className={`w-20 h-20 rounded-full border-[3px] border-dashed transition-all flex items-center justify-center cursor-pointer
-              ${addDragOver
-                ? 'border-[var(--color-gold)] bg-[#2e2825] scale-105'
-                : 'border-[var(--color-gold)]/40 hover:border-[var(--color-gold)] bg-transparent'
-              }`}
-          >
-            <span className={`text-[1.8rem] leading-none select-none transition-colors ${addDragOver ? 'text-[var(--color-gold)]' : 'text-[var(--color-gold)]/60'}`}>
-              +
-            </span>
+                <div className="w-8 h-8 rounded-full border-2 border-dashed flex-shrink-0 flex items-center justify-center"
+                  style={{ borderColor: 'rgba(201,168,76,0.4)' }}>
+                  <span className="text-sm text-[var(--color-gold)]">+</span>
+                </div>
+                <span className="font-serif text-sm text-[var(--color-gold)]">Create &ldquo;{searchQuery.trim()}&rdquo;</span>
+              </button>
+            )}
           </div>
-          <span className="text-[0.72rem] uppercase tracking-[0.1em] text-[var(--color-gold)]/60">New NPC</span>
-        </div>
+        )}
       </div>
+
+      {/* Recently used bar */}
+      {recentNpcs.length > 0 && (
+        <div className="mb-6" onClick={e => e.stopPropagation()}>
+          <div className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-text-muted)] font-sans mb-2">
+            Recently Used — <span className="text-[var(--color-text-dim)]">option+click to add to session</span>
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            {recentNpcs.map(npc => {
+              const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
+              const initial = npc.name.trim() ? npc.name.trim()[0].toUpperCase() : '?';
+              const range = npc.hp_roll ? diceRange(npc.hp_roll) : null;
+              const isActive = activeId === npc.id;
+              const justAdded = addedFlash === npc.id;
+              return (
+                <button
+                  key={npc.id}
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (e.altKey) { addToSession(npc); }
+                    else { handleSelect(npc); }
+                  }}
+                  className="flex flex-col items-center gap-1 cursor-pointer bg-transparent border-none transition-all"
+                  title={`${npc.name}${range ? ` (HP ${range.min}–${range.max})` : ''} — option+click to add to session`}
+                >
+                  <div
+                    className="rounded-full overflow-hidden bg-[#2e2825] flex items-center justify-center flex-shrink-0 transition-all"
+                    style={{
+                      width: 56, height: 56,
+                      border: justAdded ? '3px solid #2d8a4e' : isActive ? '3px solid var(--color-gold)' : '2px solid rgba(201,168,76,0.3)',
+                      boxShadow: justAdded ? '0 0 10px rgba(45,138,78,0.6)' : 'none',
+                    }}
+                  >
+                    {imgUrl
+                      ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
+                      : <span className="text-lg text-[var(--color-text-muted)] font-serif">{initial}</span>
+                    }
+                  </div>
+                  <span className={`text-[0.68rem] font-serif max-w-[64px] truncate text-center ${
+                    justAdded ? 'text-[#2d8a4e]' : isActive ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'
+                  }`}>
+                    {justAdded ? 'Added!' : npc.name || 'Unnamed'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {!active ? (
         <p className="text-[#5a4a44] font-serif italic text-sm text-center mt-8">
-          No NPCs yet — click + to create one, or drop an image on + to create with a portrait.
+          Search for an NPC or type a name to create one.
         </p>
       ) : (
         <>
@@ -407,7 +529,7 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
               />
             ))}
 
-            {/* HP Roll → 🎲 → HP */}
+            {/* HP Roll formula */}
             <div className="flex flex-col items-center gap-0.5">
               <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">HP Roll</span>
               <input
@@ -418,30 +540,9 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
                            outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5 text-center"
               />
             </div>
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">&nbsp;</span>
-              <button
-                onClick={handleRollHp}
-                type="button"
-                title="Roll HP from formula"
-                className="text-xl leading-[1.55] hover:scale-125 transition-transform active:scale-95 select-none cursor-pointer
-                           bg-transparent border-none pb-0.5"
-              >
-                🎲
-              </button>
-            </div>
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">HP</span>
-              <input
-                type="number"
-                value={values.hp}
-                onChange={e => handleChange('hp', e.target.value)}
-                placeholder="—"
-                className="w-14 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-lg font-bold
-                           outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5 text-center
-                           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
-            </div>
+
+            {/* HP Range (read-only, derived from hp_roll) */}
+            <HpRangeDisplay hpRoll={values.hp_roll} />
           </div>
 
           {/* 2-col content grid */}

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import type { Session, Npc, MenagerieEntry } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import { resolveImageUrl } from '@/lib/imageUrl';
+import { rollDice, diceRange } from '@/lib/dice';
 
 // Fields to render in the detail panel — npcs replaced by NPC checkboxes
 const FIELDS = [
@@ -307,69 +308,85 @@ function SessionControlBar({
 function NpcCastingBoard({
   allNpcs,
   npcIds,
-  sessions,
-  currentSessionId,
   menagerie,
-  onAdd,
+  onAddInstance,
+  onRemoveInstance,
 }: {
   allNpcs: Npc[];
   npcIds: string[];
-  sessions: Session[];
-  currentSessionId: string | null;
   menagerie: MenagerieEntry[];
-  onAdd: (id: string) => void;
+  onAddInstance: (npcId: string) => void;
+  onRemoveInstance: (npcId: string, menagerieIndex: number) => void;
 }) {
-  const [selectedCatalogNpc, setSelectedCatalogNpc] = useState<string | null>(null);
-
-  // NPCs assigned to OTHER sessions
-  const assignedElsewhere = useMemo(() => {
-    const set = new Set<string>();
-    for (const s of sessions) {
-      if (s.id === currentSessionId) continue;
-      const ids = Array.isArray(s.npc_ids) ? s.npc_ids : [];
-      ids.forEach(id => set.add(id));
+  // Build instance list from npcIds + menagerie (positional match)
+  const instances = useMemo(() => {
+    const result: { npc: Npc; entry: MenagerieEntry; menagerieIdx: number }[] = [];
+    const counters: Record<string, number> = {};
+    for (let i = 0; i < npcIds.length; i++) {
+      const npcId = npcIds[i];
+      const npc = allNpcs.find(n => n.id === npcId);
+      if (!npc) continue;
+      counters[npcId] = (counters[npcId] ?? 0);
+      // Find the nth menagerie entry for this npc_id
+      let found = 0;
+      for (let j = 0; j < menagerie.length; j++) {
+        if (menagerie[j].npc_id === npcId) {
+          if (found === counters[npcId]) {
+            result.push({ npc, entry: menagerie[j], menagerieIdx: j });
+            break;
+          }
+          found++;
+        }
+      }
+      counters[npcId]++;
     }
-    return set;
-  }, [sessions, currentSessionId]);
+    return result;
+  }, [allNpcs, npcIds, menagerie]);
 
-  // Unassigned = not in this session AND not in any other session
-  const unassigned = useMemo(() => {
-    return allNpcs.filter(n => !npcIds.includes(n.id) && !assignedElsewhere.has(n.id));
-  }, [allNpcs, npcIds, assignedElsewhere]);
+  // Count instances per template for badge
+  const instanceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const id of npcIds) counts[id] = (counts[id] ?? 0) + 1;
+    return counts;
+  }, [npcIds]);
 
-  const assignedNpcs = npcIds.map(id => allNpcs.find(n => n.id === id)).filter(Boolean) as Npc[];
-
-  function handleConfirmAdd() {
-    if (!selectedCatalogNpc) return;
-    onAdd(selectedCatalogNpc);
-    setSelectedCatalogNpc(null);
-  }
-
-  function renderNpcCircle(npc: Npc, opts: { selected?: boolean; onClick: () => void; size?: number }) {
+  function renderNpcCircle(npc: Npc, opts: { onClick: () => void; size?: number; badge?: number }) {
     const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
     const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
     const sz = opts.size ?? 64;
+    const range = npc.hp_roll ? diceRange(npc.hp_roll) : null;
     return (
       <button
         key={npc.id}
         onClick={opts.onClick}
-        className="flex flex-col items-center gap-1 transition-opacity"
-        title={npc.name}
+        className="flex flex-col items-center gap-1 transition-opacity relative"
+        title={`${npc.name}${range ? ` (HP ${range.min}–${range.max})` : ''} — click to add`}
       >
         <div
-          className="rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center flex-shrink-0 transition-all"
+          className="rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center flex-shrink-0 transition-all relative"
           style={{
             width: sz, height: sz,
-            border: opts.selected ? '3px solid #2d8a4e' : '2px solid rgba(201,168,76,0.4)',
-            boxShadow: opts.selected ? '0 0 8px rgba(45,138,78,0.5)' : 'none',
+            border: '2px solid rgba(201,168,76,0.4)',
           }}
         >
           {imgUrl
             ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
             : <span className="text-sm text-[var(--color-text-muted)] font-serif">{initial}</span>
           }
+          {opts.badge && opts.badge > 0 && (
+            <div style={{
+              position: 'absolute', bottom: -2, right: -2,
+              width: 20, height: 20, borderRadius: '50%',
+              background: '#4a7a5a', color: '#fff',
+              fontSize: '0.6rem', fontWeight: 'bold',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '2px solid #1a1714',
+            }}>
+              {opts.badge}
+            </div>
+          )}
         </div>
-        <span className="font-serif text-[0.87rem] text-[var(--color-text-muted)] max-w-[76px] truncate text-center">
+        <span className="font-serif text-[0.8rem] text-[var(--color-text-muted)] max-w-[76px] truncate text-center">
           {npc.name || 'Unnamed'}
         </span>
       </button>
@@ -381,29 +398,58 @@ function NpcCastingBoard({
       {/* Left: NPCs in this Session */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
         <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPCs in this Session</div>
-        {assignedNpcs.length === 0 ? (
+        {instances.length === 0 ? (
           <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs assigned yet.</p>
         ) : (
           <div className="flex flex-wrap gap-3">
-            {assignedNpcs.map((npc, idx) => {
-              const entry = menagerie.find((e, i) => {
-                // Match nth occurrence of this npc_id
-                let count = 0;
-                for (let j = 0; j < npcIds.length; j++) {
-                  if (npcIds[j] === npc.id) {
-                    if (j === idx) return e.npc_id === npc.id && count === 0;
-                    if (npcIds[j] === npc.id) count++;
-                  }
-                }
-                return false;
-              }) ?? menagerie.find(e => e.npc_id === npc.id);
+            {instances.map(({ npc, entry, menagerieIdx }, idx) => {
+              const isDead = entry.hp <= 0;
+              const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
+              const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
               return (
-                <div key={`${npc.id}-${idx}`} className="flex flex-col items-center gap-1">
-                  {renderNpcCircle(npc, { onClick: () => {} })}
-                  {entry && entry.maxHp !== undefined && (
-                    <span className={`text-[0.72rem] font-serif tabular-nums ${entry.hp <= 0 ? 'text-[#a05050]' : entry.hp < entry.maxHp ? 'text-[#c07050]' : 'text-[#4a8a65]'}`}>
+                <div key={`${npc.id}-${idx}`} className="flex flex-col items-center gap-1 relative">
+                  <div
+                    className="rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center flex-shrink-0 relative"
+                    style={{
+                      width: 64, height: 64,
+                      border: isDead ? '2px solid #5a3030' : '2px solid rgba(201,168,76,0.4)',
+                      opacity: isDead ? 0.5 : 1,
+                      filter: isDead ? 'grayscale(0.7)' : 'none',
+                    }}
+                  >
+                    {imgUrl
+                      ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
+                      : <span className="text-sm text-[var(--color-text-muted)] font-serif">{initial}</span>
+                    }
+                    {isDead && (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.5rem',
+                      }}>
+                        ☠
+                      </div>
+                    )}
+                  </div>
+                  <span className={`font-serif text-[0.75rem] max-w-[76px] truncate text-center ${isDead ? 'line-through text-[#5a3030]' : 'text-[var(--color-text-muted)]'}`}>
+                    {entry.label || npc.name}
+                  </span>
+                  {entry.maxHp !== undefined && (
+                    <span className={`text-[0.72rem] font-serif tabular-nums ${isDead ? 'text-[#5a3030]' : entry.hp < entry.maxHp ? 'text-[#c07050]' : 'text-[#4a8a65]'}`}>
                       {entry.hp}/{entry.maxHp}
                     </span>
+                  )}
+                  {!isDead && (
+                    <button
+                      onClick={() => onRemoveInstance(npc.id, menagerieIdx)}
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[0.5rem] transition-colors"
+                      style={{ background: '#3a2020', color: '#a05050', border: '1px solid #5a3030' }}
+                      title="Remove"
+                      onMouseEnter={e => { e.currentTarget.style.background = '#8b1a1a'; e.currentTarget.style.color = '#fff'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#3a2020'; e.currentTarget.style.color = '#a05050'; }}
+                    >
+                      ✕
+                    </button>
                   )}
                 </div>
               );
@@ -412,31 +458,16 @@ function NpcCastingBoard({
         )}
       </div>
 
-      {/* Right: NPC Catalog */}
+      {/* Right: NPC Catalog — all templates */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
-        <div className="flex items-center justify-between mb-2">
-          {selectedCatalogNpc ? (
-            <button
-              onClick={handleConfirmAdd}
-              className="flex items-center gap-1 text-[#2d8a4e] hover:text-[#5ab87a] transition-colors"
-              title="Add to session"
-            >
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                <path d="M10 3L5 8l5 5" />
-              </svg>
-              <span className="text-[0.7rem] uppercase tracking-[0.15em] font-sans">Add to Session</span>
-            </button>
-          ) : (
-            <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)]">+ Add NPCs</span>
-          )}
-        </div>
-        {unassigned.length === 0 ? (
-          <p className="text-[#5a4a44] text-xs font-serif italic">All NPCs are assigned.</p>
+        <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">+ Add NPCs</div>
+        {allNpcs.length === 0 ? (
+          <p className="text-[#5a4a44] text-xs font-serif italic">No NPC templates yet. Create them on the NPCs page.</p>
         ) : (
           <div className="flex flex-wrap gap-3">
-            {unassigned.map(npc => renderNpcCircle(npc, {
-              selected: selectedCatalogNpc === npc.id,
-              onClick: () => setSelectedCatalogNpc(prev => prev === npc.id ? null : npc.id),
+            {allNpcs.map(npc => renderNpcCircle(npc, {
+              onClick: () => onAddInstance(npc.id),
+              badge: instanceCounts[npc.id] ?? 0,
             }))}
           </div>
         )}
@@ -503,17 +534,70 @@ export default function DmSessionsClient({
     }
   }
 
-  function handleNpcToggle(npcId: string) {
+  const handleAddNpcInstance = useCallback((npcId: string) => {
     if (!selectedId) return;
-    const next = npcIds.includes(npcId)
-      ? npcIds.filter(id => id !== npcId)
-      : [...npcIds, npcId];
-    setNpcIds(next);
-    autosave({ npc_ids: next });
+    const npc = allNpcs.find(n => n.id === npcId);
+    if (!npc) return;
+
+    // Find highest label number used for this template in current menagerie
+    let maxLabel = 0;
+    for (const e of menagerie) {
+      if (e.npc_id === npcId && e.label) {
+        const m = e.label.match(/(\d+)$/);
+        if (m) maxLabel = Math.max(maxLabel, parseInt(m[1], 10));
+      }
+    }
+    const instanceNum = maxLabel + 1;
+    const label = `${npc.name} ${instanceNum}`;
+
+    // Roll HP from template
+    const rolled = npc.hp_roll ? rollDice(npc.hp_roll) : (parseInt(npc.hp, 10) || 1);
+    const hp = rolled ?? 1;
+
+    const entry: MenagerieEntry = { npc_id: npcId, hp, maxHp: hp, label };
+    const nextIds = [...npcIds, npcId];
+    const nextMenagerie = [...menagerie, entry];
+
+    setNpcIds(nextIds);
+    setMenagerie(nextMenagerie);
+    autosave({ npc_ids: nextIds, menagerie: nextMenagerie });
     setSessions(prev => prev.map(s =>
-      s.id === selectedId ? { ...s, npc_ids: next } : s
+      s.id === selectedId ? { ...s, npc_ids: nextIds, menagerie: nextMenagerie } : s
     ));
-  }
+  }, [selectedId, allNpcs, npcIds, menagerie, autosave, setSessions]);
+
+  const handleRemoveNpcInstance = useCallback((npcId: string, menagerieIdx: number) => {
+    if (!selectedId) return;
+
+    // Find which npcIds index corresponds to this menagerie entry
+    // Count through npcIds entries matching npcId until we find the one at this menagerie position
+    let targetNpcIdxCount = 0;
+    for (let j = 0; j < menagerie.length; j++) {
+      if (menagerie[j].npc_id === npcId) {
+        if (j === menagerieIdx) break;
+        targetNpcIdxCount++;
+      }
+    }
+    // Find that nth occurrence in npcIds
+    let npcIdxToRemove = -1;
+    let count = 0;
+    for (let i = 0; i < npcIds.length; i++) {
+      if (npcIds[i] === npcId) {
+        if (count === targetNpcIdxCount) { npcIdxToRemove = i; break; }
+        count++;
+      }
+    }
+
+    const nextIds = npcIds.filter((_, i) => i !== npcIdxToRemove);
+    const nextMenagerie = menagerie.filter((_, i) => i !== menagerieIdx);
+
+    setNpcIds(nextIds);
+    setMenagerie(nextMenagerie);
+    autosave({ npc_ids: nextIds, menagerie: nextMenagerie });
+    setSessions(prev => prev.map(s =>
+      s.id === selectedId ? { ...s, npc_ids: nextIds, menagerie: nextMenagerie } : s
+    ));
+  }, [selectedId, npcIds, menagerie, autosave, setSessions]);
 
   async function handleNew() {
     if (creating.current) return;
@@ -638,10 +722,9 @@ export default function DmSessionsClient({
             <NpcCastingBoard
               allNpcs={allNpcs}
               npcIds={npcIds}
-              sessions={sessions}
-              currentSessionId={selectedId}
               menagerie={menagerie}
-              onAdd={handleNpcToggle}
+              onAddInstance={handleAddNpcInstance}
+              onRemoveInstance={handleRemoveNpcInstance}
             />
 
             {/* Journal — Private | Public side by side */}
