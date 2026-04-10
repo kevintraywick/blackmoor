@@ -339,17 +339,21 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
 
 
 // ── Full player sheet form ────────────────────────────────────────────────────
-export function Sheet({ playerId, playerName, character, initial, img, data, unreadCount = 0, poisonCount = 0, boonCount = 0, boonUnseen = 0, sendingCount = 0, ravenCount = 0 }: { playerId: string; playerName: string; character: string; initial: string; img?: string; data: PlayerSheetType; unreadCount?: number; poisonCount?: number; boonCount?: number; boonUnseen?: number; sendingCount?: number; ravenCount?: number }) {
+export function Sheet({ playerId, playerName, character, initial, img, data, unreadCount = 0, poisonCount = 0, boonCount = 0, boonUnseen = 0, sendingCount = 0 }: { playerId: string; playerName: string; character: string; initial: string; img?: string; data: PlayerSheetType; unreadCount?: number; poisonCount?: number; boonCount?: number; boonUnseen?: number; sendingCount?: number }) {
   const [values, setValues] = useState<PlayerSheetType>(data);
   const [charName, setCharName] = useState(character);
   const [showMessages, setShowMessages] = useState(false);
   const [showBoons, setShowBoons] = useState(false);
+  const [showSendings, setShowSendings] = useState(false);
   const [boons, setBoons] = useState<PlayerBoon[]>([]);
   const [boonsSeen, setBoonsSeen] = useState(boonUnseen === 0);
   const [loadingBoons, setLoadingBoons] = useState(false);
   const [messages, setMessages] = useState<{ id: string; message: string; created_at: number }[]>([]);
   const [unread, setUnread] = useState(unreadCount);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sendings, setSendings] = useState<{ id: string; body: string; published_at: string }[]>([]);
+  const [unreadSendings, setUnreadSendings] = useState(sendingCount);
+  const [loadingSendings, setLoadingSendings] = useState(false);
   const { save: autosave, saveNow, status: saveStatus } = useAutosave(`/api/players/${playerId}`);
 
   // ── Presence heartbeat — tells the splash page this player is online ───────
@@ -453,6 +457,28 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
     }
   }
 
+  async function toggleSendings() {
+    if (showSendings) { setShowSendings(false); return; }
+    setShowSendings(true);
+    setLoadingSendings(true);
+    try {
+      const res = await fetch(`/api/raven-post/sendings?playerId=${playerId}`);
+      const items: { id: string; body: string; published_at: string }[] = await res.json();
+      setSendings(items);
+      // Mark all as read
+      if (unreadSendings > 0) {
+        setUnreadSendings(0);
+        for (const s of items) {
+          fetch(`/api/raven-post/items/${s.id}/read`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ playerId }),
+          }).catch(() => {});
+        }
+      }
+    } finally { setLoadingSendings(false); }
+  }
+
   const statusText  = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed — check connection' }[saveStatus];
   const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[var(--color-text-muted)]';
 
@@ -472,25 +498,16 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
 
       {/* Header — portrait + name/class fields */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-tl-md rounded-tr-md px-3 sm:px-4 py-3 border-b-0 relative">
-        {/* Mobile: stacked layout. Desktop: single row */}
-        <div className="gap-3 sm:gap-4" style={{ display: 'flex', alignItems: 'center' }}>
-          {/* Portrait circle */}
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0">
-            <span className="text-[1.2rem] sm:text-[1.4rem] text-[var(--color-text-muted)] select-none">{initial}</span>
-            {img && (
-              <Image
-                src={img}
-                alt={character}
-                fill
-                className="object-cover absolute inset-0"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-            )}
-          </div>
 
-          {/* Single flex row: Group1 (name/species/class) | spacer | Group2 (HP/Gold) | spacer | Group3 (notifications) */}
-          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-            {/* Group 1: Name + Species + Class */}
+        {/* Desktop: single row */}
+        <div className="hidden sm:block">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {/* Portrait */}
+            <div className="relative rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0" style={{ width: 64, height: 64 }}>
+              <span className="text-[1.4rem] text-[var(--color-text-muted)] select-none">{initial}</span>
+              {img && <Image src={img} alt={character} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+            </div>
+            {/* Name + Species + Class */}
             <input
               value={charName}
               onChange={e => {
@@ -498,28 +515,19 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                 clearTimeout((window as unknown as Record<string, unknown>).__charTimer as ReturnType<typeof setTimeout>);
                 const val = e.target.value;
                 (window as unknown as Record<string, unknown>).__charTimer = setTimeout(() => {
-                  fetch(`/api/players/${playerId}/name`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ character: val }),
-                  });
+                  fetch(`/api/players/${playerId}/name`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ character: val }) });
                 }, 800);
               }}
               className="text-[var(--color-text)] text-xl font-bold font-serif bg-transparent border-none outline-none min-w-0"
-              style={{ width: `${Math.max(charName.length + 1, 4)}ch`, marginRight: 16 }}
+              style={{ width: `${Math.max(charName.length + 1, 4)}ch` }}
             />
-            <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 60, width: 80, marginRight: 12 }} />
+            <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 60, width: 80 }} />
             <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 60, width: 80 }} />
-
-            {/* Spacer */}
             <div style={{ flex: 1 }} />
-
-            {/* Group 2: HP + Gold (icons with values below) */}
-            <div style={{ display: 'flex', gap: 8, transform: 'translate(-50px, 10px)' }}>
+            {/* HP + Gold — centered */}
+            <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 20, height: 20 }}>
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                </svg>
+                <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 20, height: 20 }}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                 <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 36, fontSize: '0.925rem' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -527,52 +535,88 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                 <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 36, fontSize: '0.925rem' }} />
               </div>
             </div>
-
-            {/* Spacer */}
             <div style={{ flex: 1 }} />
-
-            {/* Group 3: Notification dots */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, transform: 'translate(-85px, 10px)' }}>
+            {/* Notification dots */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {boonCount > 0 ? (
-                <div
-                  onClick={toggleBoons}
-                  className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`}
-                  title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}
-                  style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffffff', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }}
-                />
+                <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`} style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffffff', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} />
               ) : null}
               {poisonCount > 0 ? (
-                <div
-                  className="animate-pulse cursor-default"
-                  title="Poisoned!"
-                  style={{ width: 12, height: 12, borderRadius: '50%', background: '#7ac28a', boxShadow: '0 0 6px rgba(122,194,138,0.6)' }}
-                />
+                <div className="animate-pulse cursor-default" title="Poisoned!" style={{ width: 12, height: 12, borderRadius: '50%', background: '#7ac28a', boxShadow: '0 0 6px rgba(122,194,138,0.6)' }} />
               ) : null}
               {unread > 0 ? (
-                <div
-                  onClick={toggleMessages}
-                  className="animate-pulse cursor-pointer"
-                  title={`${unread} unread message${unread > 1 ? 's' : ''}`}
-                  style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', boxShadow: '0 0 6px rgba(220,38,38,0.5)' }}
-                />
+                <div onClick={toggleMessages} className="animate-pulse cursor-pointer" title={`${unread} unread message${unread > 1 ? 's' : ''}`} style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', boxShadow: '0 0 6px rgba(220,38,38,0.5)' }} />
               ) : messages.length > 0 ? (
-                <div
-                  onClick={toggleMessages}
-                  className="cursor-pointer hover:opacity-70 transition-opacity"
-                  title="View messages"
-                  style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', opacity: 0.3 }}
-                />
+                <div onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" title="View messages" style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', opacity: 0.3 }} />
               ) : null}
-              {sendingCount > 0 ? (
-                <div
-                  className="animate-pulse cursor-default"
-                  title={`${sendingCount} sending${sendingCount > 1 ? 's' : ''}`}
-                  style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b3a8b', boxShadow: '0 0 6px rgba(139,58,139,0.7)' }}
-                />
+              {unreadSendings > 0 ? (
+                <div onClick={toggleSendings} className="animate-pulse cursor-pointer" title={`${unreadSendings} sending${unreadSendings > 1 ? 's' : ''}`} style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b3a8b', boxShadow: '0 0 6px rgba(139,58,139,0.7)' }} />
+              ) : sendings.length > 0 ? (
+                <div onClick={toggleSendings} className="cursor-pointer hover:opacity-70 transition-opacity" title="View sendings" style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b3a8b', opacity: 0.3 }} />
               ) : null}
             </div>
           </div>
         </div>
+
+        {/* Mobile: stacked layout */}
+        <div className="sm:hidden">
+          {/* Row 1: Portrait + Name + Species + Class */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="relative rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0" style={{ width: 48, height: 48 }}>
+              <span className="text-[1.1rem] text-[var(--color-text-muted)] select-none">{initial}</span>
+              {img && <Image src={img} alt={character} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+            </div>
+            <input
+              value={charName}
+              onChange={e => {
+                setCharName(e.target.value);
+                clearTimeout((window as unknown as Record<string, unknown>).__charTimer as ReturnType<typeof setTimeout>);
+                const val = e.target.value;
+                (window as unknown as Record<string, unknown>).__charTimer = setTimeout(() => {
+                  fetch(`/api/players/${playerId}/name`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ character: val }) });
+                }, 800);
+              }}
+              className="text-[var(--color-text)] text-lg font-bold font-serif bg-transparent border-none outline-none min-w-0"
+              style={{ width: `${Math.max(charName.length + 1, 3)}ch`, marginRight: 4 }}
+            />
+            <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 0, width: 60, fontSize: '0.85rem' }} />
+            <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 0, width: 60, fontSize: '0.85rem' }} />
+          </div>
+          {/* Row 2: HP + Gold + Notification dots */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 58 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 16, height: 16 }}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 32, fontSize: '0.85rem' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 16, height: 16, borderRadius: '50%' }} />
+                <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 32, fontSize: '0.85rem' }} />
+              </div>
+            </div>
+            <div style={{ flex: 1 }} />
+            {/* Dots */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {boonCount > 0 ? (
+                <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffffff', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} />
+              ) : null}
+              {poisonCount > 0 ? (
+                <div className="animate-pulse" style={{ width: 12, height: 12, borderRadius: '50%', background: '#7ac28a', boxShadow: '0 0 6px rgba(122,194,138,0.6)' }} />
+              ) : null}
+              {unread > 0 ? (
+                <div onClick={toggleMessages} className="animate-pulse cursor-pointer" style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', boxShadow: '0 0 6px rgba(220,38,38,0.5)' }} />
+              ) : messages.length > 0 ? (
+                <div onClick={toggleMessages} className="cursor-pointer" style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', opacity: 0.3 }} />
+              ) : null}
+              {unreadSendings > 0 ? (
+                <div onClick={toggleSendings} className="animate-pulse cursor-pointer" style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b3a8b', boxShadow: '0 0 6px rgba(139,58,139,0.7)' }} />
+              ) : sendings.length > 0 ? (
+                <div onClick={toggleSendings} className="cursor-pointer" style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b3a8b', opacity: 0.3 }} />
+              ) : null}
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* SMS opt-in row — checkbox only; the DM manages phone numbers */}
@@ -642,6 +686,46 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                 <div key={m.id} className="mb-2 last:mb-0">
                   <p className="text-[var(--color-text-body)] text-[1.05rem] font-serif leading-relaxed">{m.message}</p>
                   <p className="text-[#5a4f46] text-[0.65rem] font-sans mt-0.5">{time}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Sendings pane */}
+      <div
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{
+          maxHeight: showSendings ? '400px' : '0px',
+          opacity: showSendings ? 1 : 0,
+        }}
+      >
+        <div
+          className="border-x border-[var(--color-border)] px-4 py-3"
+          style={{ background: '#1a141e' }}
+        >
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[0.65rem] uppercase tracking-[0.15em] font-sans" style={{ color: '#8b3a8b' }}>Sendings</span>
+              <button
+                onClick={() => setShowSendings(false)}
+                className="text-[#5a4f46] hover:text-[var(--color-text)] text-sm bg-transparent border-none cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            {loadingSendings && <p className="text-[#8a7d6e] text-sm font-serif">Loading...</p>}
+            {!loadingSendings && sendings.length === 0 && <p className="text-[#8a7d6e] text-sm font-serif italic">No sendings</p>}
+            {sendings.map(s => {
+              const d = new Date(s.published_at);
+              const time = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+              return (
+                <div key={s.id} className="mb-3 last:mb-0">
+                  <p className="font-serif text-[1.05rem] leading-relaxed" style={{ color: '#c4a8d0', fontStyle: 'italic' }}>
+                    &ldquo;{s.body}&rdquo;
+                  </p>
+                  <p className="text-[#5a4f56] text-[0.65rem] font-sans mt-0.5">{time}</p>
                 </div>
               );
             })}

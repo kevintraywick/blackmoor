@@ -306,8 +306,8 @@ export default function PlayerBannerWeather({ playerId }: Props) {
         />
       )}
 
-      {/* Weather pill */}
-      <div style={{ position: 'absolute', top: 14, right: 16 }}>
+      {/* Weather pill — hidden on mobile */}
+      <div className="hidden sm:block" style={{ position: 'absolute', top: 14, right: 16 }}>
         <RavenWeatherPill condition={weather.condition} temp_c={weather.temp_c} wind_label={weather.wind_label} />
       </div>
     </>

@@ -5,7 +5,6 @@ import type { RavenMedium, RavenTrust, Player } from '@/lib/types';
 
 const MEDIA: { value: RavenMedium; label: string }[] = [
   { value: 'broadsheet', label: '📜 Broadsheet' },
-  { value: 'raven',      label: '🕊 Raven' },
   { value: 'sending',    label: '✦ Sending' },
   { value: 'overheard',  label: '🍺 Overheard' },
   { value: 'ad',         label: '📋 Ad' },
@@ -21,7 +20,6 @@ export default function RavenManualCompose({ players, onPublished }: Props) {
   const [oneLineBeat, setOneLineBeat] = useState('');
   const [headline, setHeadline] = useState('');
   const [body, setBody] = useState('');
-  const [sender, setSender] = useState('');
   const [targetPlayer, setTargetPlayer] = useState<string>('');
   const [trust, setTrust] = useState<RavenTrust>('official');
   const [adImage, setAdImage] = useState('');
@@ -66,8 +64,8 @@ export default function RavenManualCompose({ players, onPublished }: Props) {
       setError('broadsheet items need a headline');
       return;
     }
-    if ((medium === 'raven' || medium === 'sending') && !targetPlayer) {
-      setError('select a target player for ravens and sendings');
+    if (medium === 'sending' && !targetPlayer) {
+      setError('select a target player for sendings');
       return;
     }
 
@@ -79,10 +77,6 @@ export default function RavenManualCompose({ players, onPublished }: Props) {
         trust,
       };
       if (medium === 'broadsheet') payload.headline = headline.trim();
-      if (medium === 'raven') {
-        payload.sender = sender.trim();
-        payload.target_player = targetPlayer;
-      }
       if (medium === 'sending') payload.target_player = targetPlayer;
       if (medium === 'ad') {
         if (adImage.trim()) payload.ad_image_url = adImage.trim();
@@ -104,7 +98,6 @@ export default function RavenManualCompose({ players, onPublished }: Props) {
       setOneLineBeat('');
       setHeadline('');
       setBody('');
-      setSender('');
       setTargetPlayer('');
       setAdImage('');
       setAdRealLink('');
@@ -169,7 +162,7 @@ export default function RavenManualCompose({ players, onPublished }: Props) {
         />
       )}
 
-      {(medium === 'raven' || medium === 'sending') && (
+      {medium === 'sending' && (
         <div className="mb-3">
           <label className="block text-xs text-[var(--color-text-muted)] uppercase tracking-widest mb-2">Target player</label>
           <div className="flex gap-2 flex-wrap">
@@ -189,16 +182,6 @@ export default function RavenManualCompose({ players, onPublished }: Props) {
             ))}
           </div>
         </div>
-      )}
-
-      {medium === 'raven' && (
-        <input
-          type="text"
-          value={sender}
-          onChange={e => setSender(e.target.value)}
-          placeholder="Sender (e.g. 'Warden Cedric of the Hollow Oak')"
-          className="w-full mb-3 bg-[var(--color-bg-card)] border border-[var(--color-border)] px-3 py-2 text-[var(--color-text)] font-serif text-sm"
-        />
       )}
 
       <textarea
