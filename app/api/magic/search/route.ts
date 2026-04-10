@@ -1,74 +1,12 @@
 import { NextResponse } from 'next/server';
+import { query } from '@/lib/db';
 
-const OPEN5E_BASE = 'https://api.open5e.com/v2';
-
-interface Open5eSpell {
-  key: string;
-  name: string;
-  level: number;
-  school: { name: string };
-  casting_time: string;
-  range_text: string;
-  verbal: boolean;
-  somatic: boolean;
-  material: boolean;
-  material_specified: string;
-  duration: string;
-  concentration: boolean;
-  ritual: boolean;
-  desc: string;
-  higher_level: string;
-}
-
-interface Open5eItem {
-  key: string;
-  name: string;
-  desc: string;
-  category: { name: string };
-  rarity: { name: string };
-  requires_attunement: boolean;
-}
-
-interface NormalizedResult {
-  key: string;
+interface CatalogRow {
+  api_key: string;
   name: string;
   description: string;
   metadata: Record<string, unknown>;
-}
-
-function normalizeSpell(s: Open5eSpell): NormalizedResult {
-  const components: string[] = [];
-  if (s.verbal) components.push('V');
-  if (s.somatic) components.push('S');
-  if (s.material) components.push(s.material_specified ? `M (${s.material_specified})` : 'M');
-
-  return {
-    key: s.key,
-    name: s.name,
-    description: s.desc + (s.higher_level ? `\n\n**At Higher Levels.** ${s.higher_level}` : ''),
-    metadata: {
-      level: s.level,
-      school: s.school?.name ?? '',
-      casting_time: s.casting_time,
-      range: s.range_text,
-      components: components.join(', '),
-      duration: (s.concentration ? 'Concentration, ' : '') + s.duration,
-      ritual: s.ritual,
-    },
-  };
-}
-
-function normalizeItem(item: Open5eItem): NormalizedResult {
-  return {
-    key: item.key,
-    name: item.name,
-    description: item.desc,
-    metadata: {
-      category: item.category?.name ?? '',
-      rarity: item.rarity?.name ?? '',
-      requires_attunement: item.requires_attunement,
-    },
-  };
+  category: string;
 }
 
 export async function POST(request: Request) {
@@ -78,29 +16,41 @@ export async function POST(request: Request) {
       return NextResponse.json({ results: [] });
     }
 
-    let url: string;
-    if (category === 'spell') {
-      url = `${OPEN5E_BASE}/spells/?search=${encodeURIComponent(q)}&format=json&limit=20`;
-    } else if (category === 'magic_item') {
-      url = `${OPEN5E_BASE}/items/?search=${encodeURIComponent(q)}&is_magic_item=true&format=json&limit=20`;
+    const searchTerm = `%${q}%`;
+
+    let rows: CatalogRow[];
+    if (category && category !== 'all') {
+      rows = await query<CatalogRow>(
+        `SELECT api_key, name, description, metadata, category
+         FROM magic_catalog
+         WHERE category = $1 AND name ILIKE $2
+         ORDER BY name ASC
+         LIMIT 20`,
+        [category, searchTerm]
+      );
     } else {
-      return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
+      // Search all categories
+      rows = await query<CatalogRow>(
+        `SELECT api_key, name, description, metadata, category
+         FROM magic_catalog
+         WHERE name ILIKE $1
+         ORDER BY name ASC
+         LIMIT 30`,
+        [searchTerm]
+      );
     }
 
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) {
-      return NextResponse.json({ error: 'Open5e API error' }, { status: 502 });
-    }
-
-    const data = await res.json();
-    const results: NormalizedResult[] = (data.results ?? []).map(
-      (r: Open5eSpell | Open5eItem) =>
-        category === 'spell' ? normalizeSpell(r as Open5eSpell) : normalizeItem(r as Open5eItem)
-    );
+    const results = rows.map(r => ({
+      key: r.api_key ?? r.name,
+      name: r.name,
+      description: r.description,
+      metadata: r.metadata,
+      category: r.category,
+    }));
 
     return NextResponse.json({ results });
   } catch (err) {
     console.error('POST /api/magic/search', err);
-    return NextResponse.json({ error: 'Failed to search Open5e' }, { status: 502 });
+    return NextResponse.json({ error: 'Search failed' }, { status: 500 });
   }
 }

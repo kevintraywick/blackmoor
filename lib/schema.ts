@@ -305,7 +305,7 @@ async function _initSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS magic_catalog (
       id          TEXT PRIMARY KEY,
-      category    TEXT NOT NULL CHECK (category IN ('spell', 'scroll', 'magic_item', 'other')),
+      category    TEXT NOT NULL CHECK (category IN ('spell', 'scroll', 'magic_item', 'weapon', 'armor', 'tool', 'other')),
       name        TEXT NOT NULL,
       api_key     TEXT,
       description TEXT NOT NULL DEFAULT '',

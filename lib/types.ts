@@ -235,7 +235,7 @@ export interface PlayerChange {
   read: boolean;
 }
 
-export type MagicCategory = 'spell' | 'scroll' | 'magic_item' | 'other';
+export type MagicCategory = 'spell' | 'scroll' | 'magic_item' | 'weapon' | 'armor' | 'tool' | 'other';
 
 export interface MagicCatalogEntry {
   id: string;

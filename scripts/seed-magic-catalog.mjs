@@ -1,6 +1,6 @@
 /**
- * Seed the magic_catalog table with SRD 5.1 spells (cantrip–3rd level),
- * corresponding scrolls, and all SRD 5.1 magic items from Open5e v2.
+ * Seed the magic_catalog table with SRD 2024 (5.2) reference data from Open5e v2.
+ * Categories: spells (all levels), scrolls, magic items, weapons, armor, tools.
  *
  * Usage:  node scripts/seed-magic-catalog.mjs
  * Requires DATABASE_URL env var (reads from .env.local if present).
@@ -36,7 +36,7 @@ const pool = new pg.Pool({
 });
 
 const OPEN5E = 'https://api.open5e.com/v2';
-const DOC_FILTER = 'document__key__in=srd-2014';
+const DOC = 'document__key=srd-2024';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ function normalizeSpell(s) {
   };
 }
 
-function normalizeItem(item) {
+function normalizeMagicItem(item) {
   return {
     key: item.key,
     name: item.name,
@@ -85,6 +85,53 @@ function normalizeItem(item) {
       category: item.category?.name ?? '',
       rarity: item.rarity?.name ?? '',
       requires_attunement: !!item.requires_attunement,
+    },
+  };
+}
+
+function normalizeWeapon(item) {
+  const w = item.weapon ?? {};
+  const props = (w.properties ?? []).map(p => p.property?.name).filter(Boolean);
+  return {
+    key: item.key,
+    name: item.name,
+    description: item.desc ?? '',
+    metadata: {
+      damage_dice: w.damage_dice ?? '',
+      damage_type: w.damage_type?.name ?? '',
+      properties: props.join(', '),
+      is_martial: !!w.is_martial,
+      cost: item.cost ?? 0,
+      weight: item.weight ?? 0,
+    },
+  };
+}
+
+function normalizeArmor(item) {
+  const a = item.armor ?? {};
+  return {
+    key: item.key,
+    name: item.name,
+    description: item.desc ?? '',
+    metadata: {
+      base_ac: a.base_ac ?? null,
+      ac_cap: a.ac_cap ?? null,
+      strength_requirement: a.strength_requirement ?? null,
+      stealth_disadvantage: !!a.stealth_disadvantage,
+      cost: item.cost ?? 0,
+      weight: item.weight ?? 0,
+    },
+  };
+}
+
+function normalizeTool(item) {
+  return {
+    key: item.key,
+    name: item.name,
+    description: item.desc ?? '',
+    metadata: {
+      cost: item.cost ?? 0,
+      weight: item.weight ?? 0,
     },
   };
 }
@@ -105,36 +152,30 @@ async function upsert(category, entry) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('Seeding magic catalog from Open5e (SRD 5.1)...\n');
+  console.log('Seeding magic catalog from Open5e (SRD 2024 / 5.2)...\n');
 
-  // 1. Spells: cantrips (level 0) through 3rd level
-  console.log('── Spells (cantrip–3rd level) ──');
-  const allSpells = [];
-  for (const level of [0, 1, 2, 3]) {
-    const label = level === 0 ? 'cantrips' : `level ${level}`;
-    process.stdout.write(`  ${label} `);
-    const spells = await fetchAllPages(
-      `${OPEN5E}/spells/?level=${level}&${DOC_FILTER}&format=json&limit=50`
-    );
-    console.log(` ${spells.length}`);
-    allSpells.push(...spells);
-  }
-  console.log(`  total: ${allSpells.length} spells\n`);
+  // 1. Spells — all levels
+  console.log('── Spells (all levels) ──');
+  process.stdout.write('  fetching');
+  const allSpells = await fetchAllPages(
+    `${OPEN5E}/spells/?${DOC}&format=json&limit=50`
+  );
+  console.log(` ${allSpells.length} spells\n`);
 
   process.stdout.write('Inserting spells');
   let spellCount = 0;
   for (const s of allSpells) {
-    const norm = normalizeSpell(s);
-    await upsert('spell', norm);
+    await upsert('spell', normalizeSpell(s));
     spellCount++;
     if (spellCount % 20 === 0) process.stdout.write('.');
   }
-  console.log(` ✓ ${spellCount}`);
+  console.log(` done ${spellCount}`);
 
-  // 2. Scrolls: same spells as "Scroll of [Name]"
+  // 2. Scrolls — same spells as "Scroll of [Name]", levels 0-3
+  const scrollSpells = allSpells.filter(s => (s.level ?? 0) <= 3);
   process.stdout.write('Inserting scrolls');
   let scrollCount = 0;
-  for (const s of allSpells) {
+  for (const s of scrollSpells) {
     const norm = normalizeSpell(s);
     await upsert('scroll', {
       ...norm,
@@ -144,25 +185,63 @@ async function main() {
     scrollCount++;
     if (scrollCount % 20 === 0) process.stdout.write('.');
   }
-  console.log(` ✓ ${scrollCount}`);
+  console.log(` done ${scrollCount}`);
 
-  // 3. Magic Items (SRD 5.1)
+  // 3. Magic Items
   console.log('\n── Magic Items ──');
   process.stdout.write('  fetching');
-  const items = await fetchAllPages(
-    `${OPEN5E}/items/?is_magic_item=true&${DOC_FILTER}&format=json&limit=50`
+  const magicItems = await fetchAllPages(
+    `${OPEN5E}/items/?is_magic_item=true&${DOC}&format=json&limit=50`
   );
-  console.log(` ${items.length} items\n`);
+  console.log(` ${magicItems.length} items\n`);
 
-  process.stdout.write('Inserting items');
-  let itemCount = 0;
-  for (const item of items) {
-    const norm = normalizeItem(item);
-    await upsert('magic_item', norm);
-    itemCount++;
-    if (itemCount % 20 === 0) process.stdout.write('.');
+  process.stdout.write('Inserting magic items');
+  let magicCount = 0;
+  for (const item of magicItems) {
+    await upsert('magic_item', normalizeMagicItem(item));
+    magicCount++;
+    if (magicCount % 20 === 0) process.stdout.write('.');
   }
-  console.log(` ✓ ${itemCount}`);
+  console.log(` done ${magicCount}`);
+
+  // 4. Weapons (non-magic)
+  console.log('\n── Weapons ──');
+  process.stdout.write('  fetching');
+  const allNonMagic = await fetchAllPages(
+    `${OPEN5E}/items/?is_magic_item=false&${DOC}&format=json&limit=50`
+  );
+  const weapons = allNonMagic.filter(i => i.category?.key === 'weapon');
+  console.log(` ${weapons.length} weapons\n`);
+
+  process.stdout.write('Inserting weapons');
+  let weaponCount = 0;
+  for (const item of weapons) {
+    await upsert('weapon', normalizeWeapon(item));
+    weaponCount++;
+  }
+  console.log(` done ${weaponCount}`);
+
+  // 5. Armor (non-magic)
+  const armorItems = allNonMagic.filter(i => i.category?.key === 'armor' || i.category?.key === 'shield');
+  console.log(`\n── Armor ── (${armorItems.length})`);
+  process.stdout.write('Inserting armor');
+  let armorCount = 0;
+  for (const item of armorItems) {
+    await upsert('armor', normalizeArmor(item));
+    armorCount++;
+  }
+  console.log(` done ${armorCount}`);
+
+  // 6. Tools (includes musical instruments)
+  const tools = allNonMagic.filter(i => i.category?.key === 'tools');
+  console.log(`\n── Tools ── (${tools.length})`);
+  process.stdout.write('Inserting tools');
+  let toolCount = 0;
+  for (const item of tools) {
+    await upsert('tool', normalizeTool(item));
+    toolCount++;
+  }
+  console.log(` done ${toolCount}`);
 
   // Summary
   const rows = (await pool.query(
@@ -170,7 +249,7 @@ async function main() {
   )).rows;
   const total = rows.reduce((sum, r) => sum + r.n, 0);
 
-  console.log(`\n══ Done ══`);
+  console.log(`\n== Done ==`);
   console.log(`Total catalog entries: ${total}`);
   for (const r of rows) console.log(`  ${r.category}: ${r.n}`);
 

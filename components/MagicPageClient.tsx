@@ -2,21 +2,27 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
-import type { MagicCatalogEntry, MagicCategory } from '@/lib/types';
+
+
+type ResultType = 'spell' | 'scroll' | 'magic_item' | 'weapon' | 'armor' | 'tool' | 'other';
 
 interface SearchResult {
   key: string;
   name: string;
   description: string;
   metadata: Record<string, unknown>;
+  resultType: ResultType;
 }
 
-const CATEGORY_CONFIG: { key: MagicCategory; label: string; apiCategory?: 'spell' | 'magic_item'; sigil: string; color: string }[] = [
-  { key: 'spell',      label: 'Spells',      apiCategory: 'spell',      sigil: '\u2726', color: '#c9a84c' },  // star
-  { key: 'scroll',     label: 'Scrolls',     apiCategory: 'spell',      sigil: '\u2709', color: '#a89070' },  // scroll/envelope
-  { key: 'magic_item', label: 'Magic Items',  apiCategory: 'magic_item', sigil: '\u25C6', color: '#7a6fa0' },  // diamond
-  { key: 'other',      label: 'Other',                                   sigil: '\u270E', color: '#6a8a6a' },  // pencil
-];
+const TYPE_CONFIG: Record<ResultType, { label: string; color: string; sigil: string }> = {
+  spell:      { label: 'Spell',  color: '#c9a84c', sigil: '\u2726' },
+  scroll:     { label: 'Scroll', color: '#a89070', sigil: '\u2709' },
+  magic_item: { label: 'Item',   color: '#7a6fa0', sigil: '\u25C6' },
+  weapon:     { label: 'Weapon', color: '#8a4a4a', sigil: '\u2694' },
+  armor:      { label: 'Armor',  color: '#5a7a8a', sigil: '\u26E8' },
+  tool:       { label: 'Tool',   color: '#6a8a6a', sigil: '\u2692' },
+  other:      { label: 'Other',  color: '#6a8a6a', sigil: '\u270E' },
+};
 
 function formatSpellHeader(meta: Record<string, unknown>) {
   const level = meta.level as number;
@@ -31,10 +37,6 @@ function formatSpellHeader(meta: Record<string, unknown>) {
   return parts;
 }
 
-function scrollName(name: string) {
-  return `Scroll of ${name}`;
-}
-
 function formatItemHeader(meta: Record<string, unknown>) {
   const parts: string[] = [];
   if (meta.category) parts.push(meta.category as string);
@@ -43,51 +45,25 @@ function formatItemHeader(meta: Record<string, unknown>) {
   return parts;
 }
 
-export default function MagicPageClient({ initial }: { initial: MagicCatalogEntry[] }) {
-  const [catalog, setCatalog] = useState<MagicCatalogEntry[]>(initial);
+export default function MagicPageClient() {
+  const [recentlyUsed, setRecentlyUsed] = useState<SearchResult[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searchCategory, setSearchCategory] = useState<MagicCategory | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [paneContents, setPaneContents] = useState<Record<MagicCategory, { name: string; description: string; metadata: Record<string, unknown> } | null>>({
-    spell: null, scroll: null, magic_item: null, other: null,
-  });
-  const [activeCategory, setActiveCategory] = useState<MagicCategory>('spell');
-  const [otherName, setOtherName] = useState('');
-  const [otherDesc, setOtherDesc] = useState('');
-  const [showOtherEditor, setShowOtherEditor] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [showAllResults, setShowAllResults] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  async function handleSearch(category: MagicCategory) {
+  async function handleSearch() {
     const q = searchQuery.trim();
     if (!q) return;
 
-    // Cancel any in-flight search
     abortRef.current?.abort();
-
-    // Switch active tab
-    setActiveCategory(category);
     setShowAllResults(false);
-
-    // "Other" — open editor instead of API search
-    if (category === 'other') {
-      setOtherName(q);
-      setOtherDesc('');
-      setShowOtherEditor(true);
-      setSearchResults([]);
-      setSearchCategory(null);
-      setSearchError(null);
-      return;
-    }
-
-    const config = CATEGORY_CONFIG.find(c => c.key === category);
-    if (!config) return;
     setSearching(true);
     setSearchError(null);
     setSearchResults([]);
-    setSearchCategory(category);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -96,14 +72,24 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
       const res = await fetch('/api/magic/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q, category: config.apiCategory }),
+        body: JSON.stringify({ q, category: 'all' }),
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
       if (controller.signal.aborted) return;
-      setSearchResults(data.results ?? []);
+
+      const results: SearchResult[] = (data.results ?? []).map(
+        (r: { key: string; name: string; description: string; metadata: Record<string, unknown>; category: string }) => ({
+          key: r.key,
+          name: r.name,
+          description: r.description,
+          metadata: r.metadata,
+          resultType: r.category as ResultType,
+        })
+      );
+      setSearchResults(results);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       setSearchError('The arcane library is unreachable. Try again later.');
@@ -113,100 +99,28 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
     }
   }
 
-  async function selectResult(result: SearchResult, category: MagicCategory) {
-    const displayName = category === 'scroll' ? scrollName(result.name) : result.name;
-
-    // Clear search results immediately to prevent double-click
+  function selectResult(result: SearchResult) {
     setSearchResults([]);
-    setSearchCategory(null);
     setShowAllResults(false);
+    setSearchQuery('');
+    setSelectedResult(result);
 
-    // Load into pane
-    setPaneContents(prev => ({
-      ...prev,
-      [category]: { name: displayName, description: result.description, metadata: result.metadata },
-    }));
-
-    // Save to catalog (upsert — server deduplicates by category + api_key)
-    try {
-      const res = await fetch('/api/magic/catalog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category,
-          name: displayName,
-          api_key: result.key,
-          description: result.description,
-          metadata: result.metadata,
-        }),
-      });
-      if (res.ok) {
-        const entry: MagicCatalogEntry = await res.json();
-        // Replace existing entry with same api_key or prepend new one
-        setCatalog(prev => {
-          const filtered = prev.filter(e => !(e.api_key && e.api_key === entry.api_key && e.category === entry.category));
-          return [entry, ...filtered];
-        });
-      }
-    } catch { /* catalog save failure is non-critical */ }
-  }
-
-  async function saveOtherEntry() {
-    if (!otherName.trim()) return;
-    const description = otherDesc.trim();
-
-    setPaneContents(prev => ({
-      ...prev,
-      other: { name: otherName, description, metadata: {} },
-    }));
-    setShowOtherEditor(false);
-
-    try {
-      const res = await fetch('/api/magic/catalog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category: 'other',
-          name: otherName,
-          api_key: null,
-          description,
-          metadata: {},
-        }),
-      });
-      if (res.ok) {
-        const entry: MagicCatalogEntry = await res.json();
-        setCatalog(prev => [entry, ...prev]);
-      }
-    } catch { /* non-critical */ }
-  }
-
-  function loadFromCatalog(entry: MagicCatalogEntry) {
-    setActiveCategory(entry.category);
-    setPaneContents(prev => ({
-      ...prev,
-      [entry.category]: { name: entry.name, description: entry.description, metadata: entry.metadata },
-    }));
-  }
-
-  async function removeCatalogEntry(id: string) {
-    const prev = catalog;
-    setCatalog(p => p.filter(e => e.id !== id));
-    try {
-      const res = await fetch(`/api/magic/catalog/${id}`, { method: 'DELETE' });
-      if (!res.ok) setCatalog(prev);
-    } catch {
-      setCatalog(prev);
-    }
+    // Add to recently used (deduplicate by key + type)
+    setRecentlyUsed(prev => {
+      const filtered = prev.filter(r => !(r.key === result.key && r.resultType === result.resultType));
+      return [result, ...filtered].slice(0, 20);
+    });
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') {
-      handleSearch(activeCategory);
-    }
+    if (e.key === 'Enter') handleSearch();
   }
 
-  const activeCatConfig = CATEGORY_CONFIG.find(c => c.key === activeCategory)!;
-  const content = paneContents[activeCategory];
+  const selType = selectedResult ? TYPE_CONFIG[selectedResult.resultType] : null;
+  const isSpellLike = selectedResult?.resultType === 'spell' || selectedResult?.resultType === 'scroll';
+  const isItem = selectedResult?.resultType === 'magic_item';
+  const isWeapon = selectedResult?.resultType === 'weapon';
+  const isArmor = selectedResult?.resultType === 'armor';
 
   // Search results: show first 12 unless expanded
   const visibleResults = showAllResults ? searchResults : searchResults.slice(0, 12);
@@ -215,41 +129,77 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-8 py-8">
 
-      {/* Search bar + category search buttons */}
+      {/* Search bar */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }} className="mb-4">
         <input
           type="text"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Search by name..."
+          placeholder="Search spells &amp; magic items..."
           style={{ flex: 1, minWidth: 200 }}
           className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2
                      text-[var(--color-text)] font-serif text-sm placeholder:text-[var(--color-text-dim)]
                      outline-none focus:border-[var(--color-gold)]"
         />
-        <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
-          {CATEGORY_CONFIG.map(cat => (
-            <button
-              key={cat.key}
-              onClick={() => handleSearch(cat.key)}
-              disabled={searching}
-              className="px-3 py-1.5 text-[0.7rem] uppercase tracking-[0.15em] font-serif
-                         border rounded transition-colors
-                         disabled:opacity-50 cursor-pointer magic-cat-btn"
-              style={{
-                '--cat-color': cat.color,
-                borderColor: cat.color,
-                color: cat.color,
-              } as React.CSSProperties}
-            >
-              {cat.sigil} {cat.label}
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={handleSearch}
+          disabled={searching || !searchQuery.trim()}
+          className="px-4 py-2 text-[0.7rem] uppercase tracking-[0.15em] font-serif
+                     border border-[var(--color-gold)] text-[var(--color-gold)] rounded
+                     transition-colors disabled:opacity-50 cursor-pointer
+                     hover:bg-[var(--color-gold)] hover:text-[var(--color-bg)]"
+        >
+          Search
+        </button>
       </div>
 
-      {/* Search results list — no scroll container */}
+      {/* Recently used bar */}
+      {recentlyUsed.length > 0 && (
+        <div className="mb-4">
+          <div className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-text-muted)] font-sans mb-2">
+            Recently Used
+          </div>
+          <div style={{ display: 'flex', gap: 18, overflow: 'hidden' }}>
+            {recentlyUsed.map(r => {
+              const tc = TYPE_CONFIG[r.resultType] ?? TYPE_CONFIG.other;
+              const color = tc.color;
+              return (
+                <button
+                  key={`${r.resultType}-${r.key}`}
+                  onClick={() => setSelectedResult(r)}
+                  className="flex flex-col items-center cursor-pointer group"
+                  title={r.name}
+                >
+                  <div
+                    style={{
+                      width: 58, height: 58, borderRadius: '50%', flexShrink: 0,
+                      border: `1.5px solid ${color}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'var(--color-surface-raised)',
+                      fontSize: '0.45rem', color: 'var(--color-text-dim)',
+                      textAlign: 'center', lineHeight: 1.1, padding: 2,
+                      overflow: 'hidden',
+                    }}
+                    className="group-hover:scale-110 transition-transform"
+                  >
+                    <span style={{ fontSize: '0.8rem' }}>
+                      {tc.sigil}
+                    </span>
+                  </div>
+                  <span className="text-center text-[var(--color-text-muted)] mt-0.5 leading-tight line-clamp-2"
+                    style={{ width: 58, fontSize: 9, textTransform: 'uppercase' }}
+                  >
+                    {r.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Search results */}
       {searching && (
         <div className="text-[var(--color-text-muted)] font-serif italic text-sm mb-4">
           Consulting the arcane library...
@@ -260,30 +210,43 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
           {searchError}
         </div>
       )}
-      {searchResults.length > 0 && searchCategory && (
+      {searchResults.length > 0 && (
         <div className="mb-4">
           {visibleResults.map(r => (
             <button
-              key={r.key}
-              onClick={() => selectResult(r, searchCategory)}
+              key={`${r.resultType}-${r.key}`}
+              onClick={() => selectResult(r)}
               className="w-full text-left px-3 py-2 font-serif text-sm text-[var(--color-text)]
                          hover:bg-[var(--color-surface-raised)] border-b border-[var(--color-border)]
                          transition-colors cursor-pointer"
             >
-              <span className="font-semibold">
-                {searchCategory === 'scroll' ? scrollName(r.name) : r.name}
+              {/* Type indicator */}
+              <span
+                className="inline-block text-[0.6rem] uppercase tracking-wider font-sans mr-2 px-1.5 py-0.5 rounded"
+                style={{
+                  color: TYPE_CONFIG[r.resultType]?.color ?? '#888',
+                  border: `1px solid ${(TYPE_CONFIG[r.resultType]?.color ?? '#888')}50`,
+                }}
+              >
+                {TYPE_CONFIG[r.resultType]?.label ?? r.resultType}
               </span>
+              <span className="font-semibold">{r.name}</span>
               {r.metadata.level !== undefined && (
                 <span className="ml-2 text-[var(--color-text-muted)] text-xs">
                   {r.metadata.level === 0 ? 'Cantrip' : `Lvl ${r.metadata.level}`}
                   {r.metadata.school ? ` ${r.metadata.school}` : ''}
                 </span>
               )}
-              {typeof r.metadata.rarity === 'string' && r.metadata.rarity && (
+              {typeof r.metadata.rarity === 'string' && r.metadata.rarity ? (
                 <span className="ml-2 text-[var(--color-text-muted)] text-xs">
                   {r.metadata.rarity}
                 </span>
-              )}
+              ) : null}
+              {typeof r.metadata.damage_dice === 'string' && r.metadata.damage_dice ? (
+                <span className="ml-2 text-[var(--color-text-muted)] text-xs">
+                  {r.metadata.damage_dice} {String(r.metadata.damage_type)}
+                </span>
+              ) : null}
             </button>
           ))}
           {hasMoreResults && (
@@ -298,74 +261,86 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
         </div>
       )}
 
-      {/* "Other" editor */}
-      {showOtherEditor && (() => {
-        const otherColor = CATEGORY_CONFIG.find(c => c.key === 'other')!.color;
-        return (
-        <div className="border rounded bg-[var(--color-surface)] p-4 mb-4" style={{ borderColor: otherColor }}>
-          <div className="text-[0.65rem] uppercase tracking-[0.18em] mb-2" style={{ color: otherColor }}>
-            New Entry: {otherName}
-          </div>
-          <textarea
-            value={otherDesc}
-            onChange={e => setOtherDesc(e.target.value)}
-            placeholder="Enter description..."
-            rows={4}
-            className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] rounded px-3 py-2
-                       text-[var(--color-text)] font-serif text-sm placeholder:text-[var(--color-text-dim)]
-                       outline-none resize-y"
-            style={{ '--focus-color': otherColor } as React.CSSProperties}
-          />
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button
-              onClick={saveOtherEntry}
-              className="px-4 py-1.5 text-[0.7rem] uppercase tracking-[0.15em] font-serif
-                         border rounded transition-colors cursor-pointer magic-cat-btn"
-              style={{ '--cat-color': otherColor, borderColor: otherColor, color: otherColor } as React.CSSProperties}
-            >
-              Save
-            </button>
-            <button
-              onClick={() => setShowOtherEditor(false)}
-              className="px-4 py-1.5 text-[0.7rem] uppercase tracking-[0.15em] font-serif
-                         border border-[var(--color-border)] text-[var(--color-text-muted)] rounded
-                         hover:bg-[var(--color-surface-raised)] transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-        );
-      })()}
-
-      {/* Reading pane — appears when content is loaded */}
-      {content ? (
+      {/* Reading pane */}
+      {selectedResult && (
         <div
           className="border rounded p-6"
           style={{
-            borderColor: activeCatConfig.color + '60',
+            borderColor: (selType?.color ?? '#888') + '60',
             background: 'var(--color-surface)',
+            position: 'relative',
           }}
         >
-          <div className="font-serif text-xl font-semibold text-[var(--color-text)] mb-3">
-            {content.name}
+          {/* Dismiss button */}
+          <button
+            onClick={() => { setSelectedResult(null); setSearchQuery(''); }}
+            style={{
+              position: 'absolute', top: 10, right: 10,
+              width: 22, height: 22, borderRadius: '50%',
+              border: '1px solid #7b1a1a', background: 'transparent',
+              color: '#7b1a1a', fontSize: '0.7rem', fontWeight: 'bold',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+            title="Dismiss"
+          >
+            ✕
+          </button>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }} className="mb-3">
+            <span
+              className="text-[0.6rem] uppercase tracking-wider font-sans px-1.5 py-0.5 rounded"
+              style={{
+                color: selType?.color ?? '#888',
+                border: `1px solid ${(selType?.color ?? '#888')}50`,
+              }}
+            >
+              {selType?.label ?? selectedResult.resultType}
+            </span>
+            <span className="font-serif text-xl font-semibold text-[var(--color-text)]">
+              {selectedResult.name}
+            </span>
           </div>
-          {/* Metadata header */}
-          {(activeCategory === 'spell' || activeCategory === 'scroll') && 'level' in content.metadata && (
+          {/* Spell metadata */}
+          {isSpellLike && 'level' in selectedResult.metadata && (
             <div className="text-[0.7rem] text-[var(--color-text-muted)] space-y-0.5 mb-4">
-              {formatSpellHeader(content.metadata).map((line, i) => (
+              {formatSpellHeader(selectedResult.metadata).map((line, i) => (
                 <div key={i}>{line}</div>
               ))}
             </div>
           )}
-          {activeCategory === 'magic_item' && ('rarity' in content.metadata || 'category' in content.metadata) && (
+          {/* Magic item metadata */}
+          {isItem && ('rarity' in selectedResult.metadata || 'category' in selectedResult.metadata) && (
             <div className="text-[0.7rem] text-[var(--color-text-muted)] mb-4">
-              {formatItemHeader(content.metadata).join(' \u2022 ')}
+              {formatItemHeader(selectedResult.metadata).join(' \u2022 ')}
+            </div>
+          )}
+          {/* Weapon metadata */}
+          {isWeapon && (
+            <div className="text-[0.7rem] text-[var(--color-text-muted)] space-y-0.5 mb-4">
+              {selectedResult.metadata.damage_dice ? (
+                <div>Damage: {String(selectedResult.metadata.damage_dice)} {String(selectedResult.metadata.damage_type)}</div>
+              ) : null}
+              {selectedResult.metadata.properties ? (
+                <div>Properties: {String(selectedResult.metadata.properties)}</div>
+              ) : null}
+              <div>{selectedResult.metadata.is_martial ? 'Martial' : 'Simple'} weapon</div>
+              {selectedResult.metadata.cost ? <div>Cost: {String(selectedResult.metadata.cost)} gp</div> : null}
+              {selectedResult.metadata.weight ? <div>Weight: {String(selectedResult.metadata.weight)} lb</div> : null}
+            </div>
+          )}
+          {/* Armor metadata */}
+          {isArmor && (
+            <div className="text-[0.7rem] text-[var(--color-text-muted)] space-y-0.5 mb-4">
+              {selectedResult.metadata.base_ac != null ? <div>Base AC: {String(selectedResult.metadata.base_ac)}</div> : null}
+              {selectedResult.metadata.stealth_disadvantage ? <div>Stealth: Disadvantage</div> : null}
+              {selectedResult.metadata.strength_requirement ? <div>Str Required: {String(selectedResult.metadata.strength_requirement)}</div> : null}
+              {selectedResult.metadata.cost ? <div>Cost: {String(selectedResult.metadata.cost)} gp</div> : null}
+              {selectedResult.metadata.weight ? <div>Weight: {String(selectedResult.metadata.weight)} lb</div> : null}
             </div>
           )}
           {/* Description */}
           <div className="font-serif text-[1.05rem] text-[var(--color-text-body)] leading-relaxed whitespace-pre-wrap">
-            {content.description}
+            {selectedResult.description}
           </div>
           {/* Create Card link */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
@@ -377,7 +352,7 @@ export default function MagicPageClient({ initial }: { initial: MagicCatalogEntr
             </Link>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
