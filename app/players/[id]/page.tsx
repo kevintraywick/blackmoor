@@ -60,11 +60,9 @@ export default async function PlayerPage({ params }: Props) {
       <div className="sticky top-0 bg-[var(--color-surface)] border-b border-[var(--color-border)] px-4 sm:px-8 py-2 sm:py-3 z-10 text-sm" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 10px' }}>
         <Link href="/" title="Shadow of the Wolf" className="flex-shrink-0"><div className="relative rounded-full overflow-hidden" style={{ width: 30, height: 30 }}><Image src="/images/invite/dice_home.png" alt="Home" fill className="object-cover" /></div></Link>
         <span className="text-[var(--color-border)] hidden sm:inline">|</span>
-        <span className="text-[var(--color-gold)] font-bold">{player.playerName}</span>
-        <span className="text-[var(--color-border)]">/</span>
-        <span className="text-[var(--color-text)]">{player.character}</span>
+        <span className="text-[var(--color-gold)] font-bold" style={{ margin: '0 4px' }}>{player.playerName}</span>
         <span className="text-[var(--color-border)] hidden sm:inline">|</span>
-        <Link href="/" className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline">All Players</Link>
+        <Link href="/canyouplay" className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline">Upcoming Games</Link>
         <span className="text-[var(--color-border)]">·</span>
         <Link href={`/dm/marketplace?player=${player.id}`} className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline">Marketplace</Link>
         <span className="text-[var(--color-border)]">·</span>
@@ -76,9 +74,7 @@ export default async function PlayerPage({ params }: Props) {
           Raven Post
         </Link>
         <span className="text-[var(--color-border)]">·</span>
-        <Link href="/dm/journey" className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline italic">Story</Link>
-        <span className="text-[var(--color-border)]">·</span>
-        <Link href="/canyouplay" className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline">Are You In?</Link>
+        <Link href="/dm/journey" className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline italic">Our story so far…</Link>
       </div>
 
       <WolfHowl playerId={player.id} />
