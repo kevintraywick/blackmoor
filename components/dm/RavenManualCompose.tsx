@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { RavenMedium, RavenTrust, Player } from '@/lib/types';
+import adVendors from '@/ad_links/vendors.json';
 
 const MEDIA: { value: RavenMedium; label: string }[] = [
   { value: 'broadsheet', label: '📜 Broadsheet' },
@@ -198,6 +199,24 @@ export default function RavenManualCompose({ players, onPublished }: Props) {
 
       {medium === 'ad' && (
         <div className="space-y-2 mb-3">
+          {/* Vendor quick-pick */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {adVendors.map(v => (
+              <button
+                key={v.url}
+                type="button"
+                onClick={() => setAdRealLink(v.url)}
+                className="px-3 py-1 text-xs font-serif border"
+                style={{
+                  borderColor: adRealLink === v.url ? 'var(--color-gold)' : 'var(--color-border)',
+                  color: adRealLink === v.url ? 'var(--color-gold)' : 'var(--color-text-muted)',
+                  background: adRealLink === v.url ? 'rgba(201,168,76,0.08)' : 'transparent',
+                }}
+              >
+                {v.name}
+              </button>
+            ))}
+          </div>
           <input
             type="text"
             value={adImage}
