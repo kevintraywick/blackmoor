@@ -531,46 +531,44 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             {/* Spacer */}
             <div style={{ flex: 1 }} />
 
-            {/* Group 3: Notification icons (18px) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, transform: 'translate(-20px, 5px)' }}>
+            {/* Group 3: Notification dots */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, transform: 'translate(-85px, 10px)' }}>
               {boonCount > 0 ? (
-                <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}>
-                  <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}>
-                    <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="#ffffff" stroke="#ffffff" strokeWidth="0.5"/>
-                  </svg>
-                </div>
+                <div
+                  onClick={toggleBoons}
+                  className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`}
+                  title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}
+                  style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffffff', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }}
+                />
               ) : null}
               {poisonCount > 0 ? (
-                <div className="animate-pulse cursor-default" title="Poisoned!">
-                  <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, filter: 'drop-shadow(0 0 4px rgba(74,122,90,0.6))' }}>
-                    <path d="M12 2C8 2 5 5 5 9c0 2.5 1.2 4.7 3 6v2h8v-2c1.8-1.3 3-3.5 3-6 0-4-3-7-7-7z" fill="#4a7a5a"/>
-                    <circle cx="9" cy="9" r="1.5" fill="#1a1614"/><circle cx="15" cy="9" r="1.5" fill="#1a1614"/>
-                    <path d="M9 14h2v3H9zM13 14h2v3h-2z" fill="#4a7a5a"/>
-                    <path d="M10 12.5c0 0 1 1.2 2 0s2 0 2 0" fill="none" stroke="#1a1614" strokeWidth="1"/>
-                  </svg>
-                </div>
+                <div
+                  className="animate-pulse cursor-default"
+                  title="Poisoned!"
+                  style={{ width: 12, height: 12, borderRadius: '50%', background: '#7ac28a', boxShadow: '0 0 6px rgba(122,194,138,0.6)' }}
+                />
               ) : null}
               {unread > 0 ? (
-                <div onClick={toggleMessages} className="animate-pulse cursor-pointer" title={`${unread} unread message${unread > 1 ? 's' : ''}`}>
-                  <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}>
-                    <path d="M12 2C10 2 9.5 3 10 7l1 6h2l1-6c.5-4 0-5-2-5z" fill="#dc2626" stroke="#ff4444" strokeWidth="0.5"/>
-                    <circle cx="12" cy="18" r="2" fill="#dc2626" stroke="#ff4444" strokeWidth="0.5"/>
-                  </svg>
-                </div>
+                <div
+                  onClick={toggleMessages}
+                  className="animate-pulse cursor-pointer"
+                  title={`${unread} unread message${unread > 1 ? 's' : ''}`}
+                  style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', boxShadow: '0 0 6px rgba(220,38,38,0.5)' }}
+                />
               ) : messages.length > 0 ? (
-                <div onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" title="View messages">
-                  <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, opacity: 0.4 }}>
-                    <path d="M12 2C10 2 9.5 3 10 7l1 6h2l1-6c.5-4 0-5-2-5z" fill="#dc2626"/>
-                    <circle cx="12" cy="18" r="2" fill="#dc2626"/>
-                  </svg>
-                </div>
+                <div
+                  onClick={toggleMessages}
+                  className="cursor-pointer hover:opacity-70 transition-opacity"
+                  title="View messages"
+                  style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', opacity: 0.3 }}
+                />
               ) : null}
               {sendingCount > 0 ? (
-                <div className="animate-pulse cursor-default" title={`${sendingCount} sending${sendingCount > 1 ? 's' : ''}`}>
-                  <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, filter: 'drop-shadow(0 0 5px rgba(100,180,255,0.7))' }}>
-                    <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8 2.4-7.2-6-4.8h7.6z" fill="#64b4ff" stroke="#88ccff" strokeWidth="0.5"/>
-                  </svg>
-                </div>
+                <div
+                  className="animate-pulse cursor-default"
+                  title={`${sendingCount} sending${sendingCount > 1 ? 's' : ''}`}
+                  style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b3a8b', boxShadow: '0 0 6px rgba(139,58,139,0.7)' }}
+                />
               ) : null}
             </div>
           </div>
