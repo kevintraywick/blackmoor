@@ -102,6 +102,7 @@ body {
   animation: raven-link-pulse 1.4s ease-in-out infinite;
 }
 
+
 .raven-link-pulse-fade {
   transition: color 30s ease, text-shadow 30s ease, opacity 30s ease;
   color: var(--color-text);

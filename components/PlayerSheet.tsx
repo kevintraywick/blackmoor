@@ -473,7 +473,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
       {/* Header — portrait + name/class fields */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-tl-md rounded-tr-md px-3 sm:px-4 py-3 border-b-0 relative">
         {/* Mobile: stacked layout. Desktop: single row */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="gap-3 sm:gap-4" style={{ display: 'flex', alignItems: 'center' }}>
           {/* Portrait circle */}
           <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0">
             <span className="text-[1.2rem] sm:text-[1.4rem] text-[var(--color-text-muted)] select-none">{initial}</span>
@@ -488,8 +488,9 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             )}
           </div>
 
-          {/* Desktop: single row with name + fields + HP/Gold + action circles */}
-          <div className="hidden sm:flex items-center justify-center flex-1 min-w-0">
+          {/* Single flex row: Group1 (name/species/class) | spacer | Group2 (HP/Gold) | spacer | Group3 (notifications) */}
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+            {/* Group 1: Name + Species + Class */}
             <input
               value={charName}
               onChange={e => {
@@ -510,36 +511,38 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 60, width: 80, marginRight: 12 }} />
             <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 60, width: 80 }} />
 
-            {/* HP + Gold group — icons centered, values below */}
-            <div className="flex items-start" style={{ gap: 8, margin: '0 auto', transform: 'translateX(-200px)' }}>
-              {/* HP */}
-              <div className="flex flex-col items-center">
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
+
+            {/* Group 2: HP + Gold (icons with values below) */}
+            <div style={{ display: 'flex', gap: 8, transform: 'translate(-50px, 10px)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 20, height: 20 }}>
                   <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
                 <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 36, fontSize: '0.925rem' }} />
               </div>
-              {/* Gold */}
-              <div className="flex flex-col items-center">
-                <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 20, height: 20 }} className="rounded-full" />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 20, height: 20, borderRadius: '50%' }} />
                 <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 36, fontSize: '0.925rem' }} />
               </div>
             </div>
 
-            {/* Notification icons */}
-            <div className="flex items-center" style={{ gap: 6, marginLeft: 20 }}>
-              {/* Boon — white lightning bolt */}
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
+
+            {/* Group 3: Notification icons (18px) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, transform: 'translate(-20px, 5px)' }}>
               {boonCount > 0 ? (
                 <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}>
-                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}>
+                  <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}>
                     <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="#ffffff" stroke="#ffffff" strokeWidth="0.5"/>
                   </svg>
                 </div>
               ) : null}
-              {/* Poison — green skull */}
               {poisonCount > 0 ? (
                 <div className="animate-pulse cursor-default" title="Poisoned!">
-                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 4px rgba(74,122,90,0.6))' }}>
+                  <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, filter: 'drop-shadow(0 0 4px rgba(74,122,90,0.6))' }}>
                     <path d="M12 2C8 2 5 5 5 9c0 2.5 1.2 4.7 3 6v2h8v-2c1.8-1.3 3-3.5 3-6 0-4-3-7-7-7z" fill="#4a7a5a"/>
                     <circle cx="9" cy="9" r="1.5" fill="#1a1614"/><circle cx="15" cy="9" r="1.5" fill="#1a1614"/>
                     <path d="M9 14h2v3H9zM13 14h2v3h-2z" fill="#4a7a5a"/>
@@ -547,133 +550,28 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                   </svg>
                 </div>
               ) : null}
-              {/* DM message — red exclamation mark */}
               {unread > 0 ? (
                 <div onClick={toggleMessages} className="animate-pulse cursor-pointer" title={`${unread} unread message${unread > 1 ? 's' : ''}`}>
-                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}>
+                  <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}>
                     <path d="M12 2C10 2 9.5 3 10 7l1 6h2l1-6c.5-4 0-5-2-5z" fill="#dc2626" stroke="#ff4444" strokeWidth="0.5"/>
                     <circle cx="12" cy="18" r="2" fill="#dc2626" stroke="#ff4444" strokeWidth="0.5"/>
                   </svg>
                 </div>
               ) : messages.length > 0 ? (
                 <div onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" title="View messages">
-                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, opacity: 0.4 }}>
+                  <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, opacity: 0.4 }}>
                     <path d="M12 2C10 2 9.5 3 10 7l1 6h2l1-6c.5-4 0-5-2-5z" fill="#dc2626"/>
                     <circle cx="12" cy="18" r="2" fill="#dc2626"/>
                   </svg>
                 </div>
               ) : null}
-              {/* Sending — bright blue star */}
               {sendingCount > 0 ? (
                 <div className="animate-pulse cursor-default" title={`${sendingCount} sending${sendingCount > 1 ? 's' : ''}`}>
-                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 5px rgba(100,180,255,0.7))' }}>
+                  <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, filter: 'drop-shadow(0 0 5px rgba(100,180,255,0.7))' }}>
                     <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8 2.4-7.2-6-4.8h7.6z" fill="#64b4ff" stroke="#88ccff" strokeWidth="0.5"/>
                   </svg>
                 </div>
               ) : null}
-              {/* Raven letter — post stamp */}
-              {ravenCount > 0 ? (
-                <div className="animate-pulse cursor-default" title={`${ravenCount} letter${ravenCount > 1 ? 's' : ''}`}>
-                  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 3px rgba(201,168,76,0.5))' }}>
-                    <rect x="3" y="5" width="18" height="14" rx="1.5" fill="none" stroke="#c9a84c" strokeWidth="1.5"/>
-                    <path d="M3 5l9 7 9-7" fill="none" stroke="#c9a84c" strokeWidth="1.5"/>
-                    <rect x="14" y="12" width="5" height="5" rx="0.5" fill="#c9a84c" opacity="0.6"/>
-                  </svg>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Mobile: stacked layout */}
-          <div className="flex flex-col items-center flex-1 min-w-0 sm:hidden">
-            <div className="flex items-center gap-2">
-              <input
-                value={charName}
-                onChange={e => {
-                  setCharName(e.target.value);
-                  clearTimeout((window as unknown as Record<string, unknown>).__charTimer as ReturnType<typeof setTimeout>);
-                  const val = e.target.value;
-                  (window as unknown as Record<string, unknown>).__charTimer = setTimeout(() => {
-                    fetch(`/api/players/${playerId}/name`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ character: val }),
-                    });
-                  }, 800);
-                }}
-                className="text-[var(--color-text)] text-lg font-bold font-serif bg-transparent border-none outline-none min-w-0"
-                style={{ width: `${Math.max(charName.length + 1, 4)}ch` }}
-              />
-            </div>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={`${fi} min-w-[50px] w-[70px]`} />
-              <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={`${fi} min-w-[50px] w-[70px]`} />
-              {/* HP + Gold group — vertically centered */}
-              <div className="flex items-center" style={{ gap: 12, margin: '0 auto' }}>
-                {/* HP */}
-                <div className="flex items-center" style={{ gap: 3 }}>
-                  <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 15, height: 15 }}>
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                  </svg>
-                  <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.85rem] text-center outline-none font-serif" style={{ width: 32 }} />
-                </div>
-                {/* Gold */}
-                <div className="flex items-center" style={{ gap: 3 }}>
-                  <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 15, height: 15 }} className="rounded-full" />
-                  <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.85rem] text-center outline-none font-serif" style={{ width: 32 }} />
-                </div>
-              </div>
-              {/* Notification icons (mobile) */}
-              <div className="flex items-center" style={{ gap: 5, marginLeft: 16 }}>
-                {boonCount > 0 ? (
-                  <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} title="Boon active">
-                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}>
-                      <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="#ffffff" stroke="#ffffff" strokeWidth="0.5"/>
-                    </svg>
-                  </div>
-                ) : null}
-                {poisonCount > 0 ? (
-                  <div className="animate-pulse cursor-default" title="Poisoned!">
-                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, filter: 'drop-shadow(0 0 4px rgba(74,122,90,0.6))' }}>
-                      <path d="M12 2C8 2 5 5 5 9c0 2.5 1.2 4.7 3 6v2h8v-2c1.8-1.3 3-3.5 3-6 0-4-3-7-7-7z" fill="#4a7a5a"/>
-                      <circle cx="9" cy="9" r="1.5" fill="#1a1614"/><circle cx="15" cy="9" r="1.5" fill="#1a1614"/>
-                      <path d="M9 14h2v3H9zM13 14h2v3h-2z" fill="#4a7a5a"/>
-                      <path d="M10 12.5c0 0 1 1.2 2 0s2 0 2 0" fill="none" stroke="#1a1614" strokeWidth="1"/>
-                    </svg>
-                  </div>
-                ) : null}
-                {unread > 0 ? (
-                  <div onClick={toggleMessages} className="animate-pulse cursor-pointer" title={`${unread} unread`}>
-                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}>
-                      <path d="M12 2C10 2 9.5 3 10 7l1 6h2l1-6c.5-4 0-5-2-5z" fill="#dc2626" stroke="#ff4444" strokeWidth="0.5"/>
-                      <circle cx="12" cy="18" r="2" fill="#dc2626" stroke="#ff4444" strokeWidth="0.5"/>
-                    </svg>
-                  </div>
-                ) : messages.length > 0 ? (
-                  <div onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" title="View messages">
-                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, opacity: 0.4 }}>
-                      <path d="M12 2C10 2 9.5 3 10 7l1 6h2l1-6c.5-4 0-5-2-5z" fill="#dc2626"/>
-                      <circle cx="12" cy="18" r="2" fill="#dc2626"/>
-                    </svg>
-                  </div>
-                ) : null}
-                {sendingCount > 0 ? (
-                  <div className="animate-pulse cursor-default" title={`${sendingCount} sending${sendingCount > 1 ? 's' : ''}`}>
-                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, filter: 'drop-shadow(0 0 5px rgba(100,180,255,0.7))' }}>
-                      <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8 2.4-7.2-6-4.8h7.6z" fill="#64b4ff" stroke="#88ccff" strokeWidth="0.5"/>
-                    </svg>
-                  </div>
-                ) : null}
-                {ravenCount > 0 ? (
-                  <div className="animate-pulse cursor-default" title={`${ravenCount} letter${ravenCount > 1 ? 's' : ''}`}>
-                    <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, filter: 'drop-shadow(0 0 3px rgba(201,168,76,0.5))' }}>
-                      <rect x="3" y="5" width="18" height="14" rx="1.5" fill="none" stroke="#c9a84c" strokeWidth="1.5"/>
-                      <path d="M3 5l9 7 9-7" fill="none" stroke="#c9a84c" strokeWidth="1.5"/>
-                      <rect x="14" y="12" width="5" height="5" rx="0.5" fill="#c9a84c" opacity="0.6"/>
-                    </svg>
-                  </div>
-                ) : null}
-              </div>
             </div>
           </div>
         </div>
