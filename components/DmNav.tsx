@@ -38,7 +38,7 @@ function groupByPlayer(changes: PlayerChangeRow[]): Record<string, PlayerChangeR
 // kind: 'session' = green (used at the table), 'build' = white (prep & world-building)
 const LINKS: { key: NavSection; label: string; href: string; kind: 'session' | 'build' }[] = [
   { key: 'campaign',    label: 'Campaign',         href: '/dm/campaign',    kind: 'build' },
-  { key: 'journal',     label: 'Journal',         href: '/dm/journal',     kind: 'build' },
+  { key: 'journal',     label: 'Diary',         href: '/dm/journal',     kind: 'build' },
   { key: 'raven-post',  label: 'Raven Post',      href: '/dm/raven-post',  kind: 'build' },
   { key: 'whispers',    label: 'Whispers',        href: '/dm/whispers',    kind: 'build' },
   { key: 'sessions',    label: 'Sessions',        href: '/dm',             kind: 'session' },
@@ -91,6 +91,7 @@ function ArrowLeft() {
 
 export default function DmNav({ current, sessionId, poisonCount: initialPoisonCount }: { current: NavSection; sessionId?: string; poisonCount?: number }) {
   const [poisonCount, setPoisonCount] = useState(initialPoisonCount ?? 0);
+  const [unseenBoonCount, setUnseenBoonCount] = useState(0);
   const [changeCount, setChangeCount] = useState(0);
   const [showChanges, setShowChanges] = useState(false);
   const [changes, setChanges] = useState<PlayerChangeRow[]>([]);
@@ -100,6 +101,17 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
     if (initialPoisonCount !== undefined) return;
     fetch('/api/poison').then(r => r.json()).then((rows: unknown[]) => setPoisonCount(rows.length)).catch(() => {});
   }, [initialPoisonCount]);
+
+  // Fetch unseen boon count on mount
+  useEffect(() => {
+    fetch('/api/boons')
+      .then(r => r.json())
+      .then((data: { active: { seen: boolean }[] }) => {
+        const unseen = (data.active || []).filter(b => !b.seen).length;
+        setUnseenBoonCount(unseen);
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch unread change count on mount
   useEffect(() => {
@@ -133,7 +145,7 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
     <>
       <nav style={{ position: 'sticky', top: 0, display: 'flex', alignItems: 'center', zIndex: 10, background: '#161d18', borderBottom: '1px solid rgba(74,122,90,0.4)', padding: '10px 32px', fontSize: '0.875rem' }} className="font-serif relative">
         <Link href="/" className="flex items-center text-[#4a8a5a] hover:text-[#5ab87a] transition-colors no-underline flex-shrink-0">
-          <div className="relative rounded-full border border-[#4a7a5a] overflow-hidden flex-shrink-0" style={{ width: 30, height: 30 }}>
+          <div className="relative rounded-full border border-[#4a7a5a] overflow-hidden flex-shrink-0" style={{ width: 52, height: 52 }}>
             <Image src="/images/dm.png" alt="" fill className="object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           </div>
         </Link>
@@ -159,12 +171,15 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
             {LINKS.filter(l => l.kind === 'session').map(link => {
               const href = link.key === 'maps' && sessionId ? `/dm/maps?session=${sessionId}` : link.href;
               const isPoisonGlow = link.key === 'poisons' && poisonCount > 0 && current !== 'poisons';
+              const isBoonGlow = link.key === 'boons' && unseenBoonCount > 0 && current !== 'boons';
+              const isGlowing = isPoisonGlow || isBoonGlow;
               const activeColor = '#5ab87a';
               const restColor = '#4a8a5a';
               const hoverColor = '#5ab87a';
+              const glowColor = isBoonGlow ? '#ffffff' : '#7ac28a';
               return link.key === current
                 ? <span key={link.key} style={{ color: activeColor }} className="font-semibold whitespace-nowrap">{link.label}</span>
-                : <Link key={link.key} href={href} style={{ color: isPoisonGlow ? '#7ac28a' : restColor }} className={`transition-colors no-underline whitespace-nowrap ${isPoisonGlow ? 'animate-pulse' : ''}`} onMouseEnter={e => (e.currentTarget.style.color = hoverColor)} onMouseLeave={e => (e.currentTarget.style.color = isPoisonGlow ? '#7ac28a' : restColor)}>{link.label}</Link>;
+                : <Link key={link.key} href={href} style={{ color: isGlowing ? glowColor : restColor }} className={`transition-colors no-underline whitespace-nowrap ${isGlowing ? 'animate-pulse' : ''}`} onMouseEnter={e => (e.currentTarget.style.color = hoverColor)} onMouseLeave={e => (e.currentTarget.style.color = isGlowing ? glowColor : restColor)}>{link.label}</Link>;
             })}
           </div>
         </div>
