@@ -510,19 +510,19 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 60, width: 80, marginRight: 12 }} />
             <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 60, width: 80 }} />
 
-            {/* HP + Gold group — dead center */}
-            <div className="flex items-center" style={{ gap: 20, margin: '0 auto' }}>
+            {/* HP + Gold group — icons centered, values below */}
+            <div className="flex items-start" style={{ gap: 8, margin: '0 auto', transform: 'translateX(-200px)' }}>
               {/* HP */}
               <div className="flex flex-col items-center">
-                <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 18, height: 18 }}>
+                <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 20, height: 20 }}>
                   <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
-                <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.95rem] text-center outline-none font-serif" style={{ width: 36 }} />
+                <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 36, fontSize: '0.925rem' }} />
               </div>
               {/* Gold */}
               <div className="flex flex-col items-center">
-                <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 18, height: 18 }} className="rounded-full" />
-                <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.95rem] text-center outline-none font-serif" style={{ width: 36 }} />
+                <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 20, height: 20 }} className="rounded-full" />
+                <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 36, fontSize: '0.925rem' }} />
               </div>
             </div>
 
@@ -608,18 +608,18 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             <div className="flex items-center justify-center gap-2 mt-1">
               <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={`${fi} min-w-[50px] w-[70px]`} />
               <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={`${fi} min-w-[50px] w-[70px]`} />
-              {/* HP + Gold group — dead center */}
-              <div className="flex items-center" style={{ gap: 16, margin: '0 auto' }}>
+              {/* HP + Gold group — vertically centered */}
+              <div className="flex items-center" style={{ gap: 12, margin: '0 auto' }}>
                 {/* HP */}
-                <div className="flex flex-col items-center">
-                  <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 16, height: 16 }}>
+                <div className="flex items-center" style={{ gap: 3 }}>
+                  <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 15, height: 15 }}>
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                   </svg>
                   <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.85rem] text-center outline-none font-serif" style={{ width: 32 }} />
                 </div>
                 {/* Gold */}
-                <div className="flex flex-col items-center">
-                  <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 16, height: 16 }} className="rounded-full" />
+                <div className="flex items-center" style={{ gap: 3 }}>
+                  <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 15, height: 15 }} className="rounded-full" />
                   <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-[0.85rem] text-center outline-none font-serif" style={{ width: 32 }} />
                 </div>
               </div>

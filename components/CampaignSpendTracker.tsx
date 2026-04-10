@@ -8,14 +8,15 @@ import CampaignSpendLedgerModal from './CampaignSpendLedgerModal';
 const POLL_MS = 60_000;
 
 const SERVICE_LABELS: Record<string, string> = {
-  elevenlabs: 'ElevenLabs',
-  anthropic:  'Anthropic',
-  twilio:     'Twilio SMS',
-  websearch:  'Web search',
-  railway:    'Railway',
+  elevenlabs:        'ElevenLabs',
+  anthropic:         'Anthropic',
+  twilio:            'Twilio SMS',
+  websearch:         'Web search',
+  railway:           'Railway',
+  openai_embeddings: 'OpenAI',
 };
 
-const SERVICE_ORDER = ['elevenlabs', 'anthropic', 'twilio', 'websearch', 'railway'];
+const SERVICE_ORDER = ['elevenlabs', 'anthropic', 'openai_embeddings', 'twilio', 'websearch', 'railway'];
 
 function fmt(usd: number): string {
   if (usd === 0) return '$0';
@@ -85,17 +86,49 @@ export default function CampaignSpendTracker() {
   const twilioPaused    = sortedRows.find(r => r.service === 'twilio')?.paused ?? false;
 
   return (
-    <div className="max-w-[1000px] mx-auto px-8 mt-12 mb-12">
+    <div className="mt-6 mb-12">
       <div
         className="border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
         style={{ borderRadius: 0 }}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-serif text-[var(--color-gold)] text-lg">
-            Raven Post — month-to-date spend
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          <h3 className="font-serif text-[var(--color-gold)] text-lg" style={{ marginRight: 'auto' }}>
+            Budget
           </h3>
           {loading && <span className="text-xs text-[var(--color-text-muted)]">loading…</span>}
           {error && <span className="text-xs" style={{ color: '#c07a8a' }}>{error}</span>}
+          <button
+            onClick={() => setShowCapsModal(true)}
+            className="text-xs px-3 py-1 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] hover:border-[var(--color-gold)] uppercase tracking-widest font-serif"
+          >
+            Adjust caps
+          </button>
+          <button
+            onClick={() => setShowLedgerModal(true)}
+            className="text-xs px-3 py-1 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] hover:border-[var(--color-gold)] uppercase tracking-widest font-serif"
+          >
+            View ledger
+          </button>
+          <button
+            onClick={() => togglePause('anthropic', !anthropicPaused)}
+            className="text-xs px-3 py-1 border uppercase tracking-widest font-serif"
+            style={{
+              borderColor: anthropicPaused ? '#7ac28a' : '#7b2a2a',
+              color: anthropicPaused ? '#7ac28a' : '#d8a8a8',
+            }}
+          >
+            {anthropicPaused ? '▶ Resume World AI' : '⏸ Pause World AI'}
+          </button>
+          <button
+            onClick={() => togglePause('twilio', !twilioPaused)}
+            className="text-xs px-3 py-1 border uppercase tracking-widest font-serif"
+            style={{
+              borderColor: twilioPaused ? '#7ac28a' : '#7b2a2a',
+              color: twilioPaused ? '#7ac28a' : '#d8a8a8',
+            }}
+          >
+            {twilioPaused ? '▶ Resume SMS' : '⏸ Pause SMS push'}
+          </button>
         </div>
 
         <div className="space-y-2">
@@ -143,7 +176,7 @@ export default function CampaignSpendTracker() {
             display: 'grid',
             gridTemplateColumns: '110px 1fr 110px',
             gap: '12px',
-            fontSize: '0.95rem',
+            fontSize: '0.85rem',
             fontWeight: 700,
           }}
         >
@@ -156,41 +189,6 @@ export default function CampaignSpendTracker() {
           </span>
         </div>
 
-        {/* Action bar */}
-        <div className="mt-4 pt-3 border-t border-[var(--color-border)] flex flex-wrap gap-2">
-          <button
-            onClick={() => setShowCapsModal(true)}
-            className="text-xs px-3 py-1.5 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] hover:border-[var(--color-gold)] uppercase tracking-widest font-serif"
-          >
-            Adjust caps
-          </button>
-          <button
-            onClick={() => setShowLedgerModal(true)}
-            className="text-xs px-3 py-1.5 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] hover:border-[var(--color-gold)] uppercase tracking-widest font-serif"
-          >
-            View ledger
-          </button>
-          <button
-            onClick={() => togglePause('anthropic', !anthropicPaused)}
-            className="text-xs px-3 py-1.5 border uppercase tracking-widest font-serif"
-            style={{
-              borderColor: anthropicPaused ? '#7ac28a' : '#7b2a2a',
-              color: anthropicPaused ? '#7ac28a' : '#d8a8a8',
-            }}
-          >
-            {anthropicPaused ? '▶ Resume World AI' : '⏸ Pause World AI'}
-          </button>
-          <button
-            onClick={() => togglePause('twilio', !twilioPaused)}
-            className="text-xs px-3 py-1.5 border uppercase tracking-widest font-serif"
-            style={{
-              borderColor: twilioPaused ? '#7ac28a' : '#7b2a2a',
-              color: twilioPaused ? '#7ac28a' : '#d8a8a8',
-            }}
-          >
-            {twilioPaused ? '▶ Resume SMS' : '⏸ Pause SMS push'}
-          </button>
-        </div>
       </div>
 
       {showCapsModal && (

@@ -110,26 +110,26 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
 
   return (
     <div className="max-w-[1000px] mx-auto px-8 py-12">
-      <div className="flex gap-12 items-start">
-        {/* Left: campaign fields */}
-        <div className="flex-1 space-y-4">
+      <div style={{ display: 'flex', alignItems: 'start' }}>
+        {/* Left column: all fields */}
+        <div className="space-y-2" style={{ flex: 1 }}>
           <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1.5">Name</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} onBlur={handleNameBlur} placeholder="e.g. Shadow of the Wolf" className={inputClass} />
+            <label className="block text-xs text-[var(--color-text-muted)] mb-1">Name</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} onBlur={handleNameBlur} placeholder="e.g. Shadow of the Wolf" className={inputClass} style={{ fontSize: '0.85rem' }} />
           </div>
           <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1.5">World</label>
-            <input type="text" value={world} onChange={e => setWorld(e.target.value)} onBlur={handleWorldBlur} placeholder="e.g. Blackmoor" className={inputClass} />
+            <label className="block text-xs text-[var(--color-text-muted)] mb-1">World</label>
+            <input type="text" value={world} onChange={e => setWorld(e.target.value)} onBlur={handleWorldBlur} placeholder="e.g. Blackmoor" className={inputClass} style={{ fontSize: '0.85rem' }} />
           </div>
           <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1.5">DM Email</label>
-            <input type="email" value={dmEmail} onChange={e => setDmEmail(e.target.value)} onBlur={handleDmEmailBlur} placeholder="you@example.com" className={inputClass} />
-            <p className="text-xs text-[var(--color-text-muted)] mt-1">Get an email when enough players confirm a Saturday</p>
+            <label className="block text-xs text-[var(--color-text-muted)] mb-1">Site Description</label>
+            <input type="text" value={description} onChange={e => setDescription(e.target.value)} onBlur={handleDescriptionBlur} placeholder="Shown in Discord embeds" className={inputClass} style={{ fontSize: '0.85rem' }} />
+            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Appears in social previews</p>
           </div>
           <div>
-            <label className="block text-sm text-[var(--color-text-muted)] mb-1.5">Site Description</label>
-            <input type="text" value={description} onChange={e => setDescription(e.target.value)} onBlur={handleDescriptionBlur} placeholder="Shown in Discord embeds" className={inputClass} />
-            <p className="text-xs text-[var(--color-text-muted)] mt-1">Appears in Discord/social previews when someone shares a link</p>
+            <label className="block text-xs text-[var(--color-text-muted)] mb-1">DM Email</label>
+            <input type="email" value={dmEmail} onChange={e => setDmEmail(e.target.value)} onBlur={handleDmEmailBlur} placeholder="you@example.com" className={inputClass} style={{ fontSize: '0.85rem' }} />
+            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Get an email when enough players confirm a game</p>
           </div>
           <div className="h-6 text-sm">
             {saving && <span className="text-[var(--color-text-muted)]">Saving...</span>}
@@ -137,114 +137,136 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
           </div>
         </div>
 
-        {/* Right: New Invitation circle + list */}
-        <div className="flex flex-col items-center gap-4 flex-shrink-0 relative">
-          <button
-            onClick={() => { setShowCalendar(!showCalendar); setSelectedDates([]); }}
-            className="rounded-full flex items-center justify-center transition-transform hover:scale-105"
-            style={{ width: 64, height: 64, border: '2px solid rgba(201,168,76,0.4)', background: '#2e2825' }}
-            title="New Invitation"
-          >
-            <span className="text-[var(--color-gold)] text-2xl leading-none">+</span>
-          </button>
-          <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans">New Invitation</span>
-
-          {/* Calendar popup */}
-          {showCalendar && (
-            <div
-              className="absolute top-20 right-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 z-50"
-              style={{ width: 300 }}
+        {/* Right column: 3 circles horizontal */}
+        <div style={{ display: 'flex', gap: 24, alignItems: 'start', justifyContent: 'center', width: '50%', flexShrink: 0 }} className="relative">
+          {/* Ajax — test player */}
+          <div className="flex flex-col items-center gap-1.5">
+            <a
+              href="/players/ajax"
+              className="rounded-full overflow-hidden transition-transform hover:scale-105"
+              style={{ width: 64, height: 64, border: '2px solid rgba(201,168,76,0.4)' }}
+              title="Ajax — Test Player"
             >
-              {/* Month nav */}
-              <div className="flex items-center justify-between mb-3">
-                <button
-                  onClick={() => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); }}
-                  className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors px-2"
-                >←</button>
-                <span className="font-serif text-sm text-[var(--color-text)]">{formatMonthYear(calYear, calMonth)}</span>
-                <button
-                  onClick={() => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); }}
-                  className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors px-2"
-                >→</button>
-              </div>
+              <img
+                src="/images/campaign/ghost.png"
+                alt="Ajax"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </a>
+            <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans">Ajax</span>
+          </div>
 
-              {/* Day headers */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }} className="mb-1">
-                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                  <div key={d} className="text-center text-[0.6rem] text-[var(--color-text-muted)] font-sans uppercase">{d}</div>
-                ))}
-              </div>
+          {/* New Invitation */}
+          <div className="flex flex-col items-center gap-1.5">
+            <button
+              onClick={() => { setShowCalendar(!showCalendar); setSelectedDates([]); }}
+              className="rounded-full flex items-center justify-center transition-transform hover:scale-105"
+              style={{ width: 64, height: 64, border: '2px solid rgba(201,168,76,0.4)', background: '#2e2825' }}
+              title="New Invitation"
+            >
+              <span className="text-[var(--color-gold)] text-2xl leading-none">+</span>
+            </button>
+            <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans">Invite</span>
 
-              {/* Day cells */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
-                {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
-                {Array.from({ length: daysInMonth }).map((_, i) => {
-                  const day = i + 1;
-                  const iso = toISO(calYear, calMonth, day);
-                  const isSelected = selectedDates.includes(iso);
-                  const isPast = iso < todayISO;
-                  return (
+            {/* Calendar popup */}
+            {showCalendar && (
+              <div
+                className="absolute top-20 right-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 z-50"
+                style={{ width: 300 }}
+              >
+                {/* Month nav */}
+                <div className="flex items-center justify-between mb-3">
+                  <button
+                    onClick={() => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); }}
+                    className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors px-2"
+                  >←</button>
+                  <span className="font-serif text-sm text-[var(--color-text)]">{formatMonthYear(calYear, calMonth)}</span>
+                  <button
+                    onClick={() => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); }}
+                    className="text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors px-2"
+                  >→</button>
+                </div>
+
+                {/* Day headers */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }} className="mb-1">
+                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                    <div key={d} className="text-center text-[0.6rem] text-[var(--color-text-muted)] font-sans uppercase">{d}</div>
+                  ))}
+                </div>
+
+                {/* Day cells */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+                  {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const iso = toISO(calYear, calMonth, day);
+                    const isSelected = selectedDates.includes(iso);
+                    const isPast = iso < todayISO;
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => !isPast && toggleDate(iso)}
+                        disabled={isPast}
+                        className={`rounded-full flex items-center justify-center text-xs font-serif transition-all ${
+                          isPast ? 'text-[#3d3530] cursor-default' : isSelected ? 'text-[#1a1614] font-bold' : 'text-[var(--color-text)] hover:bg-[#2e2825]'
+                        }`}
+                        style={{
+                          width: 32, height: 32,
+                          background: isSelected ? '#c9a84c' : 'transparent',
+                        }}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Selected count + actions */}
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--color-border)]">
+                  <span className="text-xs text-[var(--color-text-muted)] font-sans">
+                    {selectedDates.length}/5 dates
+                  </span>
+                  <div className="flex gap-2">
                     <button
-                      key={day}
-                      onClick={() => !isPast && toggleDate(iso)}
-                      disabled={isPast}
-                      className={`rounded-full flex items-center justify-center text-xs font-serif transition-all ${
-                        isPast ? 'text-[#3d3530] cursor-default' : isSelected ? 'text-[#1a1614] font-bold' : 'text-[var(--color-text)] hover:bg-[#2e2825]'
-                      }`}
-                      style={{
-                        width: 32, height: 32,
-                        background: isSelected ? '#c9a84c' : 'transparent',
-                      }}
+                      onClick={() => { setShowCalendar(false); setSelectedDates([]); }}
+                      className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors px-2 py-1"
                     >
-                      {day}
+                      Cancel
                     </button>
-                  );
-                })}
-              </div>
-
-              {/* Selected count + actions */}
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--color-border)]">
-                <span className="text-xs text-[var(--color-text-muted)] font-sans">
-                  {selectedDates.length}/5 dates
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { setShowCalendar(false); setSelectedDates([]); }}
-                    className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors px-2 py-1"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={createInvitation}
-                    disabled={selectedDates.length === 0}
-                    className="text-xs font-sans uppercase tracking-wider text-[#1a1614] px-3 py-1 rounded transition-colors"
-                    style={{ background: selectedDates.length > 0 ? '#c9a84c' : '#5a4f46' }}
-                  >
-                    Create
-                  </button>
+                    <button
+                      onClick={createInvitation}
+                      disabled={selectedDates.length === 0}
+                      className="text-xs font-sans uppercase tracking-wider text-[#1a1614] px-3 py-1 rounded transition-colors"
+                      style={{ background: selectedDates.length > 0 ? '#c9a84c' : '#5a4f46' }}
+                    >
+                      Create
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Invitation list */}
-          {invitations.map(inv => (
-            <div key={inv.id} className="flex flex-col items-center gap-1">
-              <button
-                onClick={() => copyLink(inv.slug)}
-                className="text-xs font-serif text-[var(--color-gold)] hover:text-[#e0bc5a] transition-colors text-center"
-                title="Copy link"
-              >
-                {inv.label}
-              </button>
-              {copied === inv.slug && (
-                <span className="text-[0.6rem] text-[#4a8a65] font-sans">Copied!</span>
-              )}
-            </div>
-          ))}
+            {/* Invitation list */}
+            {invitations.map(inv => (
+              <div key={inv.id} className="flex flex-col items-center gap-1">
+                <button
+                  onClick={() => copyLink(inv.slug)}
+                  className="text-xs font-serif text-[var(--color-gold)] hover:text-[#e0bc5a] transition-colors text-center"
+                  title="Copy link"
+                >
+                  {inv.label}
+                </button>
+                {copied === inv.slug && (
+                  <span className="text-[0.6rem] text-[#4a8a65] font-sans">Copied!</span>
+                )}
+              </div>
+            ))}
+          </div>
 
-          {/* Home art drop circle — upload splash / banner / other */}
-          <HomeArtDropCircle />
+          {/* Home art drop circle */}
+          <div className="flex flex-col items-center gap-1.5">
+            <HomeArtDropCircle />
+          </div>
         </div>
       </div>
       <CampaignSpendTracker />
