@@ -528,69 +528,37 @@ export default function InitiativePageClient({
   const visibleNpcs = npcs.filter(n => sessionNpcIds.includes(n.id));
 
   return (
-    <div>
-      {/* Session box row — at top of banner */}
-      <div className="relative z-10" style={{ marginTop: -241 }}>
-        <div className="px-6 pb-2">
-        <div className="max-w-[1000px] mx-auto flex justify-center gap-2.5 overflow-x-auto pb-1">
-          {sessions.map(s => (
-            <button
-              key={s.id}
-              onClick={() => setSelectedSessionId(s.id)}
-              className={`flex-shrink-0 w-[96px] rounded px-2 py-2.5 flex flex-col items-center gap-1 transition-colors border ${
-                selectedSessionId === s.id
-                  ? 'border-[var(--color-gold)] bg-[var(--color-surface)]'
-                  : 'border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[#5a4a44]'
-              }`}
-            >
-              <span className="text-lg font-bold leading-none font-serif text-[var(--color-gold)]">
-                #{s.number}
-              </span>
-              <span className={`text-[13px] font-serif leading-tight line-clamp-2 text-center w-full ${
-                selectedSessionId === s.id ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'
-              }`}>
-                {s.title || 'Untitled'}
-              </span>
-            </button>
-          ))}
-        </div>
-        </div>
-      </div>
-
-      {/* Return to Session */}
-      <div className="max-w-[1000px] mx-auto px-4 pt-3 flex justify-end">
-        <Link
-          href="/dm"
-          className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors font-sans"
-        >
-          ← Session
-        </Link>
-      </div>
-
-      {/* Roll dice */}
-      <div className="max-w-[1000px] mx-auto px-4 py-8" style={{ marginTop: -25 }}>
-        <div className="flex justify-center">
-          <button
-            onClick={handleGo}
-            className="rounded-full bg-transparent flex items-center justify-center hover:scale-110 transition-transform"
-            style={{ width: 60, height: 60, fontSize: '1.8rem', border: '1px solid rgba(201,168,76,0.5)' }}
-            title="Roll Initiative"
+    <div className="relative z-10" style={{ marginTop: -84 }}>
+      <div className="max-w-[1000px] mx-auto px-4 pt-6 pb-16 bg-[var(--color-bg)] rounded-t-2xl">
+        {/* Back link + centered dice */}
+        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} className="mb-4">
+          <Link
+            href="/dm"
+            className="text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors font-sans no-underline"
           >
-            🎲
-          </button>
+            ← Session
+          </Link>
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+            <button
+              onClick={handleGo}
+              className="rounded-full hover:scale-110 transition-transform"
+              style={{ width: 60, height: 60, fontSize: '2.2rem', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              title="Roll Initiative"
+            >
+              🎲
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Main pane */}
-      <div className="max-w-[1000px] mx-auto px-4 pb-16">
+        {/* Main pane */}
         <div className="border border-[var(--color-border)] rounded bg-[#1a2535]">
 
           {/* Players */}
-          <div className="relative px-6 pt-5 pb-5">
+          <div className="px-4 sm:px-6 pt-5 pb-5">
             <div className="flex flex-col gap-4">
               {activePlayers.map(p => (
-                <div key={p.id} className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-[#2e2825] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div className="rounded-full overflow-hidden bg-[#2e2825] border border-[var(--color-border)]" style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Image
                       src={p.img}
                       alt={p.playerName}
@@ -600,7 +568,7 @@ export default function InitiativePageClient({
                       onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="font-serif text-sm text-[var(--color-text)]">{p.character}</div>
                   </div>
                   <InitCounter
@@ -614,8 +582,8 @@ export default function InitiativePageClient({
 
           {/* NPCs */}
           <div className="border-t border-[var(--color-border)]" />
-          <div className="px-6 pt-4 pb-5">
-            <div className="flex items-center justify-between mb-4">
+          <div className="px-4 sm:px-6 pt-4 pb-5">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} className="mb-4">
               <h2 className="font-serif text-[1.1rem] italic text-[var(--color-text)] leading-none tracking-tight">NPCs</h2>
             </div>
             {visibleNpcs.length === 0 ? (
@@ -626,18 +594,18 @@ export default function InitiativePageClient({
                   const imgUrl = n.image_path ? resolveImageUrl(n.image_path) : null;
                   const initial = n.name?.trim()?.[0]?.toUpperCase() ?? '?';
                   return (
-                    <div key={n.id} className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-[#2e2825] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
+                    <div key={n.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div className="rounded-full overflow-hidden bg-[#2e2825] border border-[var(--color-border)]" style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {imgUrl ? (
                           <img src={imgUrl} alt={n.name} className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-[1rem] text-[var(--color-text-muted)] font-serif">{initial}</span>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="font-serif text-sm text-[var(--color-text)] truncate">{n.name || 'Unnamed'}</div>
                       </div>
-                      <span className="text-[0.6rem] uppercase tracking-[0.1em] text-[#5a4a44] flex-shrink-0">d20+</span>
+                      <span className="text-[0.6rem] uppercase tracking-[0.1em] text-[#5a4a44]" style={{ flexShrink: 0 }}>d20+</span>
                       <InitCounter
                         value={npcBonuses[n.id] ?? 0}
                         onChange={v => setNpcBonuses(prev => ({ ...prev, [n.id]: v }))}
@@ -650,7 +618,6 @@ export default function InitiativePageClient({
           </div>
         </div>
       </div>
-
     </div>
   );
 }
