@@ -92,10 +92,10 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
           onClick={() => onSelect(item)}
         >
           {/* Outer wrapper: selection ring + badge positioning context */}
-          <div className={`relative group w-24 h-24 rounded-full transition-all
+          <div className={`relative group rounded-full transition-all
             ${selectedItemId === item.id
               ? 'ring-2 ring-[var(--color-gold)] ring-offset-2 ring-offset-[#2e3a4a]'
-              : ''}`}>
+              : ''}`} style={{ width: 58, height: 58 }}>
 
             {/* Inner circle: clips image and tooltip */}
             <div className="absolute inset-0 rounded-full overflow-hidden border border-[var(--color-border)]">
@@ -120,18 +120,19 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
             </div>
 
             {/* Gold price badge — bottom-LEFT, coin image bg */}
-            <div className="absolute -bottom-1 -left-1 w-[26px] h-[26px] rounded-full
-                            overflow-hidden border border-[var(--color-bg)] z-10 flex items-center justify-center">
+            <div className="absolute -bottom-1 -left-1 rounded-full
+                            overflow-hidden border border-[var(--color-bg)] z-10 flex items-center justify-center"
+              style={{ width: 16, height: 16 }}>
               <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
-              <span className="relative text-[9px] font-bold text-black drop-shadow-sm">{item.price}</span>
+              <span className="relative text-[6px] font-bold text-black drop-shadow-sm">{item.price}</span>
             </div>
 
             {/* Type badge — bottom-RIGHT */}
             {item.item_type && TYPE_COLORS[item.item_type] && (
-              <div className="absolute -bottom-1 -right-1 w-[22px] h-[22px] rounded-full
-                              flex items-center justify-center text-[9px] font-bold text-white
+              <div className="absolute -bottom-1 -right-1 rounded-full
+                              flex items-center justify-center text-[6px] font-bold text-white
                               border border-[var(--color-bg)] z-10"
-                style={{ backgroundColor: TYPE_COLORS[item.item_type] }}>
+                style={{ width: 14, height: 14, backgroundColor: TYPE_COLORS[item.item_type] }}>
                 {TYPE_LABELS[item.item_type]}
               </div>
             )}
@@ -139,34 +140,35 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
             {/* Legacy stat badge — bottom-RIGHT, only if no item_type */}
             {!item.item_type && item.stat_type && item.stat_value !== null && (
               item.stat_type === 'heal' ? (
-                <div className="absolute -bottom-1 -right-1 w-[26px] h-[26px] flex items-center justify-center z-10">
+                <div className="absolute -bottom-1 -right-1 flex items-center justify-center z-10" style={{ width: 16, height: 16 }}>
                   <svg viewBox="0 0 24 24" className="absolute inset-0 w-full h-full drop-shadow-sm" fill="#b91c1c">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                   </svg>
                   <span className="relative text-[9px] font-bold text-white z-10 leading-none">{item.stat_value}</span>
                 </div>
               ) : (
-                <div className={`absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full
-                                flex items-center justify-center text-[9px] font-bold
-                                border border-[var(--color-bg)] z-10 ${statBadgeClass(item.stat_type)}`}>
+                <div className={`absolute -bottom-1 -right-1 rounded-full
+                                flex items-center justify-center text-[6px] font-bold
+                                border border-[var(--color-bg)] z-10 ${statBadgeClass(item.stat_type)}`}
+                  style={{ width: 16, height: 16 }}>
                   {item.stat_value}
                 </div>
               )
             )}
           </div>
 
-          <p className="text-[0.65rem] text-center text-[var(--color-text)] mt-1 w-24 leading-tight line-clamp-2">
+          <p className="text-[0.65rem] text-center text-[var(--color-text)] mt-1 w-14 leading-tight line-clamp-2">
             {item.title}
           </p>
           {/* Stat line for items with multiple bonuses */}
           {item.item_type === 'magic_item' && buildStatLine(item) && (
-            <p className="text-[0.5rem] text-center text-[var(--color-text-muted)] w-24 leading-tight">
+            <p className="text-[0.5rem] text-center text-[var(--color-text-muted)] w-14 leading-tight">
               {buildStatLine(item)}
             </p>
           )}
           {/* Level for scrolls/spells */}
           {(item.item_type === 'scroll' || item.item_type === 'spell') && item.level !== null && (
-            <p className="text-[0.5rem] text-center text-[var(--color-text-muted)] w-24 leading-tight">
+            <p className="text-[0.5rem] text-center text-[var(--color-text-muted)] w-14 leading-tight">
               Lvl {item.level}{item.school ? ` · ${item.school}` : ''}
             </p>
           )}

@@ -244,8 +244,57 @@ export default function InventoryPageClient() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Inventory pane — Row 1 */}
+      <div className="relative border border-[var(--color-border)] rounded bg-[#2e3a4a]">
+        <div className="px-6 pt-5 pb-6">
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+            <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none tracking-tight" style={{ marginRight: 'auto' }}>
+              Add to Market
+            </h2>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button
+                onClick={() => selectedItem && setConfirmDelete(true)}
+                disabled={!selectedItem}
+                title={selectedItem ? 'Delete item' : 'Select an item first'}
+                className="rounded-full bg-red-700 text-white font-bold flex items-center justify-center
+                           hover:bg-red-600 disabled:opacity-50 transition-colors"
+                style={{ width: 34, height: 34, fontSize: '0.9rem' }}
+              >
+                ✕
+              </button>
+              <button
+                onClick={handleEdit}
+                disabled={!selectedItem}
+                title={selectedItem ? 'Load item into form' : 'Select an item first'}
+                className="rounded-full bg-[#2d6a4f] text-white font-bold tracking-wider flex items-center justify-center
+                           hover:bg-[#3a8a65] disabled:opacity-50 transition-colors"
+                style={{ width: 34, height: 34, fontSize: '0.6rem' }}
+              >
+                EDIT
+              </button>
+              <button
+                onClick={sendToMarketplace}
+                disabled={!selectedItem}
+                title={selectedItem ? 'Send to marketplace' : 'Select an item first'}
+                className="rounded-full bg-[var(--color-gold)] text-black font-bold flex items-center justify-center
+                           hover:bg-[#e0bc5a] disabled:opacity-50 transition-colors"
+                style={{ width: 34, height: 34, fontSize: '1.1rem' }}
+              >
+                +
+              </button>
+            </div>
+          </div>
+          <div className="border-t border-[var(--color-border)] mb-6" />
+          <InventoryItemGrid
+            refreshKey={refreshKey}
+            selectedItemId={selectedItem?.id ?? null}
+            onSelect={handleSelect}
+          />
+        </div>
+      </div>
+
       {/* Builder + Preview — side by side */}
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
         {/* Pane 1: Card Builder + Publish */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: 480, flexShrink: 0 }}>
           <InventoryCreateForm
@@ -272,105 +321,9 @@ export default function InventoryPageClient() {
           </button>
         </div>
 
-        {/* Pane 2: Card Preview + Prompt */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        {/* Pane 2: Card Preview */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <CardPreview fields={fields} />
-
-          {/* MJ Image Prompt box — stretches to align bottom with Publish */}
-          <div className="w-full border border-[var(--color-border)] rounded-md bg-[#1e1b18] relative flex flex-col"
-            style={{ maxWidth: 340, flex: 1 }}>
-            <div className="px-3 pt-2 pb-1">
-              <span className="text-[0.6rem] uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-sans">
-                Image Prompt
-              </span>
-            </div>
-            <div className="px-3 pb-3 flex-1 flex">
-              <textarea
-                value={imagePrompt}
-                onChange={e => setImagePrompt(e.target.value)}
-                placeholder={promptLoading ? 'Generating prompt...' : 'Describe your item for Midjourney...'}
-                className="w-full bg-transparent border border-[var(--color-border)] rounded px-2 py-1.5
-                  text-[0.8rem] text-[var(--color-text)] font-sans resize-none flex-1
-                  outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-dim)]"
-              />
-            </div>
-            {/* Copy arrow — right side, vertically centered */}
-            <button
-              onClick={async () => {
-                if (!imagePrompt) return;
-                await navigator.clipboard.writeText(imagePrompt);
-                setPromptCopied(true);
-                setTimeout(() => setPromptCopied(false), 2000);
-              }}
-              disabled={!imagePrompt}
-              className="absolute flex items-center justify-center transition-colors
-                disabled:opacity-30"
-              style={{
-                right: -44, bottom: -16,
-                width: 36, height: 36, borderRadius: '50%',
-                border: '2px solid #4a7a5a',
-                color: promptCopied ? '#5ab87a' : '#4a7a5a',
-                fontSize: 18,
-              }}
-              title={promptCopied ? 'Copied!' : 'Copy prompt to clipboard'}
-            >
-              {promptCopied ? '✓' : '📋'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Inventory pane */}
-      <div className="relative border border-[var(--color-border)] rounded bg-[#2e3a4a]">
-        {/* DELETE button */}
-        <button
-          onClick={() => selectedItem && setConfirmDelete(true)}
-          disabled={!selectedItem}
-          title={selectedItem ? 'Delete item' : 'Select an item first'}
-          className="absolute top-4 right-28 w-10 h-10 rounded-full bg-red-700 text-white
-                     text-lg font-bold flex items-center justify-center
-                     hover:bg-red-600 disabled:opacity-50 transition-colors"
-        >
-          ✕
-        </button>
-
-        {/* EDIT button */}
-        <button
-          onClick={handleEdit}
-          disabled={!selectedItem}
-          title={selectedItem ? 'Load item into form' : 'Select an item first'}
-          className="absolute top-4 right-16 w-10 h-10 rounded-full bg-[#2d6a4f] text-white
-                     text-[9px] font-bold tracking-wider flex items-center justify-center
-                     hover:bg-[#3a8a65] disabled:opacity-50 transition-colors"
-        >
-          EDIT
-        </button>
-
-        {/* Send-to-marketplace button */}
-        <button
-          onClick={sendToMarketplace}
-          disabled={!selectedItem}
-          title={selectedItem ? 'Send to marketplace' : 'Select an item first'}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[var(--color-gold)] text-black text-xl
-                     font-bold flex items-center justify-center hover:bg-[#e0bc5a]
-                     disabled:opacity-50 transition-colors"
-        >
-          +
-        </button>
-
-        <div className="px-6 pt-5 pb-6 min-h-[480px]">
-          <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none tracking-tight mb-1">
-            Inventory
-          </h2>
-          <p className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--color-text-muted)] mb-4">
-            Items available to add to the Marketplace
-          </p>
-          <div className="border-t border-[var(--color-border)] mb-6" />
-          <InventoryItemGrid
-            refreshKey={refreshKey}
-            selectedItemId={selectedItem?.id ?? null}
-            onSelect={handleSelect}
-          />
         </div>
       </div>
 
