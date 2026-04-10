@@ -537,22 +537,22 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             </div>
             <div style={{ flex: 1 }} />
             {/* Notification dots */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
               {boonCount > 0 ? (
-                <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`} style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffffff', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} />
+                <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
               ) : null}
               {poisonCount > 0 ? (
-                <div className="animate-pulse cursor-default" title="Poisoned!" style={{ width: 12, height: 12, borderRadius: '50%', background: '#7ac28a', boxShadow: '0 0 6px rgba(122,194,138,0.6)' }} />
+                <svg className="animate-pulse cursor-default" viewBox="0 0 24 24" fill="#22b14c" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(34,177,76,0.6))' }} title="Poisoned!"><path d="M12 2c-1 2-5 7-5 11a5 5 0 0 0 10 0c0-4-4-9-5-11z"/><circle cx="10.5" cy="13" r="1.2" fill="rgba(255,255,255,0.3)"/><circle cx="9.5" cy="15" r="0.7" fill="rgba(255,255,255,0.2)"/></svg>
               ) : null}
               {unread > 0 ? (
-                <div onClick={toggleMessages} className="animate-pulse cursor-pointer" title={`${unread} unread message${unread > 1 ? 's' : ''}`} style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', boxShadow: '0 0 6px rgba(220,38,38,0.5)' }} />
+                <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }} title={`${unread} unread message${unread > 1 ? 's' : ''}`}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
               ) : messages.length > 0 ? (
-                <div onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" title="View messages" style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', opacity: 0.3 }} />
+                <svg onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', opacity: 0.3 }} title="View messages"><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
               ) : null}
               {unreadSendings > 0 ? (
-                <div onClick={toggleSendings} className="animate-pulse cursor-pointer" title={`${unreadSendings} sending${unreadSendings > 1 ? 's' : ''}`} style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b3a8b', boxShadow: '0 0 6px rgba(139,58,139,0.7)' }} />
+                <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" title={`${unreadSendings} sending${unreadSendings > 1 ? 's' : ''}`} style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
               ) : sendings.length > 0 ? (
-                <div onClick={toggleSendings} className="cursor-pointer hover:opacity-70 transition-opacity" title="View sendings" style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b3a8b', opacity: 0.3 }} />
+                <span onClick={toggleSendings} className="cursor-pointer hover:opacity-70 transition-opacity select-none" title="View sendings" style={{ fontSize: 22, lineHeight: 1, opacity: 0.3 }}>👂</span>
               ) : null}
             </div>
           </div>
@@ -596,22 +596,22 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             </div>
             <div style={{ flex: 1 }} />
             {/* Dots */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               {boonCount > 0 ? (
-                <div onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffffff', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} />
+                <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
               ) : null}
               {poisonCount > 0 ? (
                 <div className="animate-pulse" style={{ width: 12, height: 12, borderRadius: '50%', background: '#7ac28a', boxShadow: '0 0 6px rgba(122,194,138,0.6)' }} />
               ) : null}
               {unread > 0 ? (
-                <div onClick={toggleMessages} className="animate-pulse cursor-pointer" style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', boxShadow: '0 0 6px rgba(220,38,38,0.5)' }} />
+                <span onClick={toggleMessages} className="animate-pulse cursor-pointer select-none font-sans" style={{ fontSize: 32, lineHeight: 1, color: '#dc2626', fontWeight: 900, WebkitTextStroke: '1px #dc2626', transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}>!</span>
               ) : messages.length > 0 ? (
-                <div onClick={toggleMessages} className="cursor-pointer" style={{ width: 12, height: 12, borderRadius: '50%', background: '#dc2626', opacity: 0.3 }} />
+                <span onClick={toggleMessages} className="cursor-pointer select-none font-sans" style={{ fontSize: 32, lineHeight: 1, color: '#dc2626', fontWeight: 900, WebkitTextStroke: '1px #dc2626', transform: 'rotate(-15deg)', opacity: 0.3 }}>!</span>
               ) : null}
               {unreadSendings > 0 ? (
-                <div onClick={toggleSendings} className="animate-pulse cursor-pointer" style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b3a8b', boxShadow: '0 0 6px rgba(139,58,139,0.7)' }} />
+                <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
               ) : sendings.length > 0 ? (
-                <div onClick={toggleSendings} className="cursor-pointer" style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b3a8b', opacity: 0.3 }} />
+                <span onClick={toggleSendings} className="cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, opacity: 0.3 }}>👂</span>
               ) : null}
             </div>
           </div>
