@@ -12,6 +12,8 @@ interface Item {
   stat_value: number | null;
   image_path: string | null;
   marketplace_qty: number;
+  item_type: 'magic_item' | 'scroll' | 'spell' | null;
+  rarity: string | null;
 }
 
 interface Shopper {
@@ -23,10 +25,32 @@ interface Shopper {
 }
 
 function statBadgeClass(type: Item['stat_type']): string {
-  if (type === 'magic')  return 'bg-blue-700 text-green-300';
+  if (type === 'magic')  return 'bg-[#7b2d8e] text-white';
   if (type === 'attack') return 'bg-neutral-800 text-red-400';
   if (type === 'damage') return 'bg-orange-800 text-orange-200';
   return '';
+}
+
+const TYPE_COLORS: Record<string, string> = {
+  magic_item: '#7b2d8e',
+  scroll: '#6b4f0e',
+  spell: '#a88a3a',
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  magic_item: 'M',
+  scroll: 'S',
+  spell: '✦',
+};
+
+function rarityBorderStyle(rarity: string | null): React.CSSProperties {
+  switch (rarity?.toLowerCase()) {
+    case 'uncommon': return { border: '2px solid #2d8a4e' };
+    case 'rare': return { border: '2px solid #2563eb' };
+    case 'very rare': return { border: '2px solid #7b2d8e' };
+    case 'legendary': return { border: '2px solid #c9a84c', boxShadow: '0 0 8px rgba(201,168,76,0.4)' };
+    default: return { border: '2px solid #5a4f46' };
+  }
 }
 
 export default function MarketplaceClient({
@@ -38,17 +62,21 @@ export default function MarketplaceClient({
   const [gold, setGold] = useState(initialShopper.gold);
   const [buying, setBuying] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
+  const [confirmItem, setConfirmItem] = useState<Item | null>(null);
 
-  async function purchase(item: Item) {
+  function handleItemClick(item: Item) {
     if (buying) return;
     if (gold < item.price) {
       setFlash('Not enough gold!');
       setTimeout(() => setFlash(null), 2000);
       return;
     }
-    if (!confirm(`Buy ${item.title} for ${item.price} GP?`)) return;
+    setConfirmItem(item);
+  }
 
+  async function purchase(item: Item) {
     setBuying(true);
+    setConfirmItem(null);
     try {
       const res = await fetch('/api/marketplace/purchase', {
         method: 'POST',
@@ -124,14 +152,16 @@ export default function MarketplaceClient({
         {items.length === 0 ? (
           <p className="text-[var(--color-text-dim)] text-sm italic">No items available.</p>
         ) : (
-          <div className="flex flex-wrap gap-6">
+          <div className="flex flex-wrap gap-4">
             {items.flatMap(item =>
-              Array.from({ length: item.marketplace_qty }, (_, i) => (
+              Array.from({ length: item.marketplace_qty }, (_, i) => {
+                const isConfirming = confirmItem?.id === item.id;
+                return (
                 <button key={`${item.id}-${i}`} type="button"
-                  onClick={() => purchase(item)} disabled={buying}
+                  onClick={() => !isConfirming && handleItemClick(item)} disabled={buying}
                   className="flex flex-col items-center bg-transparent border-none cursor-pointer group p-0">
                   <div className="relative w-24 h-24 transition-transform group-hover:scale-105">
-                    <div className="absolute inset-0 rounded-full overflow-hidden border border-[var(--color-border)] group-hover:border-[var(--color-gold)] transition-colors">
+                    <div className="absolute inset-0 rounded-full overflow-hidden" style={rarityBorderStyle(item.rarity)}>
                       {item.image_path ? (
                         <img src={resolveImageUrl(item.image_path)} alt={item.title} className="w-full h-full object-cover" />
                       ) : (
@@ -143,8 +173,15 @@ export default function MarketplaceClient({
                       <img src="/images/inventory/gold_coin.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
                       <span className="relative text-[9px] font-bold text-black drop-shadow-sm">{item.price}</span>
                     </div>
-                    {/* Stat badge */}
-                    {item.stat_type && item.stat_value !== null && (
+                    {/* Type badge */}
+                    {item.item_type && TYPE_COLORS[item.item_type] && (
+                      <div className="absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full flex items-center justify-center text-[9px] font-bold text-white border border-[var(--color-bg)] z-10"
+                        style={{ backgroundColor: TYPE_COLORS[item.item_type!] }}>
+                        {TYPE_LABELS[item.item_type!]}
+                      </div>
+                    )}
+                    {/* Legacy stat badge — only if no item_type */}
+                    {!item.item_type && item.stat_type && item.stat_value !== null && (
                       item.stat_type === 'heal' ? (
                         <div className="absolute -bottom-1 -right-1 w-[26px] h-[26px] flex items-center justify-center z-10">
                           <svg viewBox="0 0 24 24" className="absolute inset-0 w-full h-full drop-shadow-sm" fill="#b91c1c">
@@ -159,11 +196,36 @@ export default function MarketplaceClient({
                       )
                     )}
                   </div>
-                  <p className="text-[0.65rem] text-center text-[var(--color-text)] mt-1 w-24 leading-tight line-clamp-2 group-hover:text-[var(--color-gold)] transition-colors">
-                    {item.title}
-                  </p>
+                  {isConfirming ? (
+                    <div className="flex flex-col items-center mt-1 w-24">
+                      <p className="text-[0.6rem] text-center text-[var(--color-text)] leading-tight mb-1">
+                        Buy for {item.price} gold?
+                      </p>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <span
+                          role="button"
+                          onClick={(e) => { e.stopPropagation(); purchase(item); }}
+                          className="text-[0.6rem] uppercase font-sans cursor-pointer"
+                          style={{ backgroundColor: '#c9a84c', color: '#000', borderRadius: 9999, padding: '2px 12px' }}>
+                          Yes
+                        </span>
+                        <span
+                          role="button"
+                          onClick={(e) => { e.stopPropagation(); setConfirmItem(null); }}
+                          className="text-[0.6rem] uppercase font-sans text-[var(--color-text-muted)] cursor-pointer"
+                          style={{ border: '1px solid var(--color-border)', borderRadius: 9999, padding: '2px 12px' }}>
+                          No
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[0.65rem] text-center text-[var(--color-text)] mt-1 w-24 leading-tight line-clamp-2 group-hover:text-[var(--color-gold)] transition-colors">
+                      {item.title}
+                    </p>
+                  )}
                 </button>
-              ))
+                );
+              })
             )}
           </div>
         )}
