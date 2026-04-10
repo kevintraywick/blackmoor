@@ -79,12 +79,15 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
 
   if (items.length === 0) {
     return (
-      <p className="text-[var(--color-text-dim)] text-sm italic">No items yet.</p>
+      <div>
+        <p className="text-[var(--color-text-dim)] text-sm italic">No items yet.</p>
+        <p className="text-[var(--color-text-muted)] text-[0.75rem] mt-1">Create one below, then send it to the marketplace.</p>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap gap-6">
+    <div className="flex flex-wrap gap-4">
       {items.map(item => (
         <div
           key={item.id}
@@ -94,7 +97,7 @@ export default function InventoryItemGrid({ refreshKey, selectedItemId, onSelect
           {/* Outer wrapper: selection ring + badge positioning context */}
           <div className={`relative group rounded-full transition-all
             ${selectedItemId === item.id
-              ? 'ring-2 ring-[var(--color-gold)] ring-offset-2 ring-offset-[#2e3a4a]'
+              ? 'ring-2 ring-[var(--color-gold)] ring-offset-2 ring-offset-[var(--color-surface)]'
               : ''}`} style={{ width: 58, height: 58 }}>
 
             {/* Inner circle: clips image and tooltip */}

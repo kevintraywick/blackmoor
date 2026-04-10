@@ -245,44 +245,67 @@ export default function InventoryPageClient() {
   return (
     <div className="flex flex-col gap-4">
       {/* Inventory pane — Row 1 */}
-      <div className="relative border border-[var(--color-border)] rounded bg-[#2e3a4a]">
+      <div className="relative border border-[var(--color-border)] rounded bg-[var(--color-surface)]">
         <div className="px-6 pt-5 pb-6">
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
             <h2 className="font-serif text-[1.3rem] italic text-[var(--color-text)] leading-none tracking-tight" style={{ marginRight: 'auto' }}>
               Add to Market
             </h2>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <button
-                onClick={() => selectedItem && setConfirmDelete(true)}
-                disabled={!selectedItem}
-                title={selectedItem ? 'Delete item' : 'Select an item first'}
-                className="rounded-full bg-red-700 text-white font-bold flex items-center justify-center
-                           hover:bg-red-600 disabled:opacity-50 transition-colors"
-                style={{ width: 34, height: 34, fontSize: '0.9rem' }}
-              >
-                ✕
-              </button>
-              <button
-                onClick={handleEdit}
-                disabled={!selectedItem}
-                title={selectedItem ? 'Load item into form' : 'Select an item first'}
-                className="rounded-full bg-[#2d6a4f] text-white font-bold tracking-wider flex items-center justify-center
-                           hover:bg-[#3a8a65] disabled:opacity-50 transition-colors"
-                style={{ width: 34, height: 34, fontSize: '0.6rem' }}
-              >
-                EDIT
-              </button>
-              <button
-                onClick={sendToMarketplace}
-                disabled={!selectedItem}
-                title={selectedItem ? 'Send to marketplace' : 'Select an item first'}
-                className="rounded-full bg-[var(--color-gold)] text-black font-bold flex items-center justify-center
-                           hover:bg-[#e0bc5a] disabled:opacity-50 transition-colors"
-                style={{ width: 34, height: 34, fontSize: '1.1rem' }}
-              >
-                +
-              </button>
-            </div>
+            {confirmDelete ? (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span className="font-serif italic text-[var(--color-text)] text-[0.85rem]">Are you sure?</span>
+                <button
+                  onClick={handleDeleteConfirmed}
+                  className="rounded-full text-white font-sans font-bold uppercase tracking-widest
+                             hover:opacity-80 transition-colors"
+                  style={{ backgroundColor: '#7b1a1a', fontSize: '0.6rem', paddingLeft: 12, paddingRight: 12, paddingTop: 4, paddingBottom: 4 }}
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="rounded-full font-sans font-bold uppercase tracking-widest
+                             border border-[var(--color-border)] text-[var(--color-text-muted)]
+                             hover:text-[var(--color-text)] hover:border-[var(--color-text-dim)] transition-colors"
+                  style={{ fontSize: '0.6rem', paddingLeft: 12, paddingRight: 12, paddingTop: 4, paddingBottom: 4 }}
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  onClick={() => selectedItem && setConfirmDelete(true)}
+                  disabled={!selectedItem}
+                  title={selectedItem ? 'Delete item' : 'Select an item first'}
+                  className="rounded-full text-white font-sans font-bold uppercase tracking-widest
+                             hover:opacity-80 disabled:opacity-50 transition-colors"
+                  style={{ backgroundColor: '#7b1a1a', fontSize: '0.6rem', paddingLeft: 12, paddingRight: 12, paddingTop: 4, paddingBottom: 4 }}
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={handleEdit}
+                  disabled={!selectedItem}
+                  title={selectedItem ? 'Load item into form' : 'Select an item first'}
+                  className="rounded-full text-white font-sans font-bold uppercase tracking-widest
+                             hover:opacity-80 disabled:opacity-50 transition-colors"
+                  style={{ backgroundColor: '#2d6a4f', fontSize: '0.6rem', paddingLeft: 12, paddingRight: 12, paddingTop: 4, paddingBottom: 4 }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={sendToMarketplace}
+                  disabled={!selectedItem}
+                  title={selectedItem ? 'Send to marketplace' : 'Select an item first'}
+                  className="rounded-full font-sans font-bold uppercase tracking-widest
+                             hover:opacity-80 disabled:opacity-50 transition-colors"
+                  style={{ backgroundColor: 'var(--color-gold)', color: '#1a1614', fontSize: '0.6rem', paddingLeft: 12, paddingRight: 12, paddingTop: 4, paddingBottom: 4 }}
+                >
+                  → Market
+                </button>
+              </div>
+            )}
           </div>
           <div className="border-t border-[var(--color-border)] mb-6" />
           <InventoryItemGrid
@@ -294,7 +317,7 @@ export default function InventoryPageClient() {
       </div>
 
       {/* Builder + Preview — side by side */}
-      <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'center', maxWidth: 860 }}>
         {/* Pane 1: Card Builder + Publish */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: 480, flexShrink: 0 }}>
           <InventoryCreateForm
@@ -317,7 +340,7 @@ export default function InventoryPageClient() {
               color: '#1a1614',
             }}
           >
-            {saving ? 'Publishing...' : 'Publish to Inventory'}
+            {saving ? 'Adding...' : 'Add to Market Inventory'}
           </button>
         </div>
 
@@ -327,32 +350,6 @@ export default function InventoryPageClient() {
         </div>
       </div>
 
-      {/* Delete confirmation dialog */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-[var(--color-bg)] border border-[var(--color-border)] rounded px-8 py-6 max-w-sm w-full mx-4 shadow-xl">
-            <p className="font-serif text-[1.1rem] italic text-[var(--color-text)] mb-6 text-center">
-              Do you wish to delete this item?
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={handleDeleteConfirmed}
-                className="px-6 py-2 rounded bg-red-700 text-white text-sm font-bold
-                           hover:bg-red-600 transition-colors"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="px-6 py-2 rounded border border-[var(--color-border)] text-[var(--color-text-muted)] text-sm
-                           hover:text-[var(--color-text)] hover:border-[var(--color-text-dim)] transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
