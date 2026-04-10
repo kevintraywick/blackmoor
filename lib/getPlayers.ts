@@ -5,7 +5,11 @@ type PlayerRow = { id: string; player_name: string; character: string; initial: 
 
 export async function getPlayers(): Promise<Player[]> {
   const rows = await query<PlayerRow>(
-    'SELECT id, player_name, character, initial, img FROM players ORDER BY sort_order ASC'
+    `SELECT p.id, p.player_name, p.character, p.initial, p.img
+     FROM players p
+     LEFT JOIN player_sheets ps ON ps.id = p.id
+     WHERE COALESCE(ps.status, 'active') = 'active'
+     ORDER BY p.sort_order ASC`
   );
   return rows.map(r => ({
     id: r.id,
