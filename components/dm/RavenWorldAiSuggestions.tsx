@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import type { WorldAiState, WorldAiProposal, WorldAiTick } from '@/lib/types';
 
 const POLL_MS = 30_000;
 
 const MEDIUM_LABELS: Record<string, string> = {
-  broadsheet: 'Broadsheet',
-  raven: 'Raven',
-  sending: 'Sending',
-  overheard: 'Overheard',
-  ad: 'Ad',
+  broadsheet: '📜 Broadsheet',
+  raven: '🕊 Raven',
+  sending: '✦ Sending',
+  overheard: '🍺 Overheard',
+  ad: '📋 Ad',
 };
 
 function relativeTime(iso: string): string {
@@ -34,7 +34,11 @@ function countdown(iso: string | null): string {
   return `~${remMins}m`;
 }
 
-export default function RavenWorldAiSuggestions() {
+export interface RavenWorldAiSuggestionsHandle {
+  refresh: () => void;
+}
+
+const RavenWorldAiSuggestions = forwardRef<RavenWorldAiSuggestionsHandle>(function RavenWorldAiSuggestions(_props, ref) {
   const [proposals, setProposals] = useState<WorldAiProposal[]>([]);
   const [state, setState] = useState<WorldAiState | null>(null);
   const [ticks, setTicks] = useState<WorldAiTick[]>([]);
@@ -84,6 +88,8 @@ export default function RavenWorldAiSuggestions() {
       setLoading(false);
     }
   }, []);
+
+  useImperativeHandle(ref, () => ({ refresh: fetchAll }), [fetchAll]);
 
   useEffect(() => {
     fetchAll();
@@ -453,4 +459,6 @@ export default function RavenWorldAiSuggestions() {
       `}</style>
     </div>
   );
-}
+});
+
+export default RavenWorldAiSuggestions;

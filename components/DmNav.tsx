@@ -8,7 +8,7 @@ export type NavSection =
   | 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative'
   | 'world' | 'maps' | 'map-builder'
   | 'magic' | 'marketplace' | 'poisons' | 'inventory'
-  | 'boons' | 'journey' | 'journal' | 'ar' | 'raven-post';
+  | 'boons' | 'journey' | 'journal' | 'ar' | 'raven-post' | 'whispers';
 
 interface PlayerChangeRow {
   player_id: string;
@@ -40,6 +40,7 @@ const LINKS: { key: NavSection; label: string; href: string; kind: 'session' | '
   { key: 'campaign',    label: 'Campaign',         href: '/dm/campaign',    kind: 'build' },
   { key: 'journal',     label: 'Journal',         href: '/dm/journal',     kind: 'build' },
   { key: 'raven-post',  label: 'Raven Post',      href: '/dm/raven-post',  kind: 'build' },
+  { key: 'whispers',    label: 'Whispers',        href: '/dm/whispers',    kind: 'build' },
   { key: 'sessions',    label: 'Sessions',        href: '/dm',             kind: 'session' },
   { key: 'players',     label: 'Players',         href: '/dm/players',     kind: 'build' },
   { key: 'npcs',        label: 'NPCs',            href: '/dm/npcs',        kind: 'build' },

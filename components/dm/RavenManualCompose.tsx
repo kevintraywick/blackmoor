@@ -120,7 +120,7 @@ export default function RavenManualCompose({ players, onPublished }: Props) {
       className="border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
       style={{ borderRadius: 0 }}
     >
-      <h3 className="font-serif text-[var(--color-gold)] text-lg mb-4">Compose a beat by hand</h3>
+      <h3 className="font-serif text-[var(--color-gold)] text-lg mb-4">✍️ Write a News Item</h3>
 
       {/* Medium tabs */}
       <div className="flex gap-2 mb-4 flex-wrap">

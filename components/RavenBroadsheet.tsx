@@ -89,7 +89,7 @@ export default function RavenBroadsheet({ items, weather, volume, issue, inFicti
             The press is silent today. The Editor is doubtless drinking.
           </p>
         )}
-        {broadsheetItems.slice(0, 6).map((item, idx) => (
+        {broadsheetItems.map((item, idx) => (
           <article key={item.id}>
             <h3
               style={{
@@ -115,9 +115,6 @@ export default function RavenBroadsheet({ items, weather, volume, issue, inFicti
           </article>
         ))}
       </div>
-
-      {/* Ravens and sendings are personal — they will appear on each
-          player's own sheet page, not on the public broadsheet. */}
 
       {/* Classifieds + ads */}
       {ads.length > 0 && (

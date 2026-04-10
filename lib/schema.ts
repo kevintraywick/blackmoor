@@ -961,4 +961,12 @@ async function _initSchema() {
   await pool.query(
     `ALTER TABLE raven_items ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual'`
   ).catch(() => {});
+
+  // Stamp each item with the issue it was published in
+  await pool.query(
+    `ALTER TABLE raven_items ADD COLUMN IF NOT EXISTS raven_volume INTEGER`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE raven_items ADD COLUMN IF NOT EXISTS raven_issue INTEGER`
+  ).catch(() => {});
 }

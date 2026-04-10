@@ -39,11 +39,18 @@ export async function publishItem(args: PublishArgs): Promise<RavenItem> {
   await ensureSchema();
   const id = randomUUID();
 
+  // Read current volume/issue to stamp on the item
+  const campaignRows = await query<{ raven_volume: number; raven_issue: number }>(
+    `SELECT raven_volume, raven_issue FROM campaign WHERE id = 'default'`,
+  );
+  const vol = campaignRows[0]?.raven_volume ?? 1;
+  const iss = campaignRows[0]?.raven_issue ?? 1;
+
   const rows = await query<RavenItem>(
     `INSERT INTO raven_items
        (id, medium, body, headline, sender, target_player, trust, tags,
-        ad_image_url, ad_real_link, ad_real_copy)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ad_image_url, ad_real_link, ad_real_copy, raven_volume, raven_issue)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
      RETURNING *`,
     [
       id,
@@ -57,6 +64,8 @@ export async function publishItem(args: PublishArgs): Promise<RavenItem> {
       args.ad_image_url ?? null,
       args.ad_real_link ?? null,
       args.ad_real_copy ?? null,
+      vol,
+      iss,
     ],
   );
 

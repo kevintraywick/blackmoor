@@ -411,6 +411,8 @@ export interface RavenItem {
   ad_real_link: string | null;
   ad_real_copy: string | null;
   newsie_mp3: string | null;
+  raven_volume: number | null;
+  raven_issue: number | null;
   published_at: string;
   created_at: string;
 }
