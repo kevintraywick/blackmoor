@@ -179,7 +179,13 @@ export default function CanYouPlayClient({ players: initialPlayers, initialAvail
           Are You In?
         </h1>
         <p className="text-center text-[#8a7d6e] font-sans text-sm mb-4 sm:mb-10">
-          Tap your name
+          Tap your name in, out or maybe. New?{' '}
+          <button
+            onClick={() => setShowJoin(true)}
+            style={{ background: 'none', border: 'none', padding: 0, color: '#c9a84c', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
+          >
+            Join the Party!
+          </button>
         </p>
 
         {/* Welcome banner for new player */}
@@ -306,24 +312,8 @@ export default function CanYouPlayClient({ players: initialPlayers, initialAvail
           })}
         </div>
 
-        {/* Join + Share row */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-          {!showJoin && (
-            <button
-              onClick={() => setShowJoin(true)}
-              className="font-serif"
-              style={{
-                background: 'transparent',
-                border: '2px dashed rgba(201,168,76,0.4)',
-                color: '#c9a84c',
-                padding: '8px 20px',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-              }}
-            >
-              + Join the Party
-            </button>
-          )}
+        {/* Share button */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
           <button
             onClick={handleShare}
             className="font-sans"
@@ -338,7 +328,7 @@ export default function CanYouPlayClient({ players: initialPlayers, initialAvail
               cursor: 'pointer',
             }}
           >
-            {copied ? 'Copied!' : 'Share Link'}
+            {copied ? 'Copied!' : '↗ Share'}
           </button>
         </div>
 
