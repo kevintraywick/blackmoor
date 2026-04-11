@@ -46,7 +46,32 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${ebGaramond.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {children}
+        </div>
+        <footer
+          style={{
+            padding: '24px 20px 32px',
+            fontSize: '0.7rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            color: '#5a4f46',
+            textAlign: 'center',
+            borderTop: '1px solid #231f1c',
+            marginTop: 40,
+          }}
+        >
+          © 2026 Grey Assassins Guild, LLC
+          <span style={{ margin: '0 12px', color: '#3d3530' }}>·</span>
+          <a
+            href="/do"
+            style={{ color: '#8a7d6e', textDecoration: 'none' }}
+          >
+            Roadmap
+          </a>
+        </footer>
+      </body>
     </html>
   );
 }
