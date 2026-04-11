@@ -15,7 +15,7 @@ export default async function InitiativePage() {
   const [sessions, npcs, playerRows, players] = await Promise.all([
     query<SessionMeta>('SELECT id, number, title, npc_ids, menagerie FROM sessions ORDER BY number ASC'),
     query<Npc>('SELECT * FROM npcs ORDER BY name ASC'),
-    query<Pick<PlayerSheet, 'id' | 'status' | 'hp'>>('SELECT id, status, hp FROM player_sheets'),
+    query<Pick<PlayerSheet, 'id' | 'status' | 'hp' | 'current_hp' | 'max_hp'>>('SELECT id, status, hp, current_hp, max_hp FROM player_sheets'),
     getPlayers(),
   ]);
 

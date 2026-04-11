@@ -846,6 +846,14 @@ async function _initSchema() {
     `ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS sms_optin BOOLEAN NOT NULL DEFAULT false`
   ).catch(() => {});
 
+  // HP tracking — current_hp tracks damage, max_hp is snapshotted at session/combat start
+  await pool.query(
+    `ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS current_hp TEXT NOT NULL DEFAULT ''`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE player_sheets ADD COLUMN IF NOT EXISTS max_hp TEXT NOT NULL DEFAULT ''`
+  ).catch(() => {});
+
   // Campaign gains the broadsheet's Volume / Issue counter
   await pool.query(
     `ALTER TABLE campaign ADD COLUMN IF NOT EXISTS raven_volume INTEGER NOT NULL DEFAULT 1`

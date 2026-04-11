@@ -6,6 +6,7 @@ import Link from 'next/link';
 import type { Npc, Player, MenagerieEntry } from '@/lib/types';
 import { resolveImageUrl } from '@/lib/imageUrl';
 import { rollDice } from '@/lib/dice';
+import HpRing from '@/components/HpRing';
 
 interface SessionMeta { id: string; number: number; title: string; npc_ids: string[]; menagerie: MenagerieEntry[]; }
 
@@ -155,6 +156,8 @@ export default function InitiativePageClient({
 
   function handleGo() {
     if (!selectedSession) return;
+    // Snapshot player HP so max_hp is frozen for the ring
+    fetch('/api/players/snapshot-hp', { method: 'POST' }).catch(() => {});
     const combatants: Combatant[] = [];
 
     activePlayers.forEach(p => {
@@ -381,22 +384,26 @@ export default function InitiativePageClient({
                     {c.initiative}
                   </div>
 
-                  {/* Avatar */}
-                  <div className="w-9 h-9 rounded-full overflow-hidden bg-[#2e2825] flex items-center justify-center flex-shrink-0 border border-[var(--color-border)]">
-                    {c.type === 'player' && c.img ? (
-                      <Image
-                        src={c.img}
-                        alt={c.name}
-                        width={36}
-                        height={36}
-                        className="w-full h-full object-cover"
-                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                      />
-                    ) : imgUrl ? (
-                      <img src={imgUrl} alt={c.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-[0.9rem] text-[var(--color-text-muted)] font-serif">{c.initial}</span>
-                    )}
+                  {/* Avatar with HP ring */}
+                  <div style={{ width: 40, height: 40, flexShrink: 0 }}>
+                    <HpRing current={c.hp ?? 0} max={c.maxHp ?? 0} ringPct={5}>
+                      <div className={`w-full h-full rounded-full overflow-hidden bg-[#2e2825] flex items-center justify-center border ${c.type === 'npc' ? 'border-[#1a1a1a]' : 'border-[var(--color-border)]'}`}>
+                        {c.type === 'player' && c.img ? (
+                          <Image
+                            src={c.img}
+                            alt={c.name}
+                            width={36}
+                            height={36}
+                            className="w-full h-full object-cover"
+                            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : imgUrl ? (
+                          <img src={imgUrl} alt={c.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-[0.9rem] text-[var(--color-text-muted)] font-serif">{c.initial}</span>
+                        )}
+                      </div>
+                    </HpRing>
                   </div>
 
                   {/* Name + sub info */}
@@ -558,15 +565,19 @@ export default function InitiativePageClient({
             <div className="flex flex-col gap-4">
               {activePlayers.map(p => (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div className="rounded-full overflow-hidden bg-[#2e2825] border border-[var(--color-border)]" style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Image
-                      src={p.img}
-                      alt={p.playerName}
-                      width={40}
-                      height={40}
-                      className="w-full h-full object-cover"
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
+                  <div style={{ width: 46, height: 46, flexShrink: 0 }}>
+                    <HpRing current={playerHp[p.id] ?? 0} max={playerHp[p.id] ?? 0} ringPct={5}>
+                      <div className="w-full h-full rounded-full overflow-hidden bg-[#2e2825] border border-[var(--color-border)]" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Image
+                          src={p.img}
+                          alt={p.playerName}
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    </HpRing>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="font-serif text-sm text-[var(--color-text)]">{p.character}</div>

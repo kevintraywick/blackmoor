@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import type { Session, Npc, MenagerieEntry } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import { resolveImageUrl } from '@/lib/imageUrl';
+import HpRing from '@/components/HpRing';
 
 export default function SessionForm({ session, allNpcs: initialNpcs }: { session: Session; allNpcs: Npc[] }) {
   const [values, setValues] = useState<Record<string, string | number>>({
@@ -182,21 +183,19 @@ export default function SessionForm({ session, allNpcs: initialNpcs }: { session
                     className="flex flex-col items-center gap-1 cursor-pointer bg-transparent border-none group"
                     title={`Click to remove ${npc.name}`}
                   >
-                    <div className="relative w-10 h-10 rounded-full border-2 border-[var(--color-gold)] bg-[#2e2825] overflow-hidden
-                                    group-hover:border-red-500 group-hover:opacity-75 transition-all">
-                      {imgUrl ? (
-                        <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover absolute inset-0" />
-                      ) : (
-                        <span className="text-sm text-[var(--color-text-muted)] select-none font-serif absolute inset-0 flex items-center justify-center">
-                          {initial}
-                        </span>
-                      )}
-                      {/* HP badge */}
-                      {entry.hp > 0 && (
-                        <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#8b1a1a] text-white text-[0.55rem] font-bold flex items-center justify-center border border-[var(--color-surface)]">
-                          {entry.hp}
-                        </span>
-                      )}
+                    <div style={{ width: 46, height: 46 }}>
+                      <HpRing current={entry.hp} max={entry.maxHp ?? entry.hp} ringPct={5}>
+                        <div className="relative w-full h-full rounded-full border-2 border-[#1a1a1a] bg-[#2e2825] overflow-hidden
+                                        group-hover:border-red-500 group-hover:opacity-75 transition-all">
+                          {imgUrl ? (
+                            <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover absolute inset-0" />
+                          ) : (
+                            <span className="text-sm text-[var(--color-text-muted)] select-none font-serif absolute inset-0 flex items-center justify-center">
+                              {initial}
+                            </span>
+                          )}
+                        </div>
+                      </HpRing>
                     </div>
                     <span className="text-[0.6rem] uppercase tracking-[0.08em] text-[var(--color-text-muted)] group-hover:text-red-400 transition-colors max-w-[56px] truncate">
                       {npc.name || 'Unnamed'}
@@ -239,20 +238,18 @@ export default function SessionForm({ session, allNpcs: initialNpcs }: { session
                   <div key={npc.id} className="flex items-center gap-1.5">
                     {/* NPC circle + name */}
                     <div className="flex flex-col items-center gap-1">
-                      <div className="relative w-10 h-10 rounded-full border-2 border-[var(--color-border)] bg-[#2e2825] overflow-hidden">
-                        {imgUrl ? (
-                          <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover absolute inset-0" />
-                        ) : (
-                          <span className="text-sm text-[var(--color-text-muted)] select-none font-serif absolute inset-0 flex items-center justify-center">
-                            {initial}
-                          </span>
-                        )}
-                        {/* HP badge */}
-                        {parseInt(npc.hp) > 0 && (
-                          <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#8b1a1a] text-white text-[0.55rem] font-bold flex items-center justify-center border border-[var(--color-surface)]">
-                            {npc.hp}
-                          </span>
-                        )}
+                      <div style={{ width: 46, height: 46 }}>
+                        <HpRing current={parseInt(npc.hp) || 1} max={parseInt(npc.hp) || 1} ringPct={5}>
+                          <div className="relative w-full h-full rounded-full border-2 border-[#1a1a1a] bg-[#2e2825] overflow-hidden">
+                            {imgUrl ? (
+                              <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover absolute inset-0" />
+                            ) : (
+                              <span className="text-sm text-[var(--color-text-muted)] select-none font-serif absolute inset-0 flex items-center justify-center">
+                                {initial}
+                              </span>
+                            )}
+                          </div>
+                        </HpRing>
                       </div>
                       <span className="text-[0.6rem] uppercase tracking-[0.08em] text-[var(--color-text-muted)] max-w-[56px] truncate">
                         {npc.name || 'Unnamed'}

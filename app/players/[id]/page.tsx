@@ -49,7 +49,7 @@ export default async function PlayerPage({ params }: Props) {
     speed: '', size: '', ac: '', gold: '', boons: '', class_features: '',
     species_traits: '', player_notes: '', general_notes: '', gear: [], spells: [], items: [],
     str: '', dex: '', con: '', int: '', wis: '', cha: '',
-    align: '', dm_notes: '', status: 'active',
+    align: '', current_hp: '', max_hp: '', dm_notes: '', status: 'active',
   };
 
   const data = rows[0] ? { ...rows[0], gear: rows[0].gear ?? [], spells: rows[0].spells ?? [] } : empty;

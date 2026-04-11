@@ -67,6 +67,8 @@ export interface PlayerSheet {
   wis: string;
   cha: string;
   align: string;            // Alignment (e.g. 'CG', 'LN')
+  current_hp: string;      // Current HP (snapshotted + decremented by DM)
+  max_hp: string;          // Max HP snapshot (set at session/combat start)
   dm_notes: string;        // DM-only notes (not shown to player)
   status: string;          // 'active' | 'away' | 'removed'
 }

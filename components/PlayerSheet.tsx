@@ -6,6 +6,8 @@ import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, Marketplace
 import { useAutosave } from '@/lib/useAutosave';
 import type { SaveStatus } from '@/lib/useAutosave';
 import { autoFillWeapon, lookupWeapon } from '@/lib/srd-weapons';
+import HpRing from '@/components/HpRing';
+import { parseHp } from '@/lib/hp';
 
 // ── Boon list — clickable ☐/☑ lines parsed from stored text ─────────────────
 function BoonList({ value, onChange, columns = 1, emptyText }: { value: string; onChange: (v: string) => void; columns?: number; emptyText?: string }) {
@@ -502,10 +504,14 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
         {/* Desktop: single row */}
         <div className="hidden sm:block">
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Portrait */}
-            <div className="relative rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0" style={{ width: 64, height: 64 }}>
-              <span className="text-[1.4rem] text-[var(--color-text-muted)] select-none">{initial}</span>
-              {img && <Image src={img} alt={character} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+            {/* Portrait with HP ring */}
+            <div style={{ width: 72, height: 72, flexShrink: 0 }}>
+              <HpRing current={parseHp(data.current_hp, data.hp)} max={parseHp(data.max_hp, data.hp)}>
+                <div className="relative w-full h-full rounded-full border-2 border-[#1a1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden">
+                  <span className="text-[1.4rem] text-[var(--color-text-muted)] select-none">{initial}</span>
+                  {img && <Image src={img} alt={character} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                </div>
+              </HpRing>
             </div>
             {/* Name + Species + Class */}
             <input
@@ -566,9 +572,13 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
         <div className="sm:hidden">
           {/* Row 1: Portrait + Name + Species + Class */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="relative rounded-full border-2 border-[#8b1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden flex-shrink-0" style={{ width: 48, height: 48 }}>
-              <span className="text-[1.1rem] text-[var(--color-text-muted)] select-none">{initial}</span>
-              {img && <Image src={img} alt={character} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+            <div style={{ width: 56, height: 56, flexShrink: 0 }}>
+              <HpRing current={parseHp(data.current_hp, data.hp)} max={parseHp(data.max_hp, data.hp)}>
+                <div className="relative w-full h-full rounded-full border-2 border-[#1a1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden">
+                  <span className="text-[1.1rem] text-[var(--color-text-muted)] select-none">{initial}</span>
+                  {img && <Image src={img} alt={character} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                </div>
+              </HpRing>
             </div>
             <input
               value={charName}
@@ -810,21 +820,31 @@ export default function PlayerSheets({ players, sheets }: { players: Player[]; s
             <button
               key={p.id}
               onClick={() => setActiveId(p.id)}
-              className={`flex flex-col items-center gap-1 sm:gap-1.5 cursor-pointer bg-transparent border-none transition-opacity ${isAway ? 'opacity-40' : ''}`}
+              className={`flex flex-col items-center gap-1 sm:gap-1.5 cursor-pointer bg-transparent border-none transition-all ${isAway ? 'opacity-40' : ''} ${activeId !== p.id ? 'hover:scale-105' : ''}`}
             >
-              <div className={`relative w-14 h-14 sm:w-20 sm:h-20 rounded-full overflow-hidden border-[3px] transition-all ${
-                activeId === p.id
-                  ? 'border-[var(--color-gold)]'
-                  : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)] hover:scale-105'
-              } bg-[#2e2825] flex items-center justify-center`}>
-                <span className="text-[1.2rem] sm:text-[1.6rem] text-[var(--color-text-muted)] select-none">{p.initial}</span>
-                <Image
-                  src={p.img}
-                  alt={p.playerName}
-                  fill
-                  className="object-cover absolute inset-0"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
+              <div style={{ width: 62, height: 62 }} className="sm:!hidden">
+                <HpRing current={parseHp(sheets[p.id]?.current_hp, sheets[p.id]?.hp)} max={parseHp(sheets[p.id]?.max_hp, sheets[p.id]?.hp)}>
+                  <div className={`relative w-full h-full rounded-full overflow-hidden border-[3px] transition-all ${
+                    activeId === p.id
+                      ? 'border-[var(--color-gold)]'
+                      : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
+                  } bg-[#2e2825] flex items-center justify-center`}>
+                    <span className="text-[1.2rem] text-[var(--color-text-muted)] select-none">{p.initial}</span>
+                    <Image src={p.img} alt={p.playerName} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  </div>
+                </HpRing>
+              </div>
+              <div style={{ width: 86, height: 86 }} className="hidden sm:!block">
+                <HpRing current={parseHp(sheets[p.id]?.current_hp, sheets[p.id]?.hp)} max={parseHp(sheets[p.id]?.max_hp, sheets[p.id]?.hp)}>
+                  <div className={`relative w-full h-full rounded-full overflow-hidden border-[3px] transition-all ${
+                    activeId === p.id
+                      ? 'border-[var(--color-gold)]'
+                      : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
+                  } bg-[#2e2825] flex items-center justify-center`}>
+                    <span className="text-[1.6rem] text-[var(--color-text-muted)] select-none">{p.initial}</span>
+                    <Image src={p.img} alt={p.playerName} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  </div>
+                </HpRing>
               </div>
               <span className={`text-[0.65rem] sm:text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
                 activeId === p.id ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'

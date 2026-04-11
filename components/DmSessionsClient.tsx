@@ -6,6 +6,7 @@ import type { Session, Npc, MenagerieEntry } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import { resolveImageUrl } from '@/lib/imageUrl';
 import { rollDice, diceRange } from '@/lib/dice';
+import HpRing from '@/components/HpRing';
 
 // Fields to render in the detail panel — npcs replaced by NPC checkboxes
 const FIELDS = [
@@ -63,6 +64,8 @@ function SessionControlBar({
       body: JSON.stringify({ action: 'start' }),
     });
     if (res.ok) onSessionUpdate(await res.json());
+    // Snapshot player HP so the ring has a stable max
+    fetch('/api/players/snapshot-hp', { method: 'POST' }).catch(() => {});
   }
 
   async function handlePause() {
@@ -96,6 +99,8 @@ function SessionControlBar({
       setLongRestResult(data);
       setLongRestPhase('summary');
       onLongRest();
+      // Reset current_hp = max_hp (full heal) for all active players
+      fetch('/api/players/snapshot-hp', { method: 'POST' }).catch(() => {});
       setTimeout(() => { setLongRestPhase('idle'); setLongRestResult(null); }, 4000);
     } else {
       setLongRestPhase('idle');
@@ -408,28 +413,27 @@ function NpcCastingBoard({
               const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
               return (
                 <div key={`${npc.id}-${idx}`} className="flex flex-col items-center gap-1 relative">
-                  <div
-                    className="rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center flex-shrink-0 relative"
-                    style={{
-                      width: 64, height: 64,
-                      border: isDead ? '2px solid #5a3030' : '2px solid rgba(201,168,76,0.4)',
-                      opacity: isDead ? 0.5 : 1,
-                      filter: isDead ? 'grayscale(0.7)' : 'none',
-                    }}
-                  >
-                    {imgUrl
-                      ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
-                      : <span className="text-sm text-[var(--color-text-muted)] font-serif">{initial}</span>
-                    }
-                    {isDead && (
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '1.5rem',
-                      }}>
-                        ☠
+                  <div style={{ width: 72, height: 72, opacity: isDead ? 0.5 : 1, filter: isDead ? 'grayscale(0.7)' : 'none' }}>
+                    <HpRing current={entry.hp} max={entry.maxHp ?? entry.hp}>
+                      <div
+                        className="rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center relative w-full h-full"
+                        style={{ border: isDead ? '2px solid #5a3030' : '2px solid #1a1a1a' }}
+                      >
+                        {imgUrl
+                          ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
+                          : <span className="text-sm text-[var(--color-text-muted)] font-serif">{initial}</span>
+                        }
+                        {isDead && (
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '1.5rem',
+                          }}>
+                            ☠
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </HpRing>
                   </div>
                   <span className={`font-serif text-[0.75rem] max-w-[76px] truncate text-center ${isDead ? 'line-through text-[#5a3030]' : 'text-[var(--color-text-muted)]'}`}>
                     {entry.label || npc.name}

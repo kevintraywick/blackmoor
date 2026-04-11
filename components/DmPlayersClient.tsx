@@ -6,6 +6,8 @@ import Image from 'next/image';
 import type { PlayerSheet, Player } from '@/lib/types';
 import { Sheet } from '@/components/PlayerSheet';
 import DmPlayerBox from '@/components/DmPlayerBox';
+import HpRing from '@/components/HpRing';
+import { parseHp } from '@/lib/hp';
 
 function AddPlayerModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
@@ -111,6 +113,29 @@ export default function DmPlayersClient({
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [imgOverrides, setImgOverrides] = useState<Record<string, string>>({});
 
+  // Local HP overrides so the ring updates immediately on +/−
+  const [hpOverrides, setHpOverrides] = useState<Record<string, string>>({});
+
+  function getPlayerHp(id: string): { current: number; max: number } {
+    const sheet = sheets[id];
+    if (!sheet) return { current: 0, max: 0 };
+    const hp = parseHp(sheet.hp);
+    const max = parseHp(sheet.max_hp, sheet.hp);
+    const current = parseHp(hpOverrides[id] ?? sheet.current_hp, sheet.hp);
+    return { current: max > 0 ? current : hp, max: max > 0 ? max : hp };
+  }
+
+  async function adjustHp(playerId: string, delta: number) {
+    const { current, max } = getPlayerHp(playerId);
+    const next = Math.max(0, Math.min(max, current + delta));
+    setHpOverrides(prev => ({ ...prev, [playerId]: String(next) }));
+    await fetch(`/api/players/${playerId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_hp: String(next) }),
+    }).catch(() => {});
+  }
+
   async function handleDrop(playerId: string, e: React.DragEvent) {
     e.preventDefault();
     setDragOver(null);
@@ -142,41 +167,65 @@ export default function DmPlayersClient({
           const isActive  = p.id === selectedId;
           const imgSrc = imgOverrides[p.id] || p.img;
           const isDragTarget = dragOver === p.id;
+          const { current: curHp, max: maxHp } = getPlayerHp(p.id);
           return (
-            <button
-              key={p.id}
-              onClick={() => setSelectedId(p.id)}
-              onDragOver={e => { e.preventDefault(); setDragOver(p.id); }}
-              onDragLeave={() => setDragOver(null)}
-              onDrop={e => handleDrop(p.id, e)}
-              className={`flex flex-col items-center gap-1.5 cursor-pointer bg-transparent border-none transition-opacity ${
-                isRemoved ? 'opacity-30' : isAway ? 'opacity-50' : ''
-              }`}
-            >
-              <div className={`relative w-20 h-20 rounded-full overflow-hidden border-[3px] transition-all ${
-                isDragTarget
-                  ? 'border-[#4a7a5a] scale-110'
-                  : isActive
-                    ? 'border-[var(--color-gold)]'
-                    : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)] hover:scale-105'
-              } bg-[#2e2825] flex items-center justify-center`}>
-                <span className="text-[1.6rem] text-[var(--color-text-muted)] select-none">{p.initial}</span>
-                <Image
-                  src={imgSrc}
-                  alt={p.playerName}
-                  fill
-                  className="object-cover absolute inset-0"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-              </div>
-              <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
-                isActive ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'
-              }`}>
-                {p.playerName}
-                {isAway    ? ' · away'    : ''}
-                {isRemoved ? ' · removed' : ''}
-              </span>
-            </button>
+            <div key={p.id} className="flex flex-col items-center gap-1.5">
+              <button
+                onClick={() => setSelectedId(p.id)}
+                onDragOver={e => { e.preventDefault(); setDragOver(p.id); }}
+                onDragLeave={() => setDragOver(null)}
+                onDrop={e => handleDrop(p.id, e)}
+                className={`flex flex-col items-center cursor-pointer bg-transparent border-none transition-all ${
+                  isRemoved ? 'opacity-30' : isAway ? 'opacity-50' : ''
+                } ${!isActive && !isDragTarget ? 'hover:scale-105' : ''}`}
+              >
+                <div style={{ width: 86, height: 86 }}>
+                  <HpRing current={curHp} max={maxHp}>
+                    <div className={`relative w-full h-full rounded-full overflow-hidden border-[3px] transition-all ${
+                      isDragTarget
+                        ? 'border-[#4a7a5a]'
+                        : isActive
+                          ? 'border-[var(--color-gold)]'
+                          : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
+                    } bg-[#2e2825] flex items-center justify-center`}>
+                      <span className="text-[1.6rem] text-[var(--color-text-muted)] select-none">{p.initial}</span>
+                      <Image
+                        src={imgSrc}
+                        alt={p.playerName}
+                        fill
+                        className="object-cover absolute inset-0"
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    </div>
+                  </HpRing>
+                </div>
+                <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
+                  isActive ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'
+                }`}>
+                  {p.playerName}
+                  {isAway    ? ' · away'    : ''}
+                  {isRemoved ? ' · removed' : ''}
+                </span>
+              </button>
+              {/* +/− HP controls */}
+              {maxHp > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <button
+                    onClick={() => adjustHp(p.id, -1)}
+                    className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm hover:text-[var(--color-gold)] hover:border-[var(--color-gold)] transition-colors"
+                    style={{ width: 22, height: 20, fontSize: 14, lineHeight: '18px', padding: 0 }}
+                  >−</button>
+                  <span className="text-[0.75rem] font-serif tabular-nums text-[var(--color-text)]">
+                    {curHp}<span className="text-[var(--color-text-muted)]">/{maxHp}</span>
+                  </span>
+                  <button
+                    onClick={() => adjustHp(p.id, 1)}
+                    className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm hover:text-[var(--color-gold)] hover:border-[var(--color-gold)] transition-colors"
+                    style={{ width: 22, height: 20, fontSize: 14, lineHeight: '18px', padding: 0 }}
+                  >+</button>
+                </div>
+              )}
+            </div>
           );
         })}
 
