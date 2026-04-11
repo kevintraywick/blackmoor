@@ -78,6 +78,18 @@ export interface MenagerieEntry {
   hp: number;
   maxHp?: number;
   label?: string;
+  // Instance overrides — snapshotted from template on creation, editable per-instance
+  species?: string;
+  cr?: string;
+  ac?: string;
+  speed?: string;
+  attacks?: string;
+  traits?: string;
+  actions?: string;
+  notes?: string;
+  gold?: string;
+  equipment?: string;
+  treasure?: string;
 }
 
 export interface Session {

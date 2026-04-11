@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
-import type { Npc } from '@/lib/types';
+import type { Npc, MenagerieEntry } from '@/lib/types';
 import { diceRange, rollDice } from '@/lib/dice';
 import { lookupSrd, SRD_CREATURES } from '@/lib/srd-hp';
 import { useAutosave } from '@/lib/useAutosave';
@@ -40,7 +40,16 @@ function HpRangeDisplay({ hpRoll }: { hpRoll: string }) {
   );
 }
 
-export default function NpcPageClient({ initial }: { initial: Npc[] }) {
+interface SessionPill {
+  id: string;
+  number: number;
+  title: string;
+  started_at: number | null;
+  ended_at: number | null;
+  menagerie?: MenagerieEntry[];
+}
+
+export default function NpcPageClient({ initial, sessions = [] }: { initial: Npc[]; sessions?: SessionPill[] }) {
   const [npcs, setNpcs] = useState<Npc[]>(initial);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, string>>(
@@ -53,6 +62,8 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
   const [highlightIdx, setHighlightIdx] = useState(-1);
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [addedFlash, setAddedFlash] = useState<string | null>(null);
+  const activeSession = sessions.find(s => s.started_at && !s.ended_at);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(activeSession?.id ?? null);
   const creating = useRef(false);
   const portraitFileRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -66,7 +77,12 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
       const stored = localStorage.getItem('blackmoor-recent-npcs');
       if (stored) setRecentIds(JSON.parse(stored));
     } catch { /* silent */ }
-  }, []);
+    // Initialize selected session from localStorage if no active session
+    if (!activeSession) {
+      const storedSession = localStorage.getItem('blackmoor-last-session');
+      if (storedSession) setSelectedSessionId(storedSession);
+    }
+  }, [activeSession]);
 
   function addToRecents(npcId: string) {
     setRecentIds(prev => {
@@ -76,9 +92,25 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
     });
   }
 
-  // Alt+click: add NPC instance to current session
+  function handleSessionSelect(id: string) {
+    setSelectedSessionId(id);
+    localStorage.setItem('blackmoor-last-session', id);
+  }
+
+  // Compute session presence badges for an NPC: [{ number, count }]
+  function getSessionBadges(npcId: string) {
+    const badges: { number: number; count: number }[] = [];
+    for (const s of sessions) {
+      const m = Array.isArray(s.menagerie) ? s.menagerie : [];
+      const count = m.filter(e => e.npc_id === npcId).length;
+      if (count > 0) badges.push({ number: s.number, count });
+    }
+    return badges;
+  }
+
+  // Alt+click: add NPC instance to selected session
   const addToSession = useCallback(async (npc: Npc) => {
-    const sessionId = typeof window !== 'undefined' ? localStorage.getItem('blackmoor-last-session') : null;
+    const sessionId = selectedSessionId;
     if (!sessionId) return;
 
     // Fetch current session to get npc_ids + menagerie
@@ -86,7 +118,7 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
     if (!res.ok) return;
     const session = await res.json();
     const curIds: string[] = Array.isArray(session.npc_ids) ? session.npc_ids : [];
-    const curMenagerie: { npc_id: string; hp: number; maxHp?: number; label?: string }[] = Array.isArray(session.menagerie) ? session.menagerie : [];
+    const curMenagerie: MenagerieEntry[] = Array.isArray(session.menagerie) ? session.menagerie : [];
 
     // Find highest label number for this template
     let maxLabel = 0;
@@ -100,8 +132,14 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
     const rolled = npc.hp_roll ? rollDice(npc.hp_roll) : (parseInt(npc.hp, 10) || 1);
     const hp = rolled ?? 1;
 
+    const entry: MenagerieEntry = {
+      npc_id: npc.id, hp, maxHp: hp, label,
+      species: npc.species, cr: npc.cr, ac: npc.ac, speed: npc.speed,
+      attacks: npc.attacks, traits: npc.traits, actions: npc.actions,
+      notes: npc.notes, gold: npc.gold, equipment: npc.equipment, treasure: npc.treasure,
+    };
     const nextIds = [...curIds, npc.id];
-    const nextMenagerie = [...curMenagerie, { npc_id: npc.id, hp, maxHp: hp, label }];
+    const nextMenagerie = [...curMenagerie, entry];
 
     await fetch(`/api/sessions/${sessionId}`, {
       method: 'PATCH',
@@ -112,7 +150,7 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
     // Flash confirmation
     setAddedFlash(npc.id);
     setTimeout(() => setAddedFlash(null), 1200);
-  }, []);
+  }, [selectedSessionId]);
 
   // Auto-suggest: merge library NPCs + SRD creatures
   type Suggestion = { type: 'library'; npc: Npc } | { type: 'srd'; name: string; cr: string; hpRoll: string };
@@ -314,6 +352,28 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
   return (
     <div className="max-w-[1000px] mx-auto px-4 pb-16" onClick={() => setActiveId(null)}>
 
+      {/* Session pills */}
+      {sessions.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-4 mt-2">
+          {sessions.map(s => {
+            const isActive = s.id === selectedSessionId;
+            return (
+              <button
+                key={s.id}
+                onClick={e => { e.stopPropagation(); handleSessionSelect(s.id); }}
+                className={`flex-shrink-0 rounded px-3 py-1.5 font-serif text-[13px] leading-snug transition-colors border whitespace-nowrap ${
+                  isActive
+                    ? 'border-[var(--color-gold)] bg-[var(--color-surface)] text-[var(--color-gold)]'
+                    : 'border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:border-[#5a4a44]'
+                }`}
+              >
+                {s.number}. {s.title || 'Untitled'}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Search bar with auto-suggest */}
       <div className="relative mb-6" onClick={e => e.stopPropagation()}>
         <input
@@ -428,6 +488,15 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
                   }`}>
                     {justAdded ? 'Added!' : npc.name || 'Unnamed'}
                   </span>
+                  {(() => {
+                    const badges = getSessionBadges(npc.id);
+                    if (badges.length === 0) return null;
+                    return (
+                      <span className="text-[9px] text-[var(--color-text-dim)] font-sans">
+                        {badges.map(b => `S${b.number}${b.count > 1 ? ` ×${b.count}` : ''}`).join('  ')}
+                      </span>
+                    );
+                  })()}
                 </button>
               );
             })}

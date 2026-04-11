@@ -37,15 +37,22 @@ function SessionControlBar({
   session,
   onLongRest,
   onSessionUpdate,
+  menagerie: sessionMenagerie,
+  allNpcs,
+  onSessionsRefresh,
 }: {
   sessionId: string;
   session: Session;
   onLongRest: () => void;
   onSessionUpdate: (s: Session) => void;
+  menagerie: MenagerieEntry[];
+  allNpcs: Npc[];
+  onSessionsRefresh: () => void;
 }) {
   const [longRestPhase, setLongRestPhase] = useState<'idle' | 'confirm' | 'resting' | 'summary'>('idle');
   const [longRestResult, setLongRestResult] = useState<{ restored_npcs: number; expired_boons: number; cleared_poisons: number } | null>(null);
-
+  const [survivorPhase, setSurvivorPhase] = useState<'idle' | 'confirm' | 'done'>('idle');
+  const [survivorChecked, setSurvivorChecked] = useState<boolean[]>([]);
 
   const isStarted = !!session.started_at;
   const isPaused = !!session.ended_at;
@@ -54,6 +61,13 @@ function SessionControlBar({
   const [sessionEnded, setSessionEnded] = useState(false);
   // Track if session has been started at least once (after resume, show ✓ instead of START)
   const [hasResumed, setHasResumed] = useState(false);
+
+  // Survivors: alive NPCs in the menagerie
+  const survivors = useMemo(() => {
+    return sessionMenagerie
+      .map((entry, idx) => ({ entry, idx }))
+      .filter(({ entry }) => entry.hp > 0);
+  }, [sessionMenagerie]);
 
   async function handleStart() {
     if (isPaused || sessionEnded) setHasResumed(true);
@@ -78,13 +92,39 @@ function SessionControlBar({
   }
 
   async function handleEndSession() {
+    if (survivors.length > 0) {
+      // Show survivor confirmation before ending
+      setSurvivorChecked(survivors.map(() => true));
+      setSurvivorPhase('confirm');
+      return;
+    }
+    await finalizeEnd();
+  }
+
+  async function finalizeEnd() {
     setSessionEnded(true);
+    setSurvivorPhase('idle');
     // Log a session_end event (pause doesn't log one, only full end does)
     await fetch(`/api/sessions/${sessionId}/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event_type: 'session_end' }),
     });
+  }
+
+  async function handleCarryForward() {
+    const checkedIndices = survivors
+      .filter((_, i) => survivorChecked[i])
+      .map(s => s.idx);
+    await finalizeEnd();
+    if (checkedIndices.length > 0) {
+      await fetch(`/api/sessions/${sessionId}/carry-forward`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ survivors: checkedIndices }),
+      });
+      onSessionsRefresh();
+    }
   }
 
   function handleLongRestClick() {
@@ -274,8 +314,62 @@ function SessionControlBar({
         </div>
       )}
 
-      {/* Control circles — hidden during long rest flow */}
-      {longRestPhase === 'idle' && (
+      {/* Survivor confirmation — shown when ending session with living NPCs */}
+      {survivorPhase === 'confirm' && (
+        <div className="flex flex-col items-center gap-3 py-2">
+          <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-gold)] font-sans">Survivors</span>
+          <div className="flex flex-col gap-2 w-full max-w-xs">
+            {survivors.map(({ entry, idx }, i) => {
+              const npc = allNpcs.find(n => n.id === entry.npc_id);
+              const imgUrl = npc?.image_path ? resolveImageUrl(npc.image_path) : null;
+              const initial = (entry.label || npc?.name || '?').trim()[0].toUpperCase();
+              return (
+                <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                  <div
+                    onClick={() => setSurvivorChecked(prev => prev.map((v, j) => j === i ? !v : v))}
+                    style={{
+                      width: 20, height: 20, borderRadius: '50%',
+                      border: `2px solid ${survivorChecked[i] ? '#4a7a5a' : '#5a4f46'}`,
+                      background: survivorChecked[i] ? '#4a7a5a' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.7rem', color: '#fff', flexShrink: 0,
+                    }}
+                  >
+                    {survivorChecked[i] && '✓'}
+                  </div>
+                  <div className="rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center flex-shrink-0"
+                    style={{ width: 32, height: 32, border: '2px solid #1a1a1a' }}>
+                    {imgUrl
+                      ? <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                      : <span className="text-xs text-[var(--color-text-muted)] font-serif">{initial}</span>}
+                  </div>
+                  <span className="font-serif text-sm text-[var(--color-text)] truncate">{entry.label || npc?.name}</span>
+                  <span className="text-xs text-[var(--color-text-muted)] font-serif ml-auto tabular-nums">{entry.hp}/{entry.maxHp ?? entry.hp}</span>
+                </label>
+              );
+            })}
+          </div>
+          <div className="flex items-center" style={{ gap: 16, marginTop: 4 }}>
+            <button
+              onClick={handleCarryForward}
+              className="rounded-full flex items-center justify-center transition-all hover:scale-105"
+              style={{ width: 64, height: 64, background: '#2d5a3f', border: '1px solid rgba(255,255,255,0.7)' }}
+            >
+              <span className="text-white text-[0.5rem] uppercase tracking-[0.1em] font-sans leading-tight text-center px-1 whitespace-pre-line">Carry\nForward</span>
+            </button>
+            <button
+              onClick={() => { setSurvivorPhase('idle'); finalizeEnd(); }}
+              className="rounded-full flex items-center justify-center transition-all hover:scale-105"
+              style={{ width: 64, height: 64, background: '#1a1614', border: '1px solid rgba(255,255,255,0.7)' }}
+            >
+              <span className="text-white text-[0.5rem] uppercase tracking-[0.1em] font-sans leading-tight text-center px-1 whitespace-pre-line">End\nWithout</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Control circles — hidden during long rest or survivor flow */}
+      {longRestPhase === 'idle' && survivorPhase === 'idle' && (
         <div className="flex items-center" style={{ gap: 16 }}>
           {buttons.map(btn => {
             const circle = (
@@ -310,19 +404,159 @@ function SessionControlBar({
   );
 }
 
+function NpcStatCard({
+  npc,
+  entry,
+  menagerieIdx,
+  onRemove,
+  onUpdateHp,
+  onClose,
+}: {
+  npc: Npc;
+  entry: MenagerieEntry;
+  menagerieIdx: number;
+  onRemove: (npcId: string, menagerieIndex: number) => void;
+  onUpdateHp: (menagerieIdx: number, delta: number) => void;
+  onClose: () => void;
+}) {
+  const isDead = entry.hp <= 0;
+  const maxHp = entry.maxHp ?? entry.hp;
+  // Instance data with template fallback for old entries
+  const cr = entry.cr ?? npc.cr;
+  const ac = entry.ac ?? npc.ac;
+  const speed = entry.speed ?? npc.speed;
+  const attacks = entry.attacks ?? npc.attacks;
+  const traits = entry.traits ?? npc.traits;
+  const actions = entry.actions ?? npc.actions;
+  const notes = entry.notes ?? npc.notes;
+  const gold = entry.gold ?? npc.gold;
+  const equipment = entry.equipment ?? npc.equipment;
+  const treasure = entry.treasure ?? npc.treasure;
+  const hpRange = npc.hp_roll ? diceRange(npc.hp_roll) : null;
+
+  const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
+  const initial = (npc.name?.trim()?.[0] ?? '?').toUpperCase();
+
+  function StatDisplay({ label, value }: { label: string; value: string }) {
+    return (
+      <div className="flex flex-col items-center gap-0.5">
+        <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">{label}</span>
+        <span className="font-serif text-lg font-bold text-[var(--color-text)] pb-0.5 border-b border-[var(--color-border)]">{value || '—'}</span>
+      </div>
+    );
+  }
+
+  function TextSection({ label, content, placeholder }: { label: string; content: string; placeholder: string }) {
+    return (
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
+        <div className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)] mb-1.5">{label}</div>
+        <p className="font-serif text-[0.95rem] text-[var(--color-text)] whitespace-pre-wrap m-0 leading-relaxed min-h-[3rem]">
+          {content || <span className="text-[var(--color-text-dim)] italic">{placeholder}</span>}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header: portrait + name + close */}
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-4 mb-3">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 64, height: 64, flexShrink: 0, opacity: isDead ? 0.5 : 1, filter: isDead ? 'grayscale(0.7)' : 'none' }}>
+            <HpRing current={entry.hp} max={maxHp}>
+              <div className="rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center w-full h-full"
+                style={{ border: isDead ? '2px solid #5a3030' : '2px solid #1a1a1a' }}>
+                {imgUrl
+                  ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
+                  : <span className="text-lg text-[var(--color-text-muted)] font-serif">{initial}</span>}
+              </div>
+            </HpRing>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="font-serif text-2xl text-[var(--color-text)] font-bold">{entry.label || npc.name}</div>
+          </div>
+          <button onClick={onClose} className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] text-lg self-start" title="Close">✕</button>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3 mb-3">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center' }}>
+          <StatDisplay label="CR" value={cr} />
+          <StatDisplay label="AC" value={ac} />
+          <StatDisplay label="Speed" value={speed} />
+          <StatDisplay label="HP Roll" value={hpRange ? `${npc.hp_roll}` : ''} />
+          <StatDisplay label="HP Range" value={hpRange ? `${hpRange.min}–${hpRange.max}` : ''} />
+          {/* Gold with +/- */}
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">Gold</span>
+            <span className="font-serif text-lg font-bold text-[var(--color-text)] pb-0.5 border-b border-[var(--color-border)]">{gold || '0'}</span>
+          </div>
+          {/* HP with +/- controls */}
+          <div className="flex flex-col items-center gap-0.5 ml-auto">
+            <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">HP</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={() => onUpdateHp(menagerieIdx, -1)}
+                className="rounded-sm transition-colors hover:border-[var(--color-gold)]"
+                style={{ width: 22, height: 20, background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.75rem' }}
+              >−</button>
+              <span className={`font-serif text-lg font-bold tabular-nums ${isDead ? 'text-[#5a3030]' : entry.hp < maxHp ? 'text-[#c07050]' : 'text-[#4a8a65]'}`}>
+                {entry.hp}/{maxHp}
+              </span>
+              <button
+                onClick={() => onUpdateHp(menagerieIdx, 1)}
+                className="rounded-sm transition-colors hover:border-[var(--color-gold)]"
+                style={{ width: 22, height: 20, background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.75rem' }}
+              >+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Text sections — 2-column grid matching NPC page */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <TextSection label="Attacks" content={attacks} placeholder="Attack names, bonuses, damage..." />
+        <TextSection label="Actions" content={actions} placeholder="Bonus actions, reactions, legendary actions..." />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <TextSection label="Loot" content={treasure} placeholder="Loot, valuables, magic items..." />
+        <TextSection label="Equipment" content={equipment} placeholder="Weapons, armor, gear carried..." />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <TextSection label="Traits & Abilities" content={traits} placeholder="Passive traits, resistances, immunities..." />
+        <TextSection label="Notes" content={notes} placeholder="Tactics, lore, encounter notes..." />
+      </div>
+
+      {/* Remove button */}
+      <button
+        onClick={() => onRemove(npc.id, menagerieIdx)}
+        className="w-full py-1.5 rounded text-[0.75rem] font-serif transition-colors"
+        style={{ background: '#3a2020', color: '#a05050', border: '1px solid #5a3030' }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#8b1a1a'; e.currentTarget.style.color = '#fff'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#3a2020'; e.currentTarget.style.color = '#a05050'; }}
+      >
+        Remove from Session
+      </button>
+    </div>
+  );
+}
+
 function NpcCastingBoard({
   allNpcs,
   npcIds,
   menagerie,
-  onAddInstance,
   onRemoveInstance,
+  onUpdateHp,
 }: {
   allNpcs: Npc[];
   npcIds: string[];
   menagerie: MenagerieEntry[];
-  onAddInstance: (npcId: string) => void;
   onRemoveInstance: (npcId: string, menagerieIndex: number) => void;
+  onUpdateHp: (menagerieIdx: number, delta: number) => void;
 }) {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
   // Build instance list from npcIds + menagerie (positional match)
   const instances = useMemo(() => {
     const result: { npc: Npc; entry: MenagerieEntry; menagerieIdx: number }[] = [];
@@ -348,72 +582,37 @@ function NpcCastingBoard({
     return result;
   }, [allNpcs, npcIds, menagerie]);
 
-  // Count instances per template for badge
-  const instanceCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const id of npcIds) counts[id] = (counts[id] ?? 0) + 1;
-    return counts;
-  }, [npcIds]);
-
-  function renderNpcCircle(npc: Npc, opts: { onClick: () => void; size?: number; badge?: number }) {
-    const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
-    const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
-    const sz = opts.size ?? 64;
-    const range = npc.hp_roll ? diceRange(npc.hp_roll) : null;
-    return (
-      <button
-        key={npc.id}
-        onClick={opts.onClick}
-        className="flex flex-col items-center gap-1 transition-opacity relative"
-        title={`${npc.name}${range ? ` (HP ${range.min}–${range.max})` : ''} — click to add`}
-      >
-        <div
-          className="rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center flex-shrink-0 transition-all relative"
-          style={{
-            width: sz, height: sz,
-            border: '2px solid rgba(201,168,76,0.4)',
-          }}
-        >
-          {imgUrl
-            ? <img src={imgUrl} alt={npc.name} className="w-full h-full object-cover" />
-            : <span className="text-sm text-[var(--color-text-muted)] font-serif">{initial}</span>
-          }
-          {opts.badge && opts.badge > 0 && (
-            <div style={{
-              position: 'absolute', bottom: -2, right: -2,
-              width: 20, height: 20, borderRadius: '50%',
-              background: '#4a7a5a', color: '#fff',
-              fontSize: '0.6rem', fontWeight: 'bold',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: '2px solid #1a1714',
-            }}>
-              {opts.badge}
-            </div>
-          )}
-        </div>
-        <span className="font-serif text-[0.8rem] text-[var(--color-text-muted)] max-w-[76px] truncate text-center">
-          {npc.name || 'Unnamed'}
-        </span>
-      </button>
-    );
-  }
+  // Clear selection if the selected instance was removed
+  const selected = selectedIdx !== null ? instances[selectedIdx] : null;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7 items-stretch">
-      {/* Left: NPCs in this Session */}
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
+    <div className="mb-7">
+      {/* NPC circles row */}
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3 mb-3">
         <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">NPCs in this Session</div>
         {instances.length === 0 ? (
-          <p className="text-[#5a4a44] text-xs font-serif italic">No NPCs assigned yet.</p>
+          <p className="text-[#5a4a44] text-xs font-serif italic">Add NPCs from the NPCs page.</p>
         ) : (
           <div className="flex flex-wrap gap-3">
             {instances.map(({ npc, entry, menagerieIdx }, idx) => {
               const isDead = entry.hp <= 0;
               const imgUrl = npc.image_path ? resolveImageUrl(npc.image_path) : null;
               const initial = npc.name?.trim()?.[0]?.toUpperCase() ?? '?';
+              const isSelected = selectedIdx === idx;
               return (
-                <div key={`${npc.id}-${idx}`} className="flex flex-col items-center gap-1 relative">
-                  <div style={{ width: 72, height: 72, opacity: isDead ? 0.5 : 1, filter: isDead ? 'grayscale(0.7)' : 'none' }}>
+                <button
+                  key={`${npc.id}-${idx}`}
+                  onClick={() => setSelectedIdx(isSelected ? null : idx)}
+                  className="flex flex-col items-center gap-1 relative cursor-pointer bg-transparent border-none"
+                >
+                  <div style={{
+                    width: 72, height: 72,
+                    opacity: isDead ? 0.5 : 1,
+                    filter: isDead ? 'grayscale(0.7)' : 'none',
+                    outline: isSelected ? '2px solid var(--color-gold)' : 'none',
+                    outlineOffset: 2,
+                    borderRadius: '50%',
+                  }}>
                     <HpRing current={entry.hp} max={entry.maxHp ?? entry.hp}>
                       <div
                         className="rounded-full overflow-hidden bg-[#1a1714] flex items-center justify-center relative w-full h-full"
@@ -435,7 +634,7 @@ function NpcCastingBoard({
                       </div>
                     </HpRing>
                   </div>
-                  <span className={`font-serif text-[0.75rem] max-w-[76px] truncate text-center ${isDead ? 'line-through text-[#5a3030]' : 'text-[var(--color-text-muted)]'}`}>
+                  <span className={`font-serif text-[0.75rem] max-w-[76px] truncate text-center ${isDead ? 'line-through text-[#5a3030]' : isSelected ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'}`}>
                     {entry.label || npc.name}
                   </span>
                   {entry.maxHp !== undefined && (
@@ -443,39 +642,24 @@ function NpcCastingBoard({
                       {entry.hp}/{entry.maxHp}
                     </span>
                   )}
-                  {!isDead && (
-                    <button
-                      onClick={() => onRemoveInstance(npc.id, menagerieIdx)}
-                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[0.5rem] transition-colors"
-                      style={{ background: '#3a2020', color: '#a05050', border: '1px solid #5a3030' }}
-                      title="Remove"
-                      onMouseEnter={e => { e.currentTarget.style.background = '#8b1a1a'; e.currentTarget.style.color = '#fff'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = '#3a2020'; e.currentTarget.style.color = '#a05050'; }}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
+                </button>
               );
             })}
           </div>
         )}
       </div>
 
-      {/* Right: NPC Catalog — all templates */}
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded p-3">
-        <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2">+ Add NPCs</div>
-        {allNpcs.length === 0 ? (
-          <p className="text-[#5a4a44] text-xs font-serif italic">No NPC templates yet. Create them on the NPCs page.</p>
-        ) : (
-          <div className="flex flex-wrap gap-3">
-            {allNpcs.map(npc => renderNpcCircle(npc, {
-              onClick: () => onAddInstance(npc.id),
-              badge: instanceCounts[npc.id] ?? 0,
-            }))}
-          </div>
-        )}
-      </div>
+      {/* Full-width NPC Stat Card below circles */}
+      {selected && (
+        <NpcStatCard
+          npc={selected.npc}
+          entry={selected.entry}
+          menagerieIdx={selected.menagerieIdx}
+          onRemove={(npcId, mIdx) => { setSelectedIdx(null); onRemoveInstance(npcId, mIdx); }}
+          onUpdateHp={onUpdateHp}
+          onClose={() => setSelectedIdx(null)}
+        />
+      )}
     </div>
   );
 }
@@ -558,7 +742,12 @@ export default function DmSessionsClient({
     const rolled = npc.hp_roll ? rollDice(npc.hp_roll) : (parseInt(npc.hp, 10) || 1);
     const hp = rolled ?? 1;
 
-    const entry: MenagerieEntry = { npc_id: npcId, hp, maxHp: hp, label };
+    const entry: MenagerieEntry = {
+      npc_id: npcId, hp, maxHp: hp, label,
+      species: npc.species, cr: npc.cr, ac: npc.ac, speed: npc.speed,
+      attacks: npc.attacks, traits: npc.traits, actions: npc.actions,
+      notes: npc.notes, gold: npc.gold, equipment: npc.equipment, treasure: npc.treasure,
+    };
     const nextIds = [...npcIds, npcId];
     const nextMenagerie = [...menagerie, entry];
 
@@ -602,6 +791,21 @@ export default function DmSessionsClient({
       s.id === selectedId ? { ...s, npc_ids: nextIds, menagerie: nextMenagerie } : s
     ));
   }, [selectedId, npcIds, menagerie, autosave, setSessions]);
+
+  const handleUpdateNpcHp = useCallback((menagerieIdx: number, delta: number) => {
+    if (!selectedId) return;
+    const entry = menagerie[menagerieIdx];
+    if (!entry) return;
+    const maxHp = entry.maxHp ?? entry.hp;
+    const newHp = Math.max(0, Math.min(maxHp, entry.hp + delta));
+    if (newHp === entry.hp) return;
+    const nextMenagerie = menagerie.map((e, i) => i === menagerieIdx ? { ...e, hp: newHp } : e);
+    setMenagerie(nextMenagerie);
+    autosave({ menagerie: nextMenagerie });
+    setSessions(prev => prev.map(s =>
+      s.id === selectedId ? { ...s, menagerie: nextMenagerie } : s
+    ));
+  }, [selectedId, menagerie, autosave, setSessions]);
 
   async function handleNew() {
     if (creating.current) return;
@@ -671,6 +875,8 @@ export default function DmSessionsClient({
             <SessionControlBar
               sessionId={selected.id}
               session={selected}
+              menagerie={menagerie}
+              allNpcs={allNpcs}
               onLongRest={async () => {
                 // Refresh menagerie from server after omnibus long rest
                 try {
@@ -684,6 +890,16 @@ export default function DmSessionsClient({
               }}
               onSessionUpdate={(updated) => {
                 setSessions(prev => prev.map(s => s.id === updated.id ? updated : s));
+              }}
+              onSessionsRefresh={async () => {
+                // Reload all sessions after carry-forward creates/updates next session
+                try {
+                  const res = await fetch('/api/sessions');
+                  if (res.ok) {
+                    const all = await res.json();
+                    setSessions(all);
+                  }
+                } catch { /* silent */ }
               }}
             />
           </div>
@@ -719,8 +935,8 @@ export default function DmSessionsClient({
               allNpcs={allNpcs}
               npcIds={npcIds}
               menagerie={menagerie}
-              onAddInstance={handleAddNpcInstance}
               onRemoveInstance={handleRemoveNpcInstance}
+              onUpdateHp={handleUpdateNpcHp}
             />
 
             {/* Journal — Private | Public side by side */}
