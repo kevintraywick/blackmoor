@@ -27,6 +27,11 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [x] Invitation system for players <!-- shadow-v1 -->
 - [x] Nightly DB backup via GitHub Actions <!-- shadow-v1 -->
 
+### Shadow v1 — in flight
+
+- [ ] Review Common v1/v2/v3 plan docs (top priority — unblocks Common work) <!-- shadow-v1 --> <!-- in-progress -->
+- [x] Archive legacy Realm Walker TODO <!-- shadow-v1 -->
+
 ### Shadow v2 — planned
 
 - [ ] 3 vertical circles on player banner (compass, sun/moon phase, wind dir) — also on sessions <!-- shadow-v2 -->

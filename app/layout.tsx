@@ -63,13 +63,6 @@ export default function RootLayout({
           }}
         >
           © 2026 Grey Assassins Guild, LLC
-          <span style={{ margin: '0 12px', color: '#3d3530' }}>·</span>
-          <a
-            href="/do"
-            style={{ color: '#8a7d6e', textDecoration: 'none' }}
-          >
-            Roadmap
-          </a>
         </footer>
       </body>
     </html>
