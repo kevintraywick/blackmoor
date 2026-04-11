@@ -100,7 +100,7 @@ function SessionControlBar({
       setLongRestPhase('summary');
       onLongRest();
       // Reset current_hp = max_hp (full heal) for all active players
-      fetch('/api/players/snapshot-hp', { method: 'POST' }).catch(() => {});
+      fetch('/api/players/snapshot-hp?mode=heal', { method: 'POST' }).catch(() => {});
       setTimeout(() => { setLongRestPhase('idle'); setLongRestResult(null); }, 4000);
     } else {
       setLongRestPhase('idle');
@@ -642,29 +642,21 @@ export default function DmSessionsClient({
               <button
                 key={s.id}
                 onClick={() => handleSelect(s)}
-                className={`flex-shrink-0 w-[96px] rounded px-2 py-2.5 flex flex-col items-center gap-1 text-left transition-colors border ${
+                className={`flex-shrink-0 rounded px-3 py-1.5 font-serif text-[13px] leading-snug transition-colors border whitespace-nowrap ${
                   isSelected
-                    ? 'border-[var(--color-gold)] bg-[var(--color-surface)]'
-                    : 'border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[#5a4a44]'
+                    ? 'border-[var(--color-gold)] bg-[var(--color-surface)] text-[var(--color-gold)]'
+                    : 'border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:border-[#5a4a44]'
                 }`}
               >
-                <span className="text-lg font-bold leading-none font-serif text-[var(--color-gold)]">
-                  #{s.number}
-                </span>
-                <span className={`text-[13px] font-serif leading-tight line-clamp-2 text-center w-full ${isSelected ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'}`}>
-                  {s.title || 'Untitled'}
-                </span>
-                {s.date && (
-                  <span className="text-[8px] text-[var(--color-border)]">{s.date}</span>
-                )}
+                {s.number}. {s.title || 'Untitled'}
               </button>
             );
           })}
 
-          {/* + box */}
+          {/* + button */}
           <button
             onClick={handleNew}
-            className="flex-shrink-0 w-[88px] rounded border border-dashed border-[var(--color-border)] bg-transparent flex items-center justify-center text-lg font-bold font-serif text-[var(--color-gold)] hover:border-[#5a4a44] transition-colors"
+            className="flex-shrink-0 rounded border border-dashed border-[var(--color-border)] bg-transparent px-3 py-1.5 font-serif text-[13px] text-[var(--color-gold)] hover:border-[#5a4a44] transition-colors"
             title="New session"
           >
             +
