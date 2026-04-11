@@ -10,7 +10,7 @@ import { lookupNpcImage } from '@/lib/npc-images';
 
 const EMPTY_NPC: Omit<Npc, 'id'> = {
   name: '', species: '', cr: '', hp: '', hp_roll: '', ac: '', speed: '',
-  attacks: '', traits: '', actions: '', notes: '', image_path: '',
+  attacks: '', traits: '', actions: '', notes: '', gold: '', equipment: '', treasure: '', image_path: '',
 };
 
 function StatField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
@@ -543,6 +543,31 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
 
             {/* HP Range (read-only, derived from hp_roll) */}
             <HpRangeDisplay hpRoll={values.hp_roll} />
+
+            {/* Gold */}
+            {/* Gold with +/- stepper */}
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-gold)]">Gold</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <button
+                  onClick={() => { const n = Math.max(0, (parseInt(values.gold, 10) || 0) - 1); handleChange('gold', String(n)); }}
+                  className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm hover:text-[var(--color-gold)] hover:border-[var(--color-gold)] transition-colors"
+                  style={{ width: 22, height: 20, fontSize: 14, lineHeight: '18px', padding: 0 }}
+                >−</button>
+                <input
+                  value={values.gold}
+                  onChange={e => handleChange('gold', e.target.value)}
+                  placeholder="0"
+                  className="w-12 bg-transparent border-b border-[var(--color-border)] text-[var(--color-text)] font-serif text-lg font-bold
+                             outline-none focus:border-[var(--color-gold)] placeholder:text-[#8a7452] pb-0.5 text-center"
+                />
+                <button
+                  onClick={() => { const n = (parseInt(values.gold, 10) || 0) + 1; handleChange('gold', String(n)); }}
+                  className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text-muted)] rounded-sm hover:text-[var(--color-gold)] hover:border-[var(--color-gold)] transition-colors"
+                  style={{ width: 22, height: 20, fontSize: 14, lineHeight: '18px', padding: 0 }}
+                >+</button>
+              </div>
+            </div>
           </div>
 
           {/* 2-col content grid */}
@@ -552,12 +577,20 @@ export default function NpcPageClient({ initial }: { initial: Npc[] }) {
               <textarea rows={5} value={values.attacks} onChange={e => handleChange('attacks', e.target.value)} className={ta} placeholder="Attack names, bonuses, damage…" />
             </div>
             <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
-              <div className={sh}>Traits & Abilities</div>
-              <textarea rows={5} value={values.traits} onChange={e => handleChange('traits', e.target.value)} className={ta} placeholder="Passive traits, resistances, immunities…" />
-            </div>
-            <div className="bg-[var(--color-surface)] border-r border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
               <div className={sh}>Actions</div>
               <textarea rows={5} value={values.actions} onChange={e => handleChange('actions', e.target.value)} className={ta} placeholder="Bonus actions, reactions, legendary actions…" />
+            </div>
+            <div className="bg-[var(--color-surface)] border-r border-b border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
+              <div className={sh}>Loot</div>
+              <textarea rows={4} value={values.treasure} onChange={e => handleChange('treasure', e.target.value)} className={ta} placeholder="Loot, valuables, magic items…" />
+            </div>
+            <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
+              <div className={sh}>Equipment</div>
+              <textarea rows={4} value={values.equipment} onChange={e => handleChange('equipment', e.target.value)} className={ta} placeholder="Weapons, armor, gear carried…" />
+            </div>
+            <div className="bg-[var(--color-surface)] border-r border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
+              <div className={sh}>Traits & Abilities</div>
+              <textarea rows={5} value={values.traits} onChange={e => handleChange('traits', e.target.value)} className={ta} placeholder="Passive traits, resistances, immunities…" />
             </div>
             <div className="bg-[var(--color-surface)] border-[var(--color-border)] p-3" style={{ minWidth: 0 }}>
               <div className={sh}>Notes</div>

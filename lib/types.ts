@@ -347,6 +347,9 @@ export interface Npc {
   traits: string;
   actions: string;
   notes: string;
+  gold: string;
+  equipment: string;
+  treasure: string;
   image_path: string | null;
 }
 

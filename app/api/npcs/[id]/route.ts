@@ -8,7 +8,7 @@ import { randomUUID } from 'crypto';
 const UPLOAD_DIR = `${process.env.DATA_DIR ?? '/data'}/uploads/npcs`;
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
-const ALLOWED_FIELDS = new Set(['name', 'species', 'cr', 'hp', 'hp_roll', 'ac', 'speed', 'attacks', 'traits', 'actions', 'notes', 'image_path']);
+const ALLOWED_FIELDS = new Set(['name', 'species', 'cr', 'hp', 'hp_roll', 'ac', 'speed', 'attacks', 'traits', 'actions', 'notes', 'image_path', 'gold', 'equipment', 'treasure']);
 
 export async function PATCH(
   request: Request,

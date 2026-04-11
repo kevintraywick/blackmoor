@@ -174,6 +174,9 @@ async function _initSchema() {
   await pool.query(`
     ALTER TABLE npcs ADD COLUMN IF NOT EXISTS hp_roll TEXT NOT NULL DEFAULT ''
   `);
+  await pool.query(`ALTER TABLE npcs ADD COLUMN IF NOT EXISTS gold TEXT NOT NULL DEFAULT ''`).catch(() => {});
+  await pool.query(`ALTER TABLE npcs ADD COLUMN IF NOT EXISTS equipment TEXT NOT NULL DEFAULT ''`).catch(() => {});
+  await pool.query(`ALTER TABLE npcs ADD COLUMN IF NOT EXISTS treasure TEXT NOT NULL DEFAULT ''`).catch(() => {});
 
   // Add npc_ids JSONB column to sessions for explicit NPC selection
   await pool.query(`
