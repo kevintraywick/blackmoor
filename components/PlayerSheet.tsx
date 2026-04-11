@@ -549,12 +549,12 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             {/* Notification dots */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
               {unread > 0 ? (
-                <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }} title={`${unread} unread message${unread > 1 ? 's' : ''}`}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+                <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }} aria-label={`${unread} unread message${unread > 1 ? 's' : ''}`}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
               ) : messages.length > 0 ? (
-                <svg onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', opacity: 0.3 }} title="View messages"><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+                <svg onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', opacity: 0.3 }} aria-label="View messages"><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
               ) : null}
               {boonCount > 0 ? (
-                <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} title={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
+                <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} aria-label={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
               ) : null}
               {poisonCount > 0 ? (
                 <span className="animate-pulse cursor-default" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
