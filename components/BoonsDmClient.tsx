@@ -40,6 +40,26 @@ export default function BoonsDmClient({ players, initialTemplates, initialActive
   const [, setTick] = useState(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const [expandedBoon, setExpandedBoon] = useState<string | null>(null);
+  const [notesMap, setNotesMap] = useState<Record<string, string>>(() => {
+    const m: Record<string, string> = {};
+    for (const b of initialActive) m[b.id] = b.dm_notes || '';
+    return m;
+  });
+  const noteTimerRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  function updateNotes(boonId: string, value: string) {
+    setNotesMap(prev => ({ ...prev, [boonId]: value }));
+    if (noteTimerRef.current[boonId]) clearTimeout(noteTimerRef.current[boonId]);
+    noteTimerRef.current[boonId] = setTimeout(() => {
+      fetch('/api/boons', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: boonId, action: 'notes', dm_notes: value }),
+      });
+    }, 800);
+  }
+
   // Per-player input state
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [focused, setFocused] = useState<string | null>(null);
@@ -274,22 +294,42 @@ export default function BoonsDmClient({ players, initialTemplates, initialActive
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   {pBoons.map(b => {
                     const tr = timeRemaining(b);
+                    const expanded = expandedBoon === b.id;
                     return (
-                      <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(201,168,76,0.12)', borderRadius: 4, padding: '4px 8px' }}>
-                        <span className="font-sans text-xs text-[#c9a84c]">{b.name}</span>
-                        <span className="font-sans text-xs text-[#8a7d6e]">
-                          {b.expiry_type === 'permanent' && 'Until used'}
-                          {b.expiry_type === 'long_rest' && 'Until long rest'}
-                          {b.expiry_type === 'timer' && (tr ? `${tr}` : 'Timer')}
-                        </span>
-                        {!b.seen && <svg className="animate-pulse" viewBox="0 0 24 24" fill="#ffffff" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>}
-                        <button
-                          onClick={() => cancelBoon(b.id)}
-                          className="text-[#8a7d6e] hover:text-[#c0392b] text-xs transition-colors"
-                          title="Cancel boon"
-                        >
-                          ✕
-                        </button>
+                      <div key={b.id} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(201,168,76,0.12)', borderRadius: expanded ? '4px 4px 0 0' : 4, padding: '4px 8px' }}>
+                          <span
+                            className="font-sans text-xs text-[#c9a84c] cursor-pointer"
+                            onClick={() => setExpandedBoon(expanded ? null : b.id)}
+                            title="Click to add notes"
+                          >
+                            {b.name}
+                          </span>
+                          <span className="font-sans text-xs text-[#8a7d6e]">
+                            {b.expiry_type === 'permanent' && 'Until used'}
+                            {b.expiry_type === 'long_rest' && 'Until long rest'}
+                            {b.expiry_type === 'timer' && (tr ? `${tr}` : 'Timer')}
+                          </span>
+                          {(notesMap[b.id] || '') !== '' && !expanded && <span className="text-[#5a4f46] text-[0.55rem]">📝</span>}
+                          {!b.seen && <svg className="animate-pulse" viewBox="0 0 24 24" fill="#ffffff" style={{ width: 16, height: 16, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>}
+                          <button
+                            onClick={() => cancelBoon(b.id)}
+                            className="text-[#8a7d6e] hover:text-[#c0392b] text-xs transition-colors"
+                            title="Cancel boon"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        {expanded && (
+                          <textarea
+                            rows={2}
+                            value={notesMap[b.id] || ''}
+                            onChange={e => updateNotes(b.id, e.target.value)}
+                            placeholder="DM notes..."
+                            className="bg-[#1e1b18] text-[var(--color-text)] text-xs font-serif outline-none resize-none placeholder:text-[var(--color-text-muted)]"
+                            style={{ borderRadius: '0 0 4px 4px', border: '1px solid rgba(201,168,76,0.2)', borderTop: 'none', padding: '6px 8px', width: '100%' }}
+                          />
+                        )}
                       </div>
                     );
                   })}

@@ -80,9 +80,11 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     await ensureSchema();
-    const { id, action, player_id, template_id, name, description, effect } = await req.json();
+    const { id, action, player_id, template_id, name, description, effect, dm_notes } = await req.json();
 
-    if (action === 'cancel' && id) {
+    if (action === 'notes' && id && typeof dm_notes === 'string') {
+      await query('UPDATE player_boons SET dm_notes = $2 WHERE id = $1', [id, dm_notes]);
+    } else if (action === 'cancel' && id) {
       await query('UPDATE player_boons SET active = false WHERE id = $1', [id]);
     } else if (action === 'seen' && player_id) {
       await query('UPDATE player_boons SET seen = true WHERE player_id = $1 AND active = true AND seen = false', [player_id]);

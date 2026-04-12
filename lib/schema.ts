@@ -495,6 +495,7 @@ async function _initSchema() {
 
   // Session tracking — link boons/poisons to sessions
   await pool.query(`ALTER TABLE player_boons ADD COLUMN IF NOT EXISTS session_id TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE player_boons ADD COLUMN IF NOT EXISTS dm_notes TEXT NOT NULL DEFAULT ''`).catch(() => {});
   await pool.query(`ALTER TABLE poison_status ADD COLUMN IF NOT EXISTS session_id TEXT`).catch(() => {});
   await pool.query(`ALTER TABLE poison_status ADD COLUMN IF NOT EXISTS poison_name TEXT NOT NULL DEFAULT ''`).catch(() => {});
   await pool.query(`ALTER TABLE poison_status ADD COLUMN IF NOT EXISTS effect TEXT NOT NULL DEFAULT ''`).catch(() => {});

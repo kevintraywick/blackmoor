@@ -231,6 +231,7 @@ export interface PlayerBoon {
   started_at: number;
   active: boolean;
   seen: boolean;
+  dm_notes: string;
 }
 
 export interface SessionEvent {
