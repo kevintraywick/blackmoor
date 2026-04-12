@@ -33,7 +33,28 @@ const COLOR_HOVER_STROKE = '#e6c66a';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type Mode = 'reveal' | 'pan' | 'navigate' | 'place-entity' | 'set-party';
+type Mode = 'reveal' | 'pan' | 'navigate' | 'place-entity' | 'set-party' | 'paint';
+
+// Terrain types that can be painted onto hexes
+const TERRAIN_PALETTE = [
+  { type: 'hex_grass', label: 'Grass', category: 'base', rotations: 0 },
+  { type: 'hex_water', label: 'Water', category: 'base', rotations: 0 },
+  { type: 'hex_coast_A', label: 'Coast A', category: 'coast', rotations: 6 },
+  { type: 'hex_coast_B', label: 'Coast B', category: 'coast', rotations: 6 },
+  { type: 'hex_coast_C', label: 'Coast C', category: 'coast', rotations: 6 },
+  { type: 'hex_coast_D', label: 'Coast D', category: 'coast', rotations: 6 },
+  { type: 'hex_coast_E', label: 'Coast E', category: 'coast', rotations: 6 },
+  { type: 'hex_road_A', label: 'Road A', category: 'road', rotations: 6 },
+  { type: 'hex_road_B', label: 'Road B', category: 'road', rotations: 6 },
+  { type: 'hex_road_C', label: 'Road C', category: 'road', rotations: 6 },
+  { type: 'hex_road_D', label: 'Road D', category: 'road', rotations: 6 },
+  { type: 'hex_river_A', label: 'River A', category: 'river', rotations: 6 },
+  { type: 'hex_river_B', label: 'River B', category: 'river', rotations: 6 },
+  { type: 'hex_river_C', label: 'River C', category: 'river', rotations: 6 },
+  { type: 'hex_grass_sloped_high', label: 'Slope Hi', category: 'base', rotations: 0 },
+  { type: 'hex_grass_sloped_low', label: 'Slope Lo', category: 'base', rotations: 0 },
+  { type: null, label: 'Erase', category: null, rotations: 0 },
+] as const;
 
 const ENTITY_KINDS: { kind: WorldEntityKind; label: string; glyph: string; color: string }[] = [
   { kind: 'storm',       label: 'Storm',       glyph: '⛈', color: '#9ec5e8' },
@@ -86,6 +107,9 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
   const [hover, setHover] = useState<[number, number] | null>(null);
   const [placeKind, setPlaceKind] = useState<WorldEntityKind>('caravan');
   const [partyHex, setPartyHex] = useState<[number, number] | null>(null);
+  const [paintTerrain, setPaintTerrain] = useState<string | null>('hex_grass');
+  const [paintRotation, setPaintRotation] = useState(0);
+  const spriteCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
   useEffect(() => {
     fetch('/api/party/position')
@@ -98,6 +122,33 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
       .catch(() => {});
   }, []);
   const [advanceErr, setAdvanceErr] = useState<string | null>(null);
+  const [spritesReady, setSpritesReady] = useState(false);
+
+  // Pre-load all terrain sprite images
+  useEffect(() => {
+    const toLoad: string[] = [];
+    for (const t of TERRAIN_PALETTE) {
+      if (!t.type || !t.category) continue;
+      if (t.rotations > 0) {
+        for (let r = 0; r < 6; r++) toLoad.push(`/images/hex-tiles/${t.category}/${t.type}_r${r}.png`);
+      } else {
+        toLoad.push(`/images/hex-tiles/${t.category}/${t.type}.png`);
+      }
+    }
+    let loaded = 0;
+    for (const src of toLoad) {
+      if (spriteCache.current.has(src)) { loaded++; continue; }
+      const img = new Image();
+      img.onload = () => {
+        spriteCache.current.set(src, img);
+        loaded++;
+        if (loaded >= toLoad.length) setSpritesReady(true);
+      };
+      img.onerror = () => { loaded++; if (loaded >= toLoad.length) setSpritesReady(true); };
+      img.src = src;
+    }
+    if (loaded >= toLoad.length) setSpritesReady(true);
+  }, []);
 
   // Pan offset in world-space pixels. Initialized to center the centroid of
   // known hexes (or the origin if empty) on the canvas.
@@ -157,6 +208,15 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
     };
   }, [hexes]);
 
+  const getSpritePath = useCallback((terrainType: string, rotation: number) => {
+    const entry = TERRAIN_PALETTE.find(t => t.type === terrainType);
+    if (!entry || !entry.category) return null;
+    if (entry.rotations > 0) {
+      return `/images/hex-tiles/${entry.category}/${terrainType}_r${rotation}.png`;
+    }
+    return `/images/hex-tiles/${entry.category}/${terrainType}.png`;
+  }, []);
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -204,6 +264,27 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
         }
         ctx.fill();
         ctx.stroke();
+
+        // Draw terrain sprite if the hex has one
+        if (known?.terrain_type) {
+          const spritePath = getSpritePath(known.terrain_type, known.terrain_rotation);
+          const img = spritePath ? spriteCache.current.get(spritePath) : null;
+          if (img) {
+            const aspect = img.naturalHeight / img.naturalWidth;
+            const spriteW = HEX_SIZE * 3.2;
+            const spriteH = spriteW * aspect;
+            ctx.save();
+            hexPath(ctx, cx, cy, HEX_SIZE);
+            ctx.clip();
+            ctx.drawImage(img, cx - spriteW / 2, cy - spriteH * 0.38, spriteW, spriteH);
+            ctx.restore();
+            // Redraw border on top of clipped sprite
+            hexPath(ctx, cx, cy, HEX_SIZE);
+            ctx.strokeStyle = COLOR_REVEALED_STROKE;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
 
         if (state === 'mapped') {
           // Small centered glyph indicating a local map is anchored here
@@ -255,7 +336,7 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
     }
 
     ctx.restore();
-  }, [pan, hexMap, drawWindow, hover, entities, partyHex]);
+  }, [pan, hexMap, drawWindow, hover, entities, partyHex, getSpritePath, spritesReady]);
 
   useEffect(() => {
     draw();
@@ -385,6 +466,25 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
         } catch (err) {
           console.warn('place entity error', err);
         }
+      } else if (mode === 'paint') {
+        try {
+          const res = await fetch('/api/world/terrain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ q, r, terrain_type: paintTerrain, rotation: paintRotation }),
+          });
+          if (!res.ok) return;
+          const updated: WorldHex = await res.json();
+          setHexes((prev) => {
+            const idx = prev.findIndex((h) => h.q === q && h.r === r);
+            if (idx === -1) return [...prev, updated];
+            const next = prev.slice();
+            next[idx] = updated;
+            return next;
+          });
+        } catch (err) {
+          console.warn('paint terrain error', err);
+        }
       } else if (mode === 'set-party') {
         if (partyHex && partyHex[0] === q && partyHex[1] === r) return;
         try {
@@ -403,7 +503,7 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
         }
       }
     },
-    [mode, hexMap, screenToHex, router, placeKind, partyHex]
+    [mode, hexMap, screenToHex, router, placeKind, partyHex, paintTerrain, paintRotation]
   );
 
   // Advance the campaign clock by N seconds. World entities tick along
@@ -524,6 +624,71 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
         </div>
       )}
 
+      {/* Terrain palette — visible only in paint mode */}
+      {mode === 'paint' && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 6,
+            marginBottom: 12,
+            padding: '10px 14px',
+            background: '#1a1614',
+            border: '1px solid #5a4632',
+            borderRadius: 2,
+            alignItems: 'center',
+          }}
+        >
+          <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7a4c] font-sans" style={{ marginRight: 4 }}>
+            Terrain
+          </span>
+          {TERRAIN_PALETTE.map((t) => {
+            const active = paintTerrain === t.type;
+            return (
+              <button
+                key={t.label}
+                type="button"
+                onClick={() => { setPaintTerrain(t.type); setPaintRotation(0); }}
+                className="font-sans text-[0.65rem] uppercase tracking-[0.1em]"
+                style={{
+                  padding: '4px 8px',
+                  background: active ? '#c9a84c22' : 'transparent',
+                  color: active ? '#c9a84c' : '#8a7a4c',
+                  border: `1px solid ${active ? '#c9a84c' : '#5a4632'}`,
+                  cursor: 'pointer',
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+          {paintTerrain && TERRAIN_PALETTE.find(t => t.type === paintTerrain)?.rotations === 6 && (
+            <div style={{ display: 'flex', gap: 4, marginLeft: 8, alignItems: 'center' }}>
+              <span className="text-[0.65rem] text-[#8a7a4c] font-sans">R:</span>
+              {[0, 1, 2, 3, 4, 5].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setPaintRotation(r)}
+                  className="font-sans text-[0.6rem]"
+                  style={{
+                    width: 22,
+                    height: 22,
+                    background: paintRotation === r ? '#c9a84c' : 'transparent',
+                    color: paintRotation === r ? '#1a1614' : '#8a7a4c',
+                    border: `1px solid ${paintRotation === r ? '#c9a84c' : '#5a4632'}`,
+                    cursor: 'pointer',
+                    borderRadius: 2,
+                  }}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <canvas
         ref={canvasRef}
         onMouseDown={onMouseDown}
@@ -547,6 +712,8 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
           ? 'Click a hex to toggle reveal. Mapped hexes open their local map.'
           : mode === 'pan'
           ? 'Drag to pan. Click a mapped hex to open its local map.'
+          : mode === 'paint'
+          ? 'Select a terrain tile above, then click hexes to paint. Use R buttons for rotation.'
           : 'Click a mapped hex to open its local map.'}
       </p>
     </div>
@@ -582,6 +749,7 @@ function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => voi
     { key: 'navigate', label: 'Navigate' },
     { key: 'place-entity', label: 'Place' },
     { key: 'set-party', label: 'Party' },
+    { key: 'paint', label: 'Paint' },
   ];
   return (
     <div className="inline-flex" style={{ gap: 0 }}>

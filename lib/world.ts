@@ -33,6 +33,8 @@ export interface WorldHex {
   r: number;
   reveal_state: RevealState;
   terrain_note: string;
+  terrain_type: string | null;
+  terrain_rotation: number;
   local_map_id: string | null;
   weather_override: string | null;
   updated_at: number;
@@ -69,7 +71,7 @@ export async function getWorldMap(): Promise<WorldMap> {
 
 export async function getHex(q: number, r: number): Promise<WorldHex | null> {
   const rows = await query<WorldHex>(
-    `SELECT q, r, reveal_state, terrain_note, local_map_id, weather_override, updated_at
+    `SELECT q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at
      FROM world_hexes WHERE q = $1 AND r = $2`,
     [q, r]
   );
@@ -78,7 +80,7 @@ export async function getHex(q: number, r: number): Promise<WorldHex | null> {
 
 export async function listHexes(): Promise<WorldHex[]> {
   return query<WorldHex>(
-    `SELECT q, r, reveal_state, terrain_note, local_map_id, weather_override, updated_at
+    `SELECT q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at
      FROM world_hexes`
   );
 }
@@ -90,7 +92,7 @@ export async function listHexesInRect(
   rMax: number
 ): Promise<WorldHex[]> {
   return query<WorldHex>(
-    `SELECT q, r, reveal_state, terrain_note, local_map_id, weather_override, updated_at
+    `SELECT q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at
      FROM world_hexes
      WHERE q BETWEEN $1 AND $2 AND r BETWEEN $3 AND $4`,
     [qMin, qMax, rMin, rMax]
@@ -115,7 +117,7 @@ export async function setHexReveal(
              ELSE EXCLUDED.reveal_state
            END,
            updated_at = EXCLUDED.updated_at
-     RETURNING q, r, reveal_state, terrain_note, local_map_id, weather_override, updated_at`,
+     RETURNING q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at`,
     [q, r, state]
   );
   return rows[0];
@@ -132,8 +134,31 @@ export async function setHexTerrainNote(
      ON CONFLICT (q, r) DO UPDATE
        SET terrain_note = EXCLUDED.terrain_note,
            updated_at   = EXCLUDED.updated_at
-     RETURNING q, r, reveal_state, terrain_note, local_map_id, weather_override, updated_at`,
+     RETURNING q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at`,
     [q, r, note]
+  );
+  return rows[0];
+}
+
+export async function setHexTerrain(
+  q: number,
+  r: number,
+  terrainType: string | null,
+  rotation: number
+): Promise<WorldHex> {
+  const rows = await query<WorldHex>(
+    `INSERT INTO world_hexes (q, r, terrain_type, terrain_rotation, reveal_state, updated_at)
+     VALUES ($1, $2, $3, $4, 'revealed', EXTRACT(EPOCH FROM now())::bigint)
+     ON CONFLICT (q, r) DO UPDATE
+       SET terrain_type     = EXCLUDED.terrain_type,
+           terrain_rotation = EXCLUDED.terrain_rotation,
+           reveal_state     = CASE
+             WHEN world_hexes.reveal_state = 'unrevealed' THEN 'revealed'
+             ELSE world_hexes.reveal_state
+           END,
+           updated_at       = EXCLUDED.updated_at
+     RETURNING q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at`,
+    [q, r, terrainType, rotation]
   );
   return rows[0];
 }
@@ -163,7 +188,7 @@ export async function setHexLocalMap(
        SET reveal_state = 'mapped',
            local_map_id = EXCLUDED.local_map_id,
            updated_at   = EXCLUDED.updated_at
-     RETURNING q, r, reveal_state, terrain_note, local_map_id, weather_override, updated_at`,
+     RETURNING q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at`,
     [q, r, localMapId]
   );
   return rows[0];
@@ -176,7 +201,7 @@ export async function clearHexLocalMap(q: number, r: number): Promise<WorldHex |
          reveal_state = CASE WHEN reveal_state = 'mapped' THEN 'revealed' ELSE reveal_state END,
          updated_at   = EXTRACT(EPOCH FROM now())::bigint
      WHERE q = $1 AND r = $2
-     RETURNING q, r, reveal_state, terrain_note, local_map_id, weather_override, updated_at`,
+     RETURNING q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at`,
     [q, r]
   );
   return rows[0] ?? null;

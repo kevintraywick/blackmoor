@@ -34,9 +34,9 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 
 ### Shadow v2 — planned
 
-- [ ] 3 vertical circles on player banner (compass, sun/moon phase, wind dir) — also on sessions <!-- shadow-v2 -->
+- [x] 3 vertical circles on player banner (compass, sun/moon phase, wind dir) — also on sessions <!-- shadow-v2 -->
 - [ ] Add Ajax to DM nav pane next to DM circle <!-- shadow-v2 -->
-- [ ] Mobile marketplace redesign <!-- shadow-v2 -->
+- [x] Mobile marketplace redesign <!-- shadow-v2 -->
 - [ ] Player-to-player trading <!-- shadow-v2 -->
 - [ ] Raven Post World AI hardening <!-- shadow-v2 -->
 - [ ] Sendings pane on player's own page <!-- shadow-v2 -->
@@ -57,6 +57,9 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] Seed world map refresh (the hand-painted canvas Common sits on) <!-- shadow-v3 -->
 - [ ] World map party marker visible to players <!-- shadow-v3 -->
 - [ ] Print mode for map builder <!-- shadow-v3 -->
+- [ ] Pre-rendered 2D hex tile sprites from KayKit pack (terrain painting on world map) <!-- shadow-v3 --> <!-- deferred -->
+- [ ] Terrain painting mode on world map (paint mode, palette, sprite rendering — code ready, needs better textures) <!-- shadow-v3 -->
+- [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- shadow-v3 --> <!-- deferred -->
 - [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- shadow-v3 --> <!-- deferred -->
 - [ ] Language overlay map <!-- shadow-v3 --> <!-- deferred -->
 

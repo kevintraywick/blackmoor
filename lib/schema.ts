@@ -669,6 +669,12 @@ async function _initSchema() {
   `).catch(() => {});
 
   await pool.query(
+    `ALTER TABLE world_hexes ADD COLUMN IF NOT EXISTS terrain_type TEXT`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE world_hexes ADD COLUMN IF NOT EXISTS terrain_rotation INTEGER NOT NULL DEFAULT 0`
+  ).catch(() => {});
+  await pool.query(
     `CREATE INDEX IF NOT EXISTS world_hexes_local_map_id_idx ON world_hexes (local_map_id) WHERE local_map_id IS NOT NULL`
   ).catch(() => {});
 

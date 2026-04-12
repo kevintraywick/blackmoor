@@ -25,20 +25,28 @@ function sortVersions(ladder: Ladder): string[] {
   });
 }
 
-function Glyph({ status }: { status: Status }) {
+function Glyph({ status, onClick }: { status: Status; onClick?: () => void }) {
+  const clickable = onClick && status !== 'deferred';
+  const base: React.CSSProperties = {
+    display: 'inline-block',
+    width: 12,
+    height: 12,
+    borderRadius: '50%',
+    marginRight: 10,
+    flexShrink: 0,
+    cursor: clickable ? 'pointer' : 'default',
+    transition: 'transform 0.15s',
+  };
+
   if (status === 'built') {
     return (
       <span
         aria-label="built"
+        onClick={onClick}
         style={{
-          display: 'inline-block',
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
+          ...base,
           background: '#c9a84c',
           boxShadow: '0 0 6px rgba(201,168,76,0.5)',
-          marginRight: 10,
-          flexShrink: 0,
         }}
       />
     );
@@ -48,15 +56,11 @@ function Glyph({ status }: { status: Status }) {
       <span
         aria-label="in progress"
         className="do-pulse"
+        onClick={onClick}
         style={{
-          display: 'inline-block',
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
+          ...base,
           background: 'linear-gradient(90deg, #c9a84c 0 50%, transparent 50% 100%)',
           border: '1px solid #c9a84c',
-          marginRight: 10,
-          flexShrink: 0,
         }}
       />
     );
@@ -66,13 +70,8 @@ function Glyph({ status }: { status: Status }) {
       <span
         aria-label="deferred"
         style={{
-          display: 'inline-block',
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
+          ...base,
           border: '1px solid #5a4f46',
-          marginRight: 10,
-          flexShrink: 0,
         }}
       />
     );
@@ -80,14 +79,10 @@ function Glyph({ status }: { status: Status }) {
   return (
     <span
       aria-label="planned"
+      onClick={onClick}
       style={{
-        display: 'inline-block',
-        width: 10,
-        height: 10,
-        borderRadius: '50%',
+        ...base,
         border: '1px solid #8a7d6e',
-        marginRight: 10,
-        flexShrink: 0,
       }}
     />
   );
@@ -99,12 +94,14 @@ function ItemRow({
   ladderKey,
   version,
   onRemove,
+  onToggle,
 }: {
   item: RoadmapItem;
   index: number;
   ladderKey: 'shadow' | 'common';
   version: string;
   onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
+  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
 }) {
   return (
     <li
@@ -126,7 +123,10 @@ function ItemRow({
       <span style={{ width: 24, flexShrink: 0, fontSize: '0.75rem', color: '#e8ddd0', fontFamily: 'var(--font-garamond)' }}>
         {index}.
       </span>
-      <Glyph status={item.status} />
+      <Glyph
+        status={item.status}
+        onClick={item.status !== 'deferred' ? () => onToggle(ladderKey, version, item.title, item.id) : undefined}
+      />
       <span style={{ flex: 1 }}>{item.title}</span>
       {item.status !== 'built' && item.status !== 'deferred' && (
         <button
@@ -161,6 +161,7 @@ function VersionCard({
   ladderKey,
   startIndex,
   onRemove,
+  onToggle,
 }: {
   version: string;
   items: RoadmapItem[];
@@ -168,6 +169,7 @@ function VersionCard({
   ladderKey: 'shadow' | 'common';
   startIndex: number;
   onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
+  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
 }) {
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -204,7 +206,7 @@ function VersionCard({
         {active.length > 0 && (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {active.map(({ item, origIdx }) => (
-              <ItemRow key={item.id} item={item} index={startIndex + origIdx} ladderKey={ladderKey} version={version} onRemove={onRemove} />
+              <ItemRow key={item.id} item={item} index={startIndex + origIdx} ladderKey={ladderKey} version={version} onRemove={onRemove} onToggle={onToggle} />
             ))}
           </ul>
         )}
@@ -249,7 +251,7 @@ function VersionCard({
           {showCompleted && (
             <ul style={{ listStyle: 'none', padding: '0 16px 10px', margin: 0 }}>
               {completed.map(({ item, origIdx }) => (
-                <ItemRow key={item.id} item={item} index={startIndex + origIdx} ladderKey={ladderKey} version={version} onRemove={onRemove} />
+                <ItemRow key={item.id} item={item} index={startIndex + origIdx} ladderKey={ladderKey} version={version} onRemove={onRemove} onToggle={onToggle} />
               ))}
             </ul>
           )}
@@ -328,6 +330,7 @@ function LadderColumn({
   ladderKey,
   onAdd,
   onRemove,
+  onToggle,
 }: {
   title: string;
   ladder: Ladder;
@@ -336,6 +339,7 @@ function LadderColumn({
   ladderKey: 'shadow' | 'common';
   onAdd: (ladder: 'shadow' | 'common', version: number, text: string) => void;
   onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
+  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
 }) {
   const versions = sortVersions(ladder);
   const cumulativeIndex: Record<string, number> = {};
@@ -375,6 +379,7 @@ function LadderColumn({
               ladderKey={ladderKey}
               startIndex={idx}
               onRemove={onRemove}
+              onToggle={onToggle}
             />
           );
         })
@@ -429,6 +434,26 @@ export default function DoPageClient({ initial }: { initial: Roadmap }) {
     });
   }
 
+  async function handleToggle(ladder: 'shadow' | 'common', version: string, text: string, itemId: string) {
+    const vNum = version.replace('v', '');
+    const res = await fetch('/api/roadmap/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ladder, version: parseInt(vNum, 10), text }),
+    });
+    if (!res.ok) return;
+    const { status: newStatus } = await res.json();
+
+    setRoadmap((prev) => {
+      const target = { ...prev[ladder] };
+      const items = (target[version] ?? []).map((item) =>
+        item.id === itemId ? { ...item, status: newStatus as Status } : item
+      );
+      target[version] = items;
+      return { ...prev, [ladder]: target };
+    });
+  }
+
   return (
     <>
       <style>{`
@@ -453,6 +478,7 @@ export default function DoPageClient({ initial }: { initial: Roadmap }) {
           ladderKey="shadow"
           onAdd={handleAdd}
           onRemove={handleRemove}
+          onToggle={handleToggle}
         />
         <LadderColumn
           title="Common World"
@@ -462,6 +488,7 @@ export default function DoPageClient({ initial }: { initial: Roadmap }) {
           ladderKey="common"
           onAdd={handleAdd}
           onRemove={handleRemove}
+          onToggle={handleToggle}
         />
       </div>
     </>
