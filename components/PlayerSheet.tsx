@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, MarketplaceItem, Player, PlayerBoon } from '@/lib/types';
+import type { PlayerSheet as PlayerSheetType, WeaponItem, SpellItem, MarketplaceItem, Player, PlayerBoon, PoisonStatus } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import type { SaveStatus } from '@/lib/useAutosave';
 import { autoFillWeapon, lookupWeapon } from '@/lib/srd-weapons';
@@ -356,6 +356,9 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
   const [sendings, setSendings] = useState<{ id: string; body: string; published_at: string }[]>([]);
   const [unreadSendings, setUnreadSendings] = useState(sendingCount);
   const [loadingSendings, setLoadingSendings] = useState(false);
+  const [showPoisons, setShowPoisons] = useState(false);
+  const [poisons, setPoisons] = useState<PoisonStatus[]>([]);
+  const [loadingPoisons, setLoadingPoisons] = useState(false);
   const { save: autosave, saveNow, status: saveStatus } = useAutosave(`/api/players/${playerId}`);
 
   // ── Presence heartbeat — tells the splash page this player is online ───────
@@ -430,6 +433,19 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
   // Item helpers (purchased marketplace items)
   function deleteItem(id: string) {
     setField('items', (values.items ?? []).filter(i => i.id !== id));
+  }
+
+  async function togglePoisons() {
+    if (showPoisons) { setShowPoisons(false); return; }
+    setShowPoisons(true);
+    setLoadingPoisons(true);
+    try {
+      const res = await fetch(`/api/poison?player_id=${playerId}`);
+      const data: PoisonStatus[] = await res.json();
+      setPoisons(data);
+    } finally {
+      setLoadingPoisons(false);
+    }
   }
 
   async function toggleBoons() { if (showBoons) { setShowBoons(false); return; } setShowBoons(true); setLoadingBoons(true); try { const res = await fetch(`/api/boons?player_id=${playerId}`); const d = await res.json(); setBoons(d.active); if (!boonsSeen) { setBoonsSeen(true); fetch('/api/boons', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ player_id: playerId, action: 'seen' }) }); } } finally { setLoadingBoons(false); } }
@@ -557,7 +573,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                 <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} aria-label={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
               ) : null}
               {poisonCount > 0 ? (
-                <span className="animate-pulse cursor-default" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
+                <span onClick={togglePoisons} className="animate-pulse cursor-pointer" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
               ) : null}
               {unreadSendings > 0 ? (
                 <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" title={`${unreadSendings} sending${unreadSendings > 1 ? 's' : ''}`} style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
@@ -624,7 +640,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                 <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
               ) : null}
               {poisonCount > 0 ? (
-                <span className="animate-pulse cursor-default" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
+                <span onClick={togglePoisons} className="animate-pulse cursor-pointer" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
               ) : null}
               {unreadSendings > 0 ? (
                 <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
@@ -637,6 +653,29 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
 
       </div>
 
+
+      {/* Poison detail pane */}
+      <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: showPoisons ? '400px' : '0px', opacity: showPoisons ? 1 : 0 }}>
+        <div className="border-x border-[var(--color-border)] px-4 py-3" style={{ background: '#1a1e1a' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[0.65rem] uppercase tracking-[0.15em] text-[#7ac28a] font-sans">Active Poisons</span>
+            <button onClick={() => setShowPoisons(false)} className="text-[#5a4f46] hover:text-[var(--color-text)] text-sm bg-transparent border-none cursor-pointer">✕</button>
+          </div>
+          {loadingPoisons && <p className="text-[#8a7d6e] text-sm font-serif">Loading...</p>}
+          {!loadingPoisons && poisons.length === 0 && <p className="text-[#8a7d6e] text-sm font-serif italic">No active poisons</p>}
+          {poisons.map(p => (
+            <div key={p.id} className="mb-3 last:mb-0">
+              <div className="font-serif text-[1.05rem] text-[var(--color-text)]">{p.poison_name || p.poison_type}</div>
+              {p.effect && <p className="text-[0.85rem] text-[#c07a8a] font-serif mt-0.5">Effect: {p.effect}</p>}
+              <p className="text-[0.65rem] text-[#5a4f46] font-sans mt-0.5">
+                {p.duration === 'long_rest' && 'Until long rest'}
+                {p.duration === 'unknown' && 'Duration unknown'}
+                {p.duration !== 'long_rest' && p.duration !== 'unknown' && `${p.duration} min`}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Boon detail pane */}
       <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: showBoons ? '400px' : '0px', opacity: showBoons ? 1 : 0 }}>
