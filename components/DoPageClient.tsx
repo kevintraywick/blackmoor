@@ -93,6 +93,67 @@ function Glyph({ status }: { status: Status }) {
   );
 }
 
+function ItemRow({
+  item,
+  index,
+  ladderKey,
+  version,
+  onRemove,
+}: {
+  item: RoadmapItem;
+  index: number;
+  ladderKey: 'shadow' | 'common';
+  version: string;
+  onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
+}) {
+  return (
+    <li
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '4px 0',
+        fontSize: '0.95rem',
+        color:
+          item.status === 'deferred'
+            ? '#5a4f46'
+            : item.status === 'built'
+              ? '#e8ddd0'
+              : '#c8bfb5',
+        textDecoration:
+          item.status === 'deferred' ? 'line-through' : 'none',
+      }}
+    >
+      <span style={{ width: 24, flexShrink: 0, fontSize: '0.75rem', color: '#5a4f46', fontFamily: 'var(--font-garamond)' }}>
+        {index}.
+      </span>
+      <Glyph status={item.status} />
+      <span style={{ flex: 1 }}>{item.title}</span>
+      {item.status !== 'built' && item.status !== 'deferred' && (
+        <button
+          onClick={() => onRemove(ladderKey, version, item.title, item.id)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#5a4f46',
+            cursor: 'pointer',
+            fontSize: '0.75rem',
+            padding: '2px 6px',
+            marginLeft: 8,
+            borderRadius: 2,
+            flexShrink: 0,
+            transition: 'color 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#c07a8a'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4f46'; }}
+          title="Remove item"
+        >
+          ✕
+        </button>
+      )}
+    </li>
+  );
+}
+
 function VersionCard({
   version,
   items,
@@ -108,77 +169,92 @@ function VersionCard({
   startIndex: number;
   onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
 }) {
+  const [showCompleted, setShowCompleted] = useState(false);
+
+  const active: { item: RoadmapItem; origIdx: number }[] = [];
+  const completed: { item: RoadmapItem; origIdx: number }[] = [];
+  items.forEach((item, i) => {
+    const entry = { item, origIdx: i };
+    if (item.status === 'built') completed.push(entry);
+    else active.push(entry);
+  });
+
   return (
     <div
       style={{
         border: `1px solid ${accent}`,
         borderRadius: 4,
-        padding: 16,
         marginBottom: 16,
         background: '#231f1c',
       }}
     >
-      <div
-        style={{
-          fontFamily: 'var(--font-garamond)',
-          fontSize: '1.3rem',
-          color: accent,
-          marginBottom: 10,
-          textTransform: 'lowercase',
-          letterSpacing: '0.05em',
-        }}
-      >
-        {version}
+      <div style={{ padding: 16, paddingBottom: completed.length > 0 ? 12 : 16 }}>
+        <div
+          style={{
+            fontFamily: 'var(--font-garamond)',
+            fontSize: '1.3rem',
+            color: accent,
+            marginBottom: 10,
+            textTransform: 'lowercase',
+            letterSpacing: '0.05em',
+          }}
+        >
+          {version}
+        </div>
+        {active.length > 0 && (
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {active.map(({ item, origIdx }) => (
+              <ItemRow key={item.id} item={item} index={startIndex + origIdx} ladderKey={ladderKey} version={version} onRemove={onRemove} />
+            ))}
+          </ul>
+        )}
+        {active.length === 0 && completed.length > 0 && (
+          <div style={{ color: '#5a4f46', fontStyle: 'italic', fontSize: '0.85rem', fontFamily: 'var(--font-garamond)' }}>
+            All done.
+          </div>
+        )}
       </div>
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-        {items.map((item, i) => (
-          <li
-            key={item.id}
+      {completed.length > 0 && (
+        <div
+          style={{
+            borderTop: '1px solid #3d3530',
+            background: '#1e1b18',
+            borderRadius: '0 0 3px 3px',
+          }}
+        >
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
             style={{
+              width: '100%',
+              background: 'none',
+              border: 'none',
+              padding: '6px 16px',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              padding: '4px 0',
-              fontSize: '0.95rem',
-              color:
-                item.status === 'deferred'
-                  ? '#5a4f46'
-                  : item.status === 'built'
-                    ? '#e8ddd0'
-                    : '#c8bfb5',
-              textDecoration:
-                item.status === 'deferred' ? 'line-through' : 'none',
+              justifyContent: 'space-between',
+              color: '#5a4f46',
+              fontSize: '0.7rem',
+              fontFamily: 'var(--font-garamond)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              transition: 'color 0.15s',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#c9a84c'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4f46'; }}
           >
-            <span style={{ width: 24, flexShrink: 0, fontSize: '0.75rem', color: '#5a4f46', fontFamily: 'var(--font-garamond)' }}>
-              {startIndex + i}.
-            </span>
-            <Glyph status={item.status} />
-            <span style={{ flex: 1 }}>{item.title}</span>
-            {item.status !== 'built' && item.status !== 'deferred' && (
-              <button
-                onClick={() => onRemove(ladderKey, version, item.title, item.id)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#5a4f46',
-                  cursor: 'pointer',
-                  fontSize: '0.75rem',
-                  padding: '2px 6px',
-                  marginLeft: 8,
-                  borderRadius: 2,
-                  flexShrink: 0,
-                  transition: 'color 0.15s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#c07a8a'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4f46'; }}
-                title="Remove item"
-              >
-                ✕
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
+            <span>{completed.length} completed</span>
+            <span style={{ fontSize: '0.6rem' }}>{showCompleted ? '▲' : '▼'}</span>
+          </button>
+          {showCompleted && (
+            <ul style={{ listStyle: 'none', padding: '0 16px 10px', margin: 0 }}>
+              {completed.map(({ item, origIdx }) => (
+                <ItemRow key={item.id} item={item} index={startIndex + origIdx} ladderKey={ladderKey} version={version} onRemove={onRemove} />
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
