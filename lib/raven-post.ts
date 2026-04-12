@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import type { PoolClient } from 'pg';
 import { query, withTransaction } from './db';
 import { ensureSchema } from './schema';
 import { renderNewsie } from './elevenlabs';
@@ -35,18 +36,20 @@ interface PublishArgs {
  *
  * Returns the published row (with newsie_mp3 populated if successfully rendered).
  */
-export async function publishItem(args: PublishArgs): Promise<RavenItem> {
+export async function publishItem(args: PublishArgs, client?: PoolClient): Promise<RavenItem> {
   await ensureSchema();
+  const q = client
+    ? <T>(sql: string, params?: unknown[]) => client.query(sql, params).then(r => r.rows as T[])
+    : query;
   const id = randomUUID();
 
-  // Read current volume/issue to stamp on the item
-  const campaignRows = await query<{ raven_volume: number; raven_issue: number }>(
+  const campaignRows = await q<{ raven_volume: number; raven_issue: number }>(
     `SELECT raven_volume, raven_issue FROM campaign WHERE id = 'default'`,
   );
   const vol = campaignRows[0]?.raven_volume ?? 1;
   const iss = campaignRows[0]?.raven_issue ?? 1;
 
-  const rows = await query<RavenItem>(
+  const rows = await q<RavenItem>(
     `INSERT INTO raven_items
        (id, medium, body, headline, sender, target_player, trust, tags,
         ad_image_url, ad_real_link, ad_real_copy, raven_volume, raven_issue)

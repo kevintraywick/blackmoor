@@ -53,7 +53,7 @@ export function getWorldAiClient(): WorldAiClient | null {
   if (!apiKey) return null;
 
   return {
-    client: new Anthropic({ apiKey }),
+    client: new Anthropic({ apiKey, maxRetries: 0 }),
     costMode: 'api',
   };
 }

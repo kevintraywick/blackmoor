@@ -5,6 +5,7 @@ import { getWorldAiClient } from './world-ai-client';
 import { canSpend, record } from './spend';
 import { anthropicCost } from './anthropic-pricing';
 import { searchCorpus } from './embeddings';
+import { withRetry } from './retry';
 import type { IdeaSeed } from './world-ai-triage';
 import type { WorldAiProposal, RavenMedium } from './types';
 
@@ -163,12 +164,12 @@ export async function draftProposal(
     // 5. Sonnet draft call
     const userContent = buildUserContent(seed, ragContext, webSearchText);
 
-    const response = await wc.client.messages.create({
+    const response = await withRetry(() => wc.client.messages.create({
       model: SONNET_MODEL,
       max_tokens: 800,
       system: DRAFTING_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userContent }],
-    });
+    }));
 
     const usage = response.usage;
     const cacheRead = usage.cache_read_input_tokens ?? 0;

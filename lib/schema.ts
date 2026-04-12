@@ -1014,4 +1014,20 @@ async function _initSchema() {
   await pool.query(
     `ALTER TABLE raven_items ADD COLUMN IF NOT EXISTS raven_issue INTEGER`
   ).catch(() => {});
+
+  // API key validation — warn at startup if keys are missing or malformed
+  const keyChecks: { name: string; prefix?: string; label: string }[] = [
+    { name: 'ANTHROPIC_API_KEY', prefix: 'sk-ant-', label: 'World AI triage and drafting' },
+    { name: 'ELEVENLABS_API_KEY', label: 'Newsie TTS audio' },
+    { name: 'TWILIO_ACCOUNT_SID', prefix: 'AC', label: 'SMS notifications' },
+    { name: 'TWILIO_AUTH_TOKEN', label: 'SMS notifications' },
+  ];
+  for (const { name, prefix, label } of keyChecks) {
+    const val = process.env[name];
+    if (!val) {
+      console.warn(`⚠ ${name} is missing — ${label} will be disabled`);
+    } else if (prefix && !val.startsWith(prefix)) {
+      console.warn(`⚠ ${name} does not start with "${prefix}" — possible misconfiguration`);
+    }
+  }
 }

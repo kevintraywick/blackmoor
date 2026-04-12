@@ -1,6 +1,7 @@
 import { getWorldAiClient } from './world-ai-client';
 import { canSpend, record } from './spend';
 import { anthropicCost } from './anthropic-pricing';
+import { withRetry } from './retry';
 import type { RavenMedium } from './types';
 import type { TriageContext } from './world-ai-context';
 
@@ -40,12 +41,12 @@ export async function runTriage(context: TriageContext): Promise<TriageResult | 
   }
 
   try {
-    const message = await wc.client.messages.create({
+    const message = await withRetry(() => wc.client.messages.create({
       model: HAIKU_MODEL,
       max_tokens: 1500,
       system: context.systemBlocks,
       messages: [{ role: 'user', content: context.userContent }],
-    });
+    }));
 
     // Extract usage with cache_read_input_tokens (extension field)
     const usage = message.usage;

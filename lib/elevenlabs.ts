@@ -2,6 +2,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { canSpend, record } from './spend';
+import { withRetry } from './retry';
 
 const UPLOAD_DIR = `${process.env.DATA_DIR ?? '/data'}/uploads/raven-post/newsie`;
 const PUBLIC_PREFIX = '/api/uploads/raven-post/newsie';
@@ -46,29 +47,32 @@ export async function renderNewsie({ headlines }: RenderArgs): Promise<RenderRes
   const voiceId = process.env.ELEVENLABS_VOICE_ID ?? 'EXAVITQu4vr4xnSDxMaL'; // Bella default
 
   try {
-    const res = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': apiKey,
-          'content-type': 'application/json',
-          accept: 'audio/mpeg',
+    const res = await withRetry(async () => {
+      const r = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        {
+          method: 'POST',
+          headers: {
+            'xi-api-key': apiKey,
+            'content-type': 'application/json',
+            accept: 'audio/mpeg',
+          },
+          body: JSON.stringify({
+            text: script,
+            model_id: 'eleven_multilingual_v2',
+            voice_settings: { stability: 0.55, similarity_boost: 0.75 },
+          }),
+          signal: AbortSignal.timeout(20_000),
         },
-        body: JSON.stringify({
-          text: script,
-          model_id: 'eleven_multilingual_v2',
-          voice_settings: { stability: 0.55, similarity_boost: 0.75 },
-        }),
-        signal: AbortSignal.timeout(20_000),
-      },
-    );
+      );
+      if (!r.ok) {
+        const err = new Error(`ElevenLabs ${r.status} ${r.statusText}`);
+        (err as Error & { status: number }).status = r.status;
+        throw err;
+      }
+      return r;
+    });
 
-    if (!res.ok) {
-      // Status + statusText only — never log the response body (CLAUDE.md)
-      console.error('renderNewsie failed:', res.status, res.statusText);
-      return null;
-    }
 
     const mp3 = Buffer.from(await res.arrayBuffer());
     await mkdir(UPLOAD_DIR, { recursive: true });
