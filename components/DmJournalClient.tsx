@@ -47,10 +47,35 @@ function StatsBlock({ stats }: { stats: SessionStats }) {
 
 function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes, saveUrl }: EntryProps) {
   const [notes, setNotes] = useState(initialNotes);
+  const [summary, setSummary] = useState(summaryText);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const lastSavedRef = useRef(initialNotes);
+  const lastSummaryRef = useRef(summaryText);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const flash = useCallback(() => {
+    setSaved(true);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setSaved(false), 1800);
+  }, []);
+
+  const handleSummaryBlur = useCallback(async () => {
+    if (kind !== 'campaign' || summary === lastSummaryRef.current) return;
+    setSaving(true);
+    setSaved(false);
+    try {
+      await fetch(saveUrl, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ background: summary }),
+      });
+      lastSummaryRef.current = summary;
+      flash();
+    } finally {
+      setSaving(false);
+    }
+  }, [kind, summary, saveUrl, flash]);
 
   const handleBlur = useCallback(async () => {
     if (notes === lastSavedRef.current) return;
@@ -63,14 +88,12 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
         body: JSON.stringify({ narrative_notes: notes }),
       });
       lastSavedRef.current = notes;
-      setSaved(true);
-      if (flashTimer.current) clearTimeout(flashTimer.current);
-      flashTimer.current = setTimeout(() => setSaved(false), 1800);
+      flash();
     } catch {
       // silent
     }
     setSaving(false);
-  }, [notes, saveUrl]);
+  }, [notes, saveUrl, flash]);
 
   return (
     <div className="mb-10">
@@ -87,39 +110,52 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
         </span>
       </div>
 
-      {/* Two-column body */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        {/* Left: summary (stats + journal text) */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-4 py-3">
-          <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-2 font-sans">Summary</div>
-          {stats && <StatsBlock stats={stats} />}
-          {summaryText ? (
-            <div className="font-serif text-[var(--color-text)] text-[0.95rem] leading-relaxed" style={{ whiteSpace: 'pre-wrap' }}>
-              {summaryText}
-            </div>
-          ) : (
-            <div className="font-serif italic text-[var(--color-text-dim)] text-[0.9rem]">No journal text yet.</div>
-          )}
-        </div>
-
-        {/* Right: editable narrative notes */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-4 py-3">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans">Narrative Notes</div>
-            <div className="text-[0.6rem] font-sans h-4">
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-4 py-3">
+        {kind === 'campaign' ? (
+          <>
+            <textarea
+              rows={6}
+              value={summary}
+              onChange={e => setSummary(e.target.value)}
+              onBlur={handleSummaryBlur}
+              placeholder="The campaign backstory…"
+              className="w-full bg-transparent font-serif text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-none focus:outline-none placeholder:text-[var(--color-text-muted)]/40"
+            />
+            <div className="text-[0.6rem] font-sans h-4 text-right mt-1">
               {saving && <span className="text-[var(--color-text-muted)]">Saving…</span>}
               {saved && <span className="text-[var(--color-gold)]">Saved</span>}
             </div>
-          </div>
-          <textarea
-            rows={8}
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            onBlur={handleBlur}
-            placeholder="Themes, foreshadowing, things to bring back later…"
-            className="w-full bg-transparent text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-y outline-none font-serif placeholder:text-[var(--color-text-muted)]"
-          />
-        </div>
+          </>
+        ) : (
+          <>
+            {stats && <StatsBlock stats={stats} />}
+            {summaryText ? (
+              <div className="font-serif text-[var(--color-text)] text-[0.95rem] leading-relaxed mb-4" style={{ whiteSpace: 'pre-wrap' }}>
+                {summaryText}
+              </div>
+            ) : (
+              <div className="font-serif italic text-[var(--color-text-dim)] text-[0.9rem] mb-4">No journal text yet.</div>
+            )}
+
+            <div className="border-t border-[var(--color-border)] pt-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans">Narrative Notes</div>
+                <div className="text-[0.6rem] font-sans h-4">
+                  {saving && <span className="text-[var(--color-text-muted)]">Saving…</span>}
+                  {saved && <span className="text-[var(--color-gold)]">Saved</span>}
+                </div>
+              </div>
+              <textarea
+                rows={6}
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                onBlur={handleBlur}
+                placeholder="Themes, foreshadowing, things to bring back later…"
+                className="w-full bg-transparent text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-y outline-none font-serif placeholder:text-[var(--color-text-muted)]"
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -209,7 +245,7 @@ export default function DmJournalClient({ sessions, campaign, statsMap, initialJ
         <JournalEntry
           kind="campaign"
           title={campaign.name || 'Campaign'}
-          subtitle="Before the story began"
+          subtitle=""
           summaryText={campaign.background || ''}
           initialNotes={campaign.narrative_notes || ''}
           saveUrl="/api/campaign"
