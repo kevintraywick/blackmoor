@@ -144,11 +144,18 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
   return (
     <>
       <nav style={{ position: 'sticky', top: 0, display: 'flex', alignItems: 'center', zIndex: 10, background: '#161d18', borderBottom: '1px solid rgba(74,122,90,0.4)', padding: '10px 32px', fontSize: '0.875rem' }} className="font-serif relative">
-        <Link href="/" className="flex items-center text-[#4a8a5a] hover:text-[#5ab87a] transition-colors no-underline flex-shrink-0">
-          <div className="relative rounded-full border border-[#4a7a5a] overflow-hidden flex-shrink-0" style={{ width: 52, height: 52 }}>
-            <Image src="/images/dm.png" alt="" fill className="object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-          </div>
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <Link href="/" className="flex items-center text-[#4a8a5a] hover:text-[#5ab87a] transition-colors no-underline flex-shrink-0">
+            <div className="relative rounded-full border border-[#4a7a5a] overflow-hidden flex-shrink-0" style={{ width: 52, height: 52 }}>
+              <Image src="/images/dm.png" alt="" fill className="object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            </div>
+          </Link>
+          <Link href="/players/ajax" className="flex items-center no-underline flex-shrink-0">
+            <div className="relative rounded-full border border-[#c9a84c] overflow-hidden flex-shrink-0" style={{ width: 36, height: 36 }}>
+              <Image src="/images/players/ajax.png" alt="Ajax" fill className="object-cover" />
+            </div>
+          </Link>
+        </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, marginLeft: 16 }}>
           {/* Row 1: Build / prep links (white) */}
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 16 }}>
