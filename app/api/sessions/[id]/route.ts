@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import { pauseClock, resumeClock } from '@/lib/game-clock';
+import { seedSessionWeather } from '@/lib/weather-seed';
 
 // Static mapping prevents user-supplied strings from ever touching the query template
 const SESSION_COLUMNS: Record<string, string> = {
@@ -97,6 +98,7 @@ export async function POST(
       );
       // Resume the campaign-wide game clock so weather/horde ticks can advance
       await resumeClock().catch(() => {});
+      await seedSessionWeather().catch(() => {});
     } else if (action === 'end') {
       await query('UPDATE sessions SET ended_at = $1 WHERE id = $2', [now, id]);
       await query(

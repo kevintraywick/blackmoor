@@ -634,6 +634,23 @@ async function _initSchema() {
     `INSERT INTO world_map (id) VALUES ('default') ON CONFLICT (id) DO NOTHING`
   ).catch(() => {});
 
+  // Party position on the world map (for compass circle)
+  await pool.query(
+    `ALTER TABLE world_map ADD COLUMN IF NOT EXISTS party_q INTEGER`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE world_map ADD COLUMN IF NOT EXISTS party_r INTEGER`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE world_map ADD COLUMN IF NOT EXISTS party_prev_q INTEGER`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE world_map ADD COLUMN IF NOT EXISTS party_prev_r INTEGER`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE world_map ADD COLUMN IF NOT EXISTS party_moved_at BIGINT`
+  ).catch(() => {});
+
   // Sparse per-hex state. Only hexes the DM has interacted with (revealed,
   // mapped, or annotated) get a row. Missing row == unrevealed.
   // (q, r) are even-q offset coords matching lib/hex-math.ts.
@@ -837,6 +854,14 @@ async function _initSchema() {
     VALUES ('default', 'clear', 16, 'calm')
     ON CONFLICT (hex_id) DO NOTHING
   `).catch(() => {});
+
+  // Structured wind columns for the banner ambient circles
+  await pool.query(
+    `ALTER TABLE raven_weather ADD COLUMN IF NOT EXISTS wind_dir_deg INTEGER`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE raven_weather ADD COLUMN IF NOT EXISTS wind_speed_mph INTEGER`
+  ).catch(() => {});
 
   // Player sheets gain SMS opt-in fields
   await pool.query(

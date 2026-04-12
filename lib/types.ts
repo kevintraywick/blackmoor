@@ -449,6 +449,8 @@ export interface RavenWeatherRow {
   condition: WeatherCondition;
   temp_c: number | null;
   wind_label: string | null;
+  wind_dir_deg: number | null;
+  wind_speed_mph: number | null;
   updated_at: string;
 }
 

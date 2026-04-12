@@ -33,7 +33,7 @@ const COLOR_HOVER_STROKE = '#e6c66a';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type Mode = 'reveal' | 'pan' | 'navigate' | 'place-entity';
+type Mode = 'reveal' | 'pan' | 'navigate' | 'place-entity' | 'set-party';
 
 const ENTITY_KINDS: { kind: WorldEntityKind; label: string; glyph: string; color: string }[] = [
   { kind: 'storm',       label: 'Storm',       glyph: '⛈', color: '#9ec5e8' },
@@ -85,6 +85,18 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
   const [mode, setMode] = useState<Mode>('reveal');
   const [hover, setHover] = useState<[number, number] | null>(null);
   const [placeKind, setPlaceKind] = useState<WorldEntityKind>('caravan');
+  const [partyHex, setPartyHex] = useState<[number, number] | null>(null);
+
+  useEffect(() => {
+    fetch('/api/party/position')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.party_q != null && data?.party_r != null) {
+          setPartyHex([data.party_q, data.party_r]);
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [advanceErr, setAdvanceErr] = useState<string | null>(null);
 
   // Pan offset in world-space pixels. Initialized to center the centroid of
@@ -223,8 +235,27 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
       ctx.restore();
     }
 
+    // Party position marker
+    if (partyHex) {
+      const { cx, cy } = hexCenter(partyHex[0], partyHex[1], HEX_SIZE);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(201,168,76,0.35)';
+      ctx.fill();
+      ctx.strokeStyle = '#c9a84c';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.font = 'bold 10px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#c9a84c';
+      ctx.fillText('P', cx, cy + 0.5);
+      ctx.restore();
+    }
+
     ctx.restore();
-  }, [pan, hexMap, drawWindow, hover, entities]);
+  }, [pan, hexMap, drawWindow, hover, entities, partyHex]);
 
   useEffect(() => {
     draw();
@@ -354,9 +385,25 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
         } catch (err) {
           console.warn('place entity error', err);
         }
+      } else if (mode === 'set-party') {
+        if (partyHex && partyHex[0] === q && partyHex[1] === r) return;
+        try {
+          const res = await fetch('/api/party/position', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ q, r }),
+          });
+          if (!res.ok) {
+            console.warn('set party failed', await res.text());
+            return;
+          }
+          setPartyHex([q, r]);
+        } catch (err) {
+          console.warn('set party error', err);
+        }
       }
     },
-    [mode, hexMap, screenToHex, router, placeKind]
+    [mode, hexMap, screenToHex, router, placeKind, partyHex]
   );
 
   // Advance the campaign clock by N seconds. World entities tick along
@@ -534,6 +581,7 @@ function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => voi
     { key: 'pan', label: 'Pan' },
     { key: 'navigate', label: 'Navigate' },
     { key: 'place-entity', label: 'Place' },
+    { key: 'set-party', label: 'Party' },
   ];
   return (
     <div className="inline-flex" style={{ gap: 0 }}>

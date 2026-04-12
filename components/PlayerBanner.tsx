@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import PlayerBannerWeather from './PlayerBannerWeather';
+import AmbientCirclesData from './AmbientCirclesData';
 
 const ROTATE_MS = 3 * 60 * 1000; // rotate every 3 minutes
 
@@ -50,10 +51,22 @@ export default function PlayerBanner({ playerId }: { playerId: string }) {
     return () => clearInterval(timer);
   }, [banners.length]);
 
+  const circles = (
+    <>
+      <div className="hidden sm:block" style={{ position: 'absolute', top: 72, right: 16 }}>
+        <AmbientCirclesData playerId={playerId} size={52} />
+      </div>
+      <div className="block sm:hidden" style={{ position: 'absolute', top: 48, right: 10 }}>
+        <AmbientCirclesData playerId={playerId} size={36} />
+      </div>
+    </>
+  );
+
   if (banners.length === 0) {
     return (
       <div className="relative w-full h-48 sm:h-72 overflow-hidden flex-shrink-0">
         <PlayerBannerWeather playerId={playerId} />
+        {circles}
       </div>
     );
   }
@@ -68,6 +81,7 @@ export default function PlayerBanner({ playerId }: { playerId: string }) {
         priority
       />
       <PlayerBannerWeather playerId={playerId} />
+      {circles}
     </div>
   );
 }

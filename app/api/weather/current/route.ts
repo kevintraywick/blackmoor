@@ -18,6 +18,8 @@ export async function GET(_req: Request) {
         condition: 'clear',
         temp_c: null,
         wind_label: null,
+        wind_dir_deg: null,
+        wind_speed_mph: null,
         updated_at: new Date().toISOString(),
       } as RavenWeatherRow);
     }

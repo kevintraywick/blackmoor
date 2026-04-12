@@ -35,6 +35,7 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 ### Shadow v2 — planned
 
 - [ ] 3 vertical circles on player banner (compass, sun/moon phase, wind dir) — also on sessions <!-- shadow-v2 -->
+- [ ] Add Ajax to DM nav pane next to DM circle <!-- shadow-v2 -->
 - [ ] Mobile marketplace redesign <!-- shadow-v2 -->
 - [ ] Player-to-player trading <!-- shadow-v2 -->
 - [ ] Mappy N-direction detection on uploaded maps <!-- shadow-v2 -->
