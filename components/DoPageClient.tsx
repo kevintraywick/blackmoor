@@ -123,7 +123,7 @@ function ItemRow({
           item.status === 'deferred' ? 'line-through' : 'none',
       }}
     >
-      <span style={{ width: 24, flexShrink: 0, fontSize: '0.75rem', color: '#5a4f46', fontFamily: 'var(--font-garamond)' }}>
+      <span style={{ width: 24, flexShrink: 0, fontSize: '0.75rem', color: '#e8ddd0', fontFamily: 'var(--font-garamond)' }}>
         {index}.
       </span>
       <Glyph status={item.status} />
