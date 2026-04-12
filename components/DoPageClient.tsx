@@ -98,12 +98,14 @@ function VersionCard({
   items,
   accent,
   ladderKey,
+  startIndex,
   onRemove,
 }: {
   version: string;
   items: RoadmapItem[];
   accent: string;
   ladderKey: 'shadow' | 'common';
+  startIndex: number;
   onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
 }) {
   return (
@@ -129,7 +131,7 @@ function VersionCard({
         {version}
       </div>
       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-        {items.map((item) => (
+        {items.map((item, i) => (
           <li
             key={item.id}
             style={{
@@ -147,6 +149,9 @@ function VersionCard({
                 item.status === 'deferred' ? 'line-through' : 'none',
             }}
           >
+            <span style={{ width: 24, flexShrink: 0, fontSize: '0.75rem', color: '#5a4f46', fontFamily: 'var(--font-garamond)' }}>
+              {startIndex + i}.
+            </span>
             <Glyph status={item.status} />
             <span style={{ flex: 1 }}>{item.title}</span>
             {item.status !== 'built' && item.status !== 'deferred' && (
@@ -257,6 +262,12 @@ function LadderColumn({
   onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
 }) {
   const versions = sortVersions(ladder);
+  const cumulativeIndex: Record<string, number> = {};
+  let runningIdx = 1;
+  for (const v of versions) {
+    cumulativeIndex[v] = runningIdx;
+    runningIdx += (ladder[v]?.length ?? 0);
+  }
   const firstVersion = versions[0] ?? 'v1';
   const placeholder = `${firstVersion} feature name…`;
   return (
@@ -277,16 +288,20 @@ function LadderColumn({
           Nothing tagged yet.
         </div>
       ) : (
-        versions.map((v) => (
-          <VersionCard
-            key={v}
-            version={v}
-            items={ladder[v]}
-            accent={accent}
-            ladderKey={ladderKey}
-            onRemove={onRemove}
-          />
-        ))
+        versions.map((v) => {
+          const idx = cumulativeIndex[v];
+          return (
+            <VersionCard
+              key={v}
+              version={v}
+              items={ladder[v]}
+              accent={accent}
+              ladderKey={ladderKey}
+              startIndex={idx}
+              onRemove={onRemove}
+            />
+          );
+        })
       )}
     </div>
   );
