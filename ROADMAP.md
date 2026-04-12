@@ -38,12 +38,27 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] Add Ajax to DM nav pane next to DM circle <!-- shadow-v2 -->
 - [ ] Mobile marketplace redesign <!-- shadow-v2 -->
 - [ ] Player-to-player trading <!-- shadow-v2 -->
-- [ ] Mappy N-direction detection on uploaded maps <!-- shadow-v2 -->
 - [ ] Raven Post World AI hardening <!-- shadow-v2 -->
 - [ ] Sendings pane on player's own page <!-- shadow-v2 -->
-- [ ] Seed world map refresh (the hand-painted canvas Common sits on) <!-- shadow-v2 -->
 
-### Shadow v3 — planned
+### Shadow v3 — maps
+
+- [ ] Merge feat/map-builder PR to main (editor, world map, local maps, canonical scale) <!-- shadow-v3 -->
+- [ ] Mappy N-direction detection on uploaded maps <!-- shadow-v3 -->
+- [ ] Mappy scale sanity check (flag grid vs AI discrepancy) <!-- shadow-v3 -->
+- [ ] Builder canvas image rendering at canonical scale <!-- shadow-v3 -->
+- [ ] Fog of war — player-facing world map with revealed hexes only <!-- shadow-v3 -->
+- [ ] Player-facing local map view (read-only, inherits fog state) <!-- shadow-v3 -->
+- [ ] DM game clock advance UI on world map (advance N hours/days, entity tick) <!-- shadow-v3 -->
+- [ ] Environment pill on local maps (weather + day/night from parent hex) <!-- shadow-v3 -->
+- [ ] Upload classification dialog — world addition vs local map <!-- shadow-v3 -->
+- [ ] World hex picker — place local maps on the world grid <!-- shadow-v3 -->
+- [ ] Local map session event publishing (asset placed, map opened, party marker) <!-- shadow-v3 -->
+- [ ] Seed world map refresh (the hand-painted canvas Common sits on) <!-- shadow-v3 -->
+- [ ] World map party marker visible to players <!-- shadow-v3 -->
+- [ ] Print mode for map builder <!-- shadow-v3 -->
+- [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- shadow-v3 --> <!-- deferred -->
+- [ ] Language overlay map <!-- shadow-v3 --> <!-- deferred -->
 
 ---
 
@@ -168,8 +183,3 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 
 - [ ] Planning doc for common currency ERC-20 token <!-- common-v18 -->
 - [ ] Legal review (KYC, tax, real-money stakes) <!-- common-v18 -->
-
-
-### Shadow v3 — planned
-
-- [ ] language overlay map <!-- shadow-v3 -->
