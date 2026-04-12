@@ -105,9 +105,25 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
             <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans">{subtitle}</span>
           )}
         </div>
-        <span className="text-[0.6rem] uppercase tracking-wider text-[var(--color-text-muted)] font-sans">
-          {kind === 'campaign' ? 'Backstory' : 'Session'}
-        </span>
+        <div className="flex items-baseline gap-3">
+          {saving && <span className="text-[0.6rem] text-[var(--color-text-muted)] font-sans">Saving…</span>}
+          {!saving && saved && <span className="text-[0.6rem] text-[var(--color-gold)] font-sans">Saved</span>}
+          {!saving && !saved && (kind === 'campaign' ? summary !== lastSummaryRef.current : notes !== lastSavedRef.current) && (
+            <button
+              onClick={kind === 'campaign' ? handleSummaryBlur : handleBlur}
+              className="journal-save-pulse text-[0.6rem] uppercase tracking-[0.1em] font-sans cursor-pointer"
+              style={{
+                background: 'none',
+                border: '1px solid #dc2626',
+                borderRadius: 3,
+                color: '#dc2626',
+                padding: '2px 10px',
+              }}
+            >
+              Save
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-4 py-3">
@@ -121,10 +137,6 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
               placeholder="The campaign backstory…"
               className="w-full bg-transparent font-serif text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-none focus:outline-none placeholder:text-[var(--color-text-muted)]/40"
             />
-            <div className="text-[0.6rem] font-sans h-4 text-right mt-1">
-              {saving && <span className="text-[var(--color-text-muted)]">Saving…</span>}
-              {saved && <span className="text-[var(--color-gold)]">Saved</span>}
-            </div>
           </>
         ) : (
           <>
@@ -138,13 +150,7 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
             )}
 
             <div className="border-t border-[var(--color-border)] pt-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans">Narrative Notes</div>
-                <div className="text-[0.6rem] font-sans h-4">
-                  {saving && <span className="text-[var(--color-text-muted)]">Saving…</span>}
-                  {saved && <span className="text-[var(--color-gold)]">Saved</span>}
-                </div>
-              </div>
+              <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans mb-2">Narrative Notes</div>
               <textarea
                 rows={6}
                 value={notes}
@@ -183,6 +189,13 @@ export default function DmJournalClient({ sessions, campaign, statsMap, initialJ
 
   return (
     <>
+      <style>{`
+        @keyframes journal-save-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        .journal-save-pulse { animation: journal-save-pulse 1.5s ease-in-out infinite; }
+      `}</style>
       {/* Banner with drop circle */}
       <div className="relative w-full h-[200px] overflow-hidden" style={{ display: 'flex', alignItems: 'center' }}>
         <Image

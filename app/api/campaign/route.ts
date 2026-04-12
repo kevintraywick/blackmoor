@@ -21,15 +21,18 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const { name, world, quorum, dm_email } = body;
 
-    if (typeof name !== 'string' || typeof world !== 'string') {
-      return NextResponse.json({ error: 'name and world must be strings' }, { status: 400 });
-    }
-    if (name.length > 200 || world.length > 200) {
-      return NextResponse.json({ error: 'Fields must be under 200 characters' }, { status: 400 });
+    const sets: string[] = [];
+    const vals: unknown[] = [];
+
+    if (typeof name === 'string') {
+      sets.push(`name = $${vals.length + 1}`);
+      vals.push(name.trim().slice(0, 200));
     }
 
-    const sets = ['name = $1', 'world = $2'];
-    const vals: unknown[] = [name.trim(), world.trim()];
+    if (typeof world === 'string') {
+      sets.push(`world = $${vals.length + 1}`);
+      vals.push(world.trim().slice(0, 200));
+    }
 
     if (quorum !== undefined) {
       const q = parseInt(quorum, 10);
@@ -57,6 +60,10 @@ export async function PATCH(req: Request) {
     if (typeof body.narrative_notes === 'string') {
       sets.push(`narrative_notes = $${vals.length + 1}`);
       vals.push(body.narrative_notes.trim());
+    }
+
+    if (sets.length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
     await query(
