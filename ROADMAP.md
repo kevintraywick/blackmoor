@@ -57,8 +57,8 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] Seed world map refresh (the hand-painted canvas Common sits on) <!-- shadow-v3 -->
 - [ ] World map party marker visible to players <!-- shadow-v3 -->
 - [ ] Print mode for map builder <!-- shadow-v3 -->
-- [ ] Pre-rendered 2D hex tile sprites from KayKit pack (terrain painting on world map) <!-- shadow-v3 --> <!-- deferred -->
-- [ ] Terrain painting mode on world map (paint mode, palette, sprite rendering — code ready, needs better textures) <!-- shadow-v3 -->
+- [x] Hand-painted 2D hex terrain tiles (Baumgart Basic Terrain Set, replacing KayKit 3D renders) <!-- shadow-v3 -->
+- [x] Terrain painting mode on world map (paint mode, palette, Baumgart sprite rendering, cursor fix) <!-- shadow-v3 -->
 - [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- shadow-v3 --> <!-- deferred -->
 - [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- shadow-v3 --> <!-- deferred -->
 - [ ] Language overlay map <!-- shadow-v3 --> <!-- deferred -->
