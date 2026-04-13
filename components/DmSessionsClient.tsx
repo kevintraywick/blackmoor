@@ -168,15 +168,6 @@ function SessionControlBar({
     }
   }
 
-  async function handleRollInitiative() {
-    await fetch(`/api/sessions/${sessionId}/events`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_type: 'combat_start' }),
-    });
-    try { localStorage.setItem('blackmoor-last-session', sessionId); } catch { /* silent */ }
-  }
-
   const circleBase: React.CSSProperties = {
     width: 48, height: 48,
     border: '1px solid rgba(201,168,76,0.4)',
@@ -405,7 +396,7 @@ function SessionControlBar({
           {/* Divider */}
           <div style={{ width: 1, height: 36, background: 'rgba(201,168,76,0.2)', flexShrink: 0 }} />
 
-          {/* Column 2: Long Rest + Roll Init */}
+          {/* Column 2: Long Rest */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               onClick={handleLongRestClick}
@@ -415,15 +406,6 @@ function SessionControlBar({
             >
               <span className="text-white text-[0.45rem] uppercase tracking-[0.1em] font-sans leading-tight text-center whitespace-pre-line">{'LONG\nREST'}</span>
             </button>
-            <Link href="/dm/initiative?fresh=1" onClick={handleRollInitiative}>
-              <button
-                className="rounded-full flex items-center justify-center transition-all hover:scale-105"
-                style={circleBase}
-                title="Roll Initiative"
-              >
-                <span className="text-white text-[0.45rem] uppercase tracking-[0.1em] font-sans leading-tight text-center whitespace-pre-line">{'ROLL\nINIT'}</span>
-              </button>
-            </Link>
           </div>
 
           {/* Divider */}
