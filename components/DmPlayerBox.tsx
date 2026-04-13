@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useAutosave } from '@/lib/useAutosave';
 import type { DmMessage } from '@/lib/types';
 
+interface Sending { id: string; body: string; published_at: string }
+
 type PlayerStatus = 'active' | 'away' | 'removed';
 
 const STATUSES: { key: PlayerStatus; label: string }[] = [
@@ -30,12 +32,21 @@ export default function DmPlayerBox({
   const [sending, setSending]         = useState(false);
   const [sent, setSent]               = useState(false);
   const [messages, setMessages]       = useState<DmMessage[]>([]);
+  const [sendings, setSendings]       = useState<Sending[]>([]);
+  const [sendingText, setSendingText] = useState('');
+  const [sendingSending, setSendingSending] = useState(false);
+  const [sendingSent, setSendingSent] = useState(false);
   const sentTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const sendingSentTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     fetch(`/api/dm-messages?player_id=${playerId}`)
       .then(r => r.json())
       .then((rows: DmMessage[]) => setMessages(rows))
+      .catch(() => {});
+    fetch(`/api/raven-post/sendings?playerId=${playerId}`)
+      .then(r => r.json())
+      .then((rows: Sending[]) => setSendings(rows))
       .catch(() => {});
   }, [playerId]);
 
@@ -77,6 +88,28 @@ export default function DmPlayerBox({
       sentTimer.current = setTimeout(() => setSent(false), 2000);
     } finally {
       setSending(false);
+    }
+  }
+
+  async function sendSending() {
+    if (!sendingText.trim() || sendingSending) return;
+    setSendingSending(true);
+    try {
+      const res = await fetch('/api/raven-post/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ medium: 'sending', body: sendingText.trim(), target_player: playerId, trust: 'official' }),
+      });
+      if (res.ok) {
+        const item = await res.json();
+        setSendings(prev => [{ id: item.id, body: item.body, published_at: item.published_at }, ...prev]);
+        setSendingText('');
+        setSendingSent(true);
+        clearTimeout(sendingSentTimer.current);
+        sendingSentTimer.current = setTimeout(() => setSendingSent(false), 2000);
+      }
+    } finally {
+      setSendingSending(false);
     }
   }
 
@@ -162,8 +195,47 @@ export default function DmPlayerBox({
         </div>
       </div>
 
+      {/* Purple pane: Sendings */}
+      <div className="border border-[#5a3a6a] rounded bg-[#1d161e] flex flex-col" style={{ width: 240 }}>
+        {/* Compose area */}
+        <div className="relative" style={{ minHeight: 80 }}>
+          <textarea
+            value={sendingText}
+            onChange={e => setSendingText(e.target.value)}
+            placeholder="≤25 words, cryptic…"
+            rows={2}
+            className="w-full bg-transparent text-[var(--color-text-body)] text-[0.82rem] leading-relaxed px-3 py-2.5 resize-none outline-none placeholder:text-[#4a3050] font-serif italic"
+          />
+          <button
+            onClick={sendSending}
+            disabled={!sendingText.trim() || sendingSending}
+            className="absolute bottom-2 text-base bg-transparent border-none disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-opacity hover:scale-110" style={{ right: '12px' }}
+            title="Send sending"
+          >
+            {sendingSent ? '✓' : '✦'}
+          </button>
+        </div>
+
+        {/* Sent sendings */}
+        {sendings.length > 0 && (
+          <div className="border-t border-[#2a1a30] px-3 py-2">
+            <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#6a4a6a] mb-1.5">Sent</div>
+            {sendings.slice(0, 10).map(s => {
+              const d = new Date(s.published_at);
+              const time = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+              return (
+                <div key={s.id} className="mb-2 last:mb-0">
+                  <div className="text-[0.78rem] leading-snug font-serif italic text-[#c4a8d0]">{s.body}</div>
+                  <div className="text-[0.6rem] text-[#4a3050] mt-0.5">{time}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Red pane: DM's DMs */}
-      <div className="border border-[#7a3a3a] rounded bg-[#1d1616] flex flex-col" style={{ width: 280 }}>
+      <div className="border border-[#7a3a3a] rounded bg-[#1d1616] flex flex-col" style={{ width: 240 }}>
         {/* Compose area */}
         <div className="relative" style={{ minHeight: 80 }}>
           <textarea
