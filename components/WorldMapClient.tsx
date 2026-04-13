@@ -14,7 +14,7 @@ interface ClockState {
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
-const HEX_SIZE = 36;        // screen px, flat-top radius
+const HEX_SIZE = 47;        // screen px, flat-top radius
 const CANVAS_W = 1200;
 const CANVAS_H = 760;
 
@@ -35,25 +35,22 @@ const COLOR_HOVER_STROKE = '#e6c66a';
 
 type Mode = 'reveal' | 'pan' | 'navigate' | 'place-entity' | 'set-party' | 'paint';
 
-// Terrain types that can be painted onto hexes
+// Terrain types — Baumgart hand-painted hex tiles (256×384, flat-top)
 const TERRAIN_PALETTE = [
-  { type: 'hex_grass', label: 'Grass', category: 'base', rotations: 0 },
-  { type: 'hex_water', label: 'Water', category: 'base', rotations: 0 },
-  { type: 'hex_coast_A', label: 'Coast A', category: 'coast', rotations: 6 },
-  { type: 'hex_coast_B', label: 'Coast B', category: 'coast', rotations: 6 },
-  { type: 'hex_coast_C', label: 'Coast C', category: 'coast', rotations: 6 },
-  { type: 'hex_coast_D', label: 'Coast D', category: 'coast', rotations: 6 },
-  { type: 'hex_coast_E', label: 'Coast E', category: 'coast', rotations: 6 },
-  { type: 'hex_road_A', label: 'Road A', category: 'road', rotations: 6 },
-  { type: 'hex_road_B', label: 'Road B', category: 'road', rotations: 6 },
-  { type: 'hex_road_C', label: 'Road C', category: 'road', rotations: 6 },
-  { type: 'hex_road_D', label: 'Road D', category: 'road', rotations: 6 },
-  { type: 'hex_river_A', label: 'River A', category: 'river', rotations: 6 },
-  { type: 'hex_river_B', label: 'River B', category: 'river', rotations: 6 },
-  { type: 'hex_river_C', label: 'River C', category: 'river', rotations: 6 },
-  { type: 'hex_grass_sloped_high', label: 'Slope Hi', category: 'base', rotations: 0 },
-  { type: 'hex_grass_sloped_low', label: 'Slope Lo', category: 'base', rotations: 0 },
-  { type: null, label: 'Erase', category: null, rotations: 0 },
+  { type: 'hexPlains00', label: 'Plains' },
+  { type: 'hexForestBroadleaf00', label: 'Forest' },
+  { type: 'hexWoodlands00', label: 'Woodlands' },
+  { type: 'hexHills00', label: 'Hills' },
+  { type: 'hexHighlands00', label: 'Highlands' },
+  { type: 'hexMountain00', label: 'Mountain' },
+  { type: 'hexMarsh00', label: 'Marsh' },
+  { type: 'hexScrublands00', label: 'Scrublands' },
+  { type: 'hexDirt00', label: 'Dirt' },
+  { type: 'hexDesertDunes00', label: 'Desert' },
+  { type: 'hexOcean00', label: 'Ocean' },
+  { type: 'hexVoid00', label: 'Void' },
+  { type: 'hexBase00', label: 'Base' },
+  { type: null, label: 'Erase' },
 ] as const;
 
 const ENTITY_KINDS: { kind: WorldEntityKind; label: string; glyph: string; color: string }[] = [
@@ -107,8 +104,7 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
   const [hover, setHover] = useState<[number, number] | null>(null);
   const [placeKind, setPlaceKind] = useState<WorldEntityKind>('caravan');
   const [partyHex, setPartyHex] = useState<[number, number] | null>(null);
-  const [paintTerrain, setPaintTerrain] = useState<string | null>('hex_grass');
-  const [paintRotation, setPaintRotation] = useState(0);
+  const [paintTerrain, setPaintTerrain] = useState<string | null>('hexPlains00');
   const spriteCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
   useEffect(() => {
@@ -128,12 +124,8 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
   useEffect(() => {
     const toLoad: string[] = [];
     for (const t of TERRAIN_PALETTE) {
-      if (!t.type || !t.category) continue;
-      if (t.rotations > 0) {
-        for (let r = 0; r < 6; r++) toLoad.push(`/images/hex-tiles/${t.category}/${t.type}_r${r}.png`);
-      } else {
-        toLoad.push(`/images/hex-tiles/${t.category}/${t.type}.png`);
-      }
+      if (!t.type) continue;
+      toLoad.push(`/images/hex-tiles/baumgart/${t.type}.png`);
     }
     let loaded = 0;
     for (const src of toLoad) {
@@ -208,13 +200,10 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
     };
   }, [hexes]);
 
-  const getSpritePath = useCallback((terrainType: string, rotation: number) => {
+  const getSpritePath = useCallback((terrainType: string) => {
     const entry = TERRAIN_PALETTE.find(t => t.type === terrainType);
-    if (!entry || !entry.category) return null;
-    if (entry.rotations > 0) {
-      return `/images/hex-tiles/${entry.category}/${terrainType}_r${rotation}.png`;
-    }
-    return `/images/hex-tiles/${entry.category}/${terrainType}.png`;
+    if (!entry) return null;
+    return `/images/hex-tiles/baumgart/${terrainType}.png`;
   }, []);
 
   const draw = useCallback(() => {
@@ -267,21 +256,25 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
 
         // Draw terrain sprite if the hex has one
         if (known?.terrain_type) {
-          const spritePath = getSpritePath(known.terrain_type, known.terrain_rotation);
+          const spritePath = getSpritePath(known.terrain_type);
           const img = spritePath ? spriteCache.current.get(spritePath) : null;
           if (img) {
-            const aspect = img.naturalHeight / img.naturalWidth;
-            const spriteW = HEX_SIZE * 3.2;
-            const spriteH = spriteW * aspect;
+            // Baumgart tiles are 256×384 (flat-top hex). The hex face fills
+            // the tile width; extra height is elevation (mountains, trees).
+            // Scale so tile width matches hex width (2 × HEX_SIZE).
+            const spriteW = HEX_SIZE * 2;
+            const spriteH = spriteW * (img.naturalHeight / img.naturalWidth);
+            // Hex bottom aligns with tile bottom; overshoot goes upward.
+            const hexH = HEX_SIZE * Math.sqrt(3);
+            const drawY = cy - hexH / 2 - (spriteH - hexH);
             ctx.save();
             hexPath(ctx, cx, cy, HEX_SIZE);
             ctx.clip();
-            ctx.drawImage(img, cx - spriteW / 2, cy - spriteH * 0.38, spriteW, spriteH);
+            ctx.drawImage(img, cx - spriteW / 2, drawY, spriteW, spriteH);
             ctx.restore();
-            // Redraw border on top of clipped sprite
             hexPath(ctx, cx, cy, HEX_SIZE);
             ctx.strokeStyle = COLOR_REVEALED_STROKE;
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 0.5;
             ctx.stroke();
           }
         }
@@ -356,8 +349,12 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
       const canvas = canvasRef.current;
       if (!canvas) return null;
       const rect = canvas.getBoundingClientRect();
-      const sx = clientX - rect.left;
-      const sy = clientY - rect.top;
+      // Scale from rendered CSS size back to logical canvas size
+      // (handles max-width: 100% shrinking the canvas)
+      const scaleX = CANVAS_W / rect.width;
+      const scaleY = CANVAS_H / rect.height;
+      const sx = (clientX - rect.left) * scaleX;
+      const sy = (clientY - rect.top) * scaleY;
       const worldX = sx - pan.x;
       const worldY = sy - pan.y;
       return pixelToHexUnbounded(worldX, worldY, HEX_SIZE);
@@ -471,7 +468,7 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
           const res = await fetch('/api/world/terrain', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ q, r, terrain_type: paintTerrain, rotation: paintRotation }),
+            body: JSON.stringify({ q, r, terrain_type: paintTerrain, rotation: 0 }),
           });
           if (!res.ok) return;
           const updated: WorldHex = await res.json();
@@ -503,7 +500,7 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
         }
       }
     },
-    [mode, hexMap, screenToHex, router, placeKind, partyHex, paintTerrain, paintRotation]
+    [mode, hexMap, screenToHex, router, placeKind, partyHex, paintTerrain]
   );
 
   // Advance the campaign clock by N seconds. World entities tick along
@@ -648,7 +645,7 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
               <button
                 key={t.label}
                 type="button"
-                onClick={() => { setPaintTerrain(t.type); setPaintRotation(0); }}
+                onClick={() => setPaintTerrain(t.type)}
                 className="font-sans text-[0.65rem] uppercase tracking-[0.1em]"
                 style={{
                   padding: '4px 8px',
@@ -662,30 +659,6 @@ export default function WorldMapClient({ world, initialHexes, initialEntities, i
               </button>
             );
           })}
-          {paintTerrain && TERRAIN_PALETTE.find(t => t.type === paintTerrain)?.rotations === 6 && (
-            <div style={{ display: 'flex', gap: 4, marginLeft: 8, alignItems: 'center' }}>
-              <span className="text-[0.65rem] text-[#8a7a4c] font-sans">R:</span>
-              {[0, 1, 2, 3, 4, 5].map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setPaintRotation(r)}
-                  className="font-sans text-[0.6rem]"
-                  style={{
-                    width: 22,
-                    height: 22,
-                    background: paintRotation === r ? '#c9a84c' : 'transparent',
-                    color: paintRotation === r ? '#1a1614' : '#8a7a4c',
-                    border: `1px solid ${paintRotation === r ? '#c9a84c' : '#5a4632'}`,
-                    cursor: 'pointer',
-                    borderRadius: 2,
-                  }}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
