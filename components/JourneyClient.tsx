@@ -212,13 +212,15 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
           }
         }
         if (!overlayText) return null;
+        const isBackstory = showBackstory;
         return (
           <div
             className="absolute z-20"
             style={{
               left: anchorX + 8,
-              top: anchorY + 8,
-              maxWidth: 460,
+              top: isBackstory ? 20 : anchorY + 8,
+              right: isBackstory ? 12 : undefined,
+              maxWidth: isBackstory ? undefined : 460,
               animation: 'fadeIn 0.4s ease-out',
               pointerEvents: 'none',
             }}
