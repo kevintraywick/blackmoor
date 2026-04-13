@@ -187,36 +187,53 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
         <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
       </div>
 
-      {/* Backstory text overlay — floats over journey pane */}
-      {showBackstory && campaignBackground && (
-        <div
-          className="absolute z-20"
-          style={{
-            left: boxW / 2 + circleR + 16,
-            top: 20,
-            right: 12,
-            animation: 'fadeIn 0.4s ease-out',
-            pointerEvents: 'none',
-          }}
-        >
+      {/* Text overlay — floats over journey pane (backstory or session journal) */}
+      {(() => {
+        let overlayText: string | null = null;
+        let overlayTitle: string | null = null;
+        if (showBackstory && campaignBackground) {
+          overlayText = campaignBackground;
+        } else if (activeJournal !== null) {
+          const s = sessions.find(s => s.number === activeJournal);
+          if (s?.journal_public) {
+            overlayText = s.journal_public;
+            overlayTitle = s.title || `Session ${s.number}`;
+          }
+        }
+        if (!overlayText) return null;
+        return (
           <div
+            className="absolute z-20"
             style={{
-              background: 'rgba(255,255,255,0.70)',
-              backdropFilter: 'blur(10px)',
-              borderRadius: 8,
-              padding: '20px 28px',
-              pointerEvents: 'auto',
+              left: boxW / 2 + circleR + 16,
+              top: 20,
+              right: 12,
+              animation: 'fadeIn 0.4s ease-out',
+              pointerEvents: 'none',
             }}
           >
             <div
-              className="font-serif text-[#1a1614] text-[1.075rem] leading-relaxed"
-              style={{ whiteSpace: 'pre-wrap' }}
+              style={{
+                background: 'rgba(255,255,255,0.70)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: 8,
+                padding: '20px 28px',
+                pointerEvents: 'auto',
+              }}
             >
-              {campaignBackground}
+              {overlayTitle && (
+                <div className="font-serif italic text-[#1a1614] text-[1.25rem] mb-2">{overlayTitle}</div>
+              )}
+              <div
+                className="font-serif text-[#1a1614] text-[1.075rem] leading-relaxed"
+                style={{ whiteSpace: 'pre-wrap' }}
+              >
+                {overlayText}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Journey map — horizontal scroll */}
       <div
@@ -383,35 +400,6 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
         </div>
       </div>
 
-      {/* Journal text — aligned to active session's terrain column */}
-      {activeJournal !== null && (() => {
-        const session = sessions.find(s => s.number === activeJournal);
-        const sessionIndex = sessions.findIndex(s => s.number === activeJournal);
-        if (!session || sessionIndex < 0) return null;
-        const leftOffset = sessionIndex * boxW + 10;
-        return (
-          <div
-            style={{
-              paddingLeft: leftOffset,
-              marginTop: -46,
-              paddingBottom: 32,
-              transition: 'padding-left 0.3s ease-out',
-            }}
-          >
-            <div style={{ maxWidth: 500, paddingRight: 24 }}>
-              <div style={{
-                fontFamily: 'var(--font-serif, EB Garamond, serif)',
-                fontSize: '1.05rem',
-                lineHeight: 1.75,
-                color: 'rgba(200,190,170,0.9)',
-                whiteSpace: 'pre-wrap',
-              }}>
-                {session.journal_public}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }
