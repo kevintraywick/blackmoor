@@ -187,17 +187,28 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
         <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
       </div>
 
-      {/* Text overlay — floats over journey pane (backstory or session journal) */}
+      {/* Text overlay — anchored to bottom-right of selected circle */}
       {(() => {
         let overlayText: string | null = null;
         let overlayTitle: string | null = null;
+        let anchorX = 0;
+        let anchorY = 0;
+
         if (showBackstory && campaignBackground) {
           overlayText = campaignBackground;
+          // Backstory circle is in the banner at (boxW/2, circleR)
+          anchorX = boxW / 2 + circleR;
+          anchorY = 200; // bottom of the banner
         } else if (activeJournal !== null) {
-          const s = sessions.find(s => s.number === activeJournal);
-          if (s?.journal_public) {
+          const idx = sessions.findIndex(s => s.number === activeJournal);
+          const s = idx >= 0 ? sessions[idx] : null;
+          if (s?.journal_public && idx >= 0) {
             overlayText = s.journal_public;
             overlayTitle = s.title || `Session ${s.number}`;
+            const pt = pathPoints[idx];
+            // Anchor at bottom-right of the circle, offset into the scroll area (below banner)
+            anchorX = pt.x + circleR * 0.7;
+            anchorY = 200 + pt.y + circleR * 0.7; // 200 = banner height
           }
         }
         if (!overlayText) return null;
@@ -205,9 +216,9 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
           <div
             className="absolute z-20"
             style={{
-              left: boxW / 2 + circleR + 16,
-              top: 20,
-              right: 12,
+              left: anchorX + 8,
+              top: anchorY + 8,
+              maxWidth: 460,
               animation: 'fadeIn 0.4s ease-out',
               pointerEvents: 'none',
             }}
