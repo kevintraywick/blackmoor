@@ -175,9 +175,9 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                 alt="Campaign"
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 75%', opacity: 0.9 }}
               />
-              <div className="absolute z-10 flex flex-col items-center select-none" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)', lineHeight: 1.2 }}>
-                <span className="font-serif italic text-white text-[0.85rem] tracking-[0.05em]">Our Story</span>
-                <span className="font-serif italic text-white text-[0.85rem] tracking-[0.05em]">So Far…</span>
+              <div className="absolute z-10 flex flex-col items-center select-none" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)', lineHeight: 1.15 }}>
+                <span className="font-serif italic text-white text-[1.05rem] tracking-[0.02em]">Our Story</span>
+                <span className="font-serif italic text-white text-[1.05rem] tracking-[0.02em]">So Far…</span>
               </div>
             </div>
           );
