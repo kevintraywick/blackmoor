@@ -129,14 +129,6 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
             {saving && <span className="text-[var(--color-text-muted)]">Saving...</span>}
             {saved && <span className="text-[var(--color-gold)]">Saved</span>}
           </div>
-          <div className="pt-2">
-            <a
-              href="/do"
-              className="text-xs font-sans uppercase tracking-[0.15em] text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors"
-            >
-              Roadmap →
-            </a>
-          </div>
         </div>
 
         {/* Right column: 3 circles horizontal */}
