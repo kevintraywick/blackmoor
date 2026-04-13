@@ -21,6 +21,7 @@ interface EntryProps {
   summaryText: string;
   stats?: SessionStats;
   initialNotes: string;
+  initialPublic?: string;
   saveUrl: string;
 }
 
@@ -45,12 +46,14 @@ function StatsBlock({ stats }: { stats: SessionStats }) {
   );
 }
 
-function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes, saveUrl }: EntryProps) {
+function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes, initialPublic = '', saveUrl }: EntryProps) {
   const [notes, setNotes] = useState(initialNotes);
+  const [pubText, setPubText] = useState(initialPublic);
   const [summary, setSummary] = useState(summaryText);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const lastSavedRef = useRef(initialNotes);
+  const lastNotesRef = useRef(initialNotes);
+  const lastPubRef = useRef(initialPublic);
   const lastSummaryRef = useRef(summaryText);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -60,40 +63,41 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
     flashTimer.current = setTimeout(() => setSaved(false), 1800);
   }, []);
 
-  const handleSummaryBlur = useCallback(async () => {
-    if (kind !== 'campaign' || summary === lastSummaryRef.current) return;
-    setSaving(true);
-    setSaved(false);
-    try {
-      await fetch(saveUrl, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ background: summary }),
-      });
-      lastSummaryRef.current = summary;
-      flash();
-    } finally {
-      setSaving(false);
-    }
-  }, [kind, summary, saveUrl, flash]);
+  const isDirty = kind === 'campaign'
+    ? summary !== lastSummaryRef.current
+    : notes !== lastNotesRef.current || pubText !== lastPubRef.current;
 
-  const handleBlur = useCallback(async () => {
-    if (notes === lastSavedRef.current) return;
+  const handleSave = useCallback(async () => {
+    if (!isDirty) return;
     setSaving(true);
     setSaved(false);
     try {
-      await fetch(saveUrl, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ narrative_notes: notes }),
-      });
-      lastSavedRef.current = notes;
+      if (kind === 'campaign') {
+        await fetch(saveUrl, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ background: summary }),
+        });
+        lastSummaryRef.current = summary;
+      } else {
+        const patch: Record<string, string> = {};
+        if (notes !== lastNotesRef.current) patch.journal = notes;
+        if (pubText !== lastPubRef.current) patch.journal_public = pubText;
+        await fetch(saveUrl, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(patch),
+        });
+        if (patch.journal !== undefined) lastNotesRef.current = notes;
+        if (patch.journal_public !== undefined) lastPubRef.current = pubText;
+      }
       flash();
     } catch {
       // silent
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-  }, [notes, saveUrl, flash]);
+  }, [kind, isDirty, notes, pubText, summary, saveUrl, flash]);
 
   return (
     <div className="mb-10">
@@ -108,9 +112,9 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
         <div className="flex items-baseline gap-3">
           {saving && <span className="text-[0.6rem] text-[var(--color-text-muted)] font-sans">Saving…</span>}
           {!saving && saved && <span className="text-[0.6rem] text-[var(--color-gold)] font-sans">Saved</span>}
-          {!saving && !saved && (kind === 'campaign' ? summary !== lastSummaryRef.current : notes !== lastSavedRef.current) && (
+          {!saving && !saved && isDirty && (
             <button
-              onClick={kind === 'campaign' ? handleSummaryBlur : handleBlur}
+              onClick={handleSave}
               className="journal-save-pulse text-[0.6rem] uppercase tracking-[0.1em] font-sans cursor-pointer"
               style={{
                 background: 'none',
@@ -128,35 +132,36 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
 
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-4 py-3">
         {kind === 'campaign' ? (
-          <>
-            <textarea
-              rows={6}
-              value={summary}
-              onChange={e => setSummary(e.target.value)}
-              onBlur={handleSummaryBlur}
-              placeholder="The campaign backstory…"
-              className="w-full bg-transparent font-serif text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-none focus:outline-none placeholder:text-[var(--color-text-muted)]/40"
-            />
-          </>
+          <textarea
+            rows={6}
+            value={summary}
+            onChange={e => setSummary(e.target.value)}
+            onBlur={handleSave}
+            placeholder="The campaign backstory…"
+            className="w-full bg-transparent font-serif text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-none focus:outline-none placeholder:text-[var(--color-text-muted)]/40"
+          />
         ) : (
           <>
             {stats && <StatsBlock stats={stats} />}
-            {summaryText ? (
-              <div className="font-serif text-[var(--color-text)] text-[0.95rem] leading-relaxed mb-4" style={{ whiteSpace: 'pre-wrap' }}>
-                {summaryText}
-              </div>
-            ) : (
-              <div className="font-serif italic text-[var(--color-text-dim)] text-[0.9rem] mb-4">No journal text yet.</div>
-            )}
 
-            <div className="border-t border-[var(--color-border)] pt-3">
-              <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans mb-2">Narrative Notes</div>
+            <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans mb-2">Private Notes</div>
+            <textarea
+              rows={6}
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              onBlur={handleSave}
+              placeholder="Themes, foreshadowing, things to bring back later…"
+              className="w-full bg-transparent text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-y outline-none font-serif placeholder:text-[var(--color-text-muted)]"
+            />
+
+            <div className="border-t border-[var(--color-border)] pt-3 mt-3">
+              <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans mb-2">Journal — Public</div>
               <textarea
                 rows={6}
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                onBlur={handleBlur}
-                placeholder="Themes, foreshadowing, things to bring back later…"
+                value={pubText}
+                onChange={e => setPubText(e.target.value)}
+                onBlur={handleSave}
+                placeholder="What players see on the Journey page…"
                 className="w-full bg-transparent text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-y outline-none font-serif placeholder:text-[var(--color-text-muted)]"
               />
             </div>
@@ -247,9 +252,10 @@ export default function DmJournalClient({ sessions, campaign, statsMap, initialJ
           kind="session"
           title={s.title || `Session ${s.number}`}
           subtitle={s.date || `Session ${s.number}`}
-          summaryText={s.journal || ''}
+          summaryText=""
           stats={statsMap[s.id]}
-          initialNotes={s.narrative_notes || ''}
+          initialNotes={s.journal || ''}
+          initialPublic={s.journal_public || ''}
           saveUrl={`/api/sessions/${s.id}`}
         />
       ))}

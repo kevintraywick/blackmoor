@@ -25,8 +25,6 @@ function emptyValues(session: Session): Record<string, string | number> {
     date:  session.date,
     scenes: combined,
     notes: session.notes ?? '',
-    journal: session.journal ?? '',
-    journal_public: session.journal_public ?? '',
   };
 }
 
@@ -687,18 +685,6 @@ export default function DmSessionsClient({
   const { save: autosave, status: saveStatus } = useAutosave(() => `/api/sessions/${selectedId}`);
   const creating = useRef(false);
 
-  // Session stats (players, boons, poisons, killed)
-  const [sessionStats, setSessionStats] = useState<{
-    players: string[];
-    boons: { name: string; player: string }[];
-    poisons: { type: string; player: string }[];
-    killed: string[];
-  } | null>(null);
-
-  useEffect(() => {
-    if (!selectedId) { setSessionStats(null); return; }
-    fetch(`/api/sessions/${selectedId}/stats`).then(r => r.json()).then(setSessionStats).catch(() => setSessionStats(null));
-  }, [selectedId]);
 
   const selected = sessions.find(s => s.id === selectedId) ?? null;
 
@@ -939,47 +925,6 @@ export default function DmSessionsClient({
               onUpdateHp={handleUpdateNpcHp}
             />
 
-            {/* Journal — Private | Public side by side */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7">
-              <div>
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Journal — Private</div>
-                <div className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2">
-                  {/* Session stats */}
-                  {sessionStats && (sessionStats.players.length > 0 || sessionStats.boons.length > 0 || sessionStats.poisons.length > 0 || sessionStats.killed.length > 0) && (
-                    <div className="text-[0.8rem] font-serif text-[var(--color-text-muted)] mb-2 space-y-0.5">
-                      {sessionStats.players.length > 0 && (
-                        <div><span className="text-[var(--color-gold)]">Players:</span> {sessionStats.players.join(', ')}</div>
-                      )}
-                      {sessionStats.boons.length > 0 && (
-                        <div><span className="text-[var(--color-gold)]">Boons:</span> {sessionStats.boons.map(b => `${b.name} → ${b.player}`).join(', ')}</div>
-                      )}
-                      {sessionStats.poisons.length > 0 && (
-                        <div><span className="text-[var(--color-gold)]">Poisons:</span> {sessionStats.poisons.map(p => `${p.type} → ${p.player}`).join(', ')}</div>
-                      )}
-                      {sessionStats.killed.length > 0 && (
-                        <div><span className="text-[var(--color-gold)]">Killed:</span> {sessionStats.killed.join(', ')}</div>
-                      )}
-                    </div>
-                  )}
-                  <textarea
-                    rows={6}
-                    value={values.journal as string}
-                    onChange={e => handleChange('journal', e.target.value)}
-                    className="w-full bg-transparent text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-y outline-none font-serif"
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] mb-1">Journal — Public</div>
-                <textarea
-                  rows={6}
-                  value={values.journal_public as string}
-                  placeholder="What players see on the Journey page…"
-                  onChange={e => handleChange('journal_public', e.target.value)}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded text-[var(--color-text)] text-[0.95rem] leading-relaxed px-3 py-2 resize-y outline-none focus:border-[var(--color-gold)] placeholder:text-[var(--color-text-muted)] font-serif"
-                />
-              </div>
-            </div>
 
             {/* Save status */}
             <div className={`text-xs text-right mt-2 h-4 transition-opacity duration-200 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'} ${statusColor}`}>
