@@ -2,7 +2,7 @@
 
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import type { Session, Npc, MenagerieEntry } from '@/lib/types';
+import type { Session, Npc, MenagerieEntry, Player } from '@/lib/types';
 import { useAutosave } from '@/lib/useAutosave';
 import { resolveImageUrl } from '@/lib/imageUrl';
 import { rollDice, diceRange } from '@/lib/dice';
@@ -38,6 +38,7 @@ function SessionControlBar({
   menagerie: sessionMenagerie,
   allNpcs,
   onSessionsRefresh,
+  players = [],
 }: {
   sessionId: string;
   session: Session;
@@ -46,6 +47,7 @@ function SessionControlBar({
   menagerie: MenagerieEntry[];
   allNpcs: Npc[];
   onSessionsRefresh: () => void;
+  players?: Player[];
 }) {
   const [longRestPhase, setLongRestPhase] = useState<'idle' | 'confirm' | 'resting' | 'summary'>('idle');
   const [longRestResult, setLongRestResult] = useState<{ restored_npcs: number; expired_boons: number; cleared_poisons: number } | null>(null);
@@ -155,58 +157,16 @@ function SessionControlBar({
   }
 
   const circleBase: React.CSSProperties = {
-    width: 64, height: 64,
+    width: 48, height: 48,
     border: '1px solid rgba(201,168,76,0.4)',
     background: 'transparent',
   };
 
-  // Left button: START → ✓ (running after resume) → RESUME (when paused or ended)
+  // Session control state labels
   const startLabel = isRunning && hasResumed ? '✓' : (isPaused || sessionEnded) ? 'RESUME' : 'START';
+  const endConfirmLabel = sessionEnded ? 'ENDED' : 'END';
 
-  // Right button: PAUSE → END SESSION? (when paused) → ended (stats)
-  const rightLabel = sessionEnded ? 'ENDED' : isPaused ? 'END\nSESSION?' : 'PAUSE';
-  const rightOnClick = sessionEnded ? undefined : isPaused ? handleEndSession : handlePause;
-
-  const buttons = [
-    {
-      label: startLabel,
-      onClick: handleStart,
-      style: {
-        ...circleBase,
-        ...(isRunning ? { borderColor: '#2d8a4e', boxShadow: '0 0 12px rgba(45,138,78,0.6)' } : {}),
-      },
-      className: isRunning ? 'animate-pulse-slow-green' : '',
-      disabled: isRunning,
-      isCheck: isRunning && hasResumed,
-    },
-    {
-      label: 'LONG REST',
-      onClick: handleLongRestClick,
-      style: circleBase,
-    },
-    {
-      label: 'ROLL INIT',
-      href: '/dm/initiative?fresh=1',
-      onClick: handleRollInitiative,
-      style: circleBase,
-    },
-    {
-      label: 'BOON',
-      href: '/dm/boons',
-      style: circleBase,
-    },
-    {
-      label: rightLabel,
-      onClick: rightOnClick,
-      style: {
-        ...circleBase,
-        ...(isPaused && !sessionEnded ? { borderColor: '#c9a84c', boxShadow: '0 0 10px rgba(201,168,76,0.4)' } : {}),
-        ...(sessionEnded ? { borderColor: '#a05050', boxShadow: '0 0 12px rgba(160,80,80,0.6)' } : {}),
-      },
-      className: sessionEnded ? 'animate-pulse-slow-red' : '',
-      disabled: sessionEnded,
-    },
-  ];
+  const [endConfirm, setEndConfirm] = useState(false);
 
   return (
     <div className="flex flex-col items-center gap-2 py-4 border-b border-[var(--color-border)]">
@@ -366,36 +326,109 @@ function SessionControlBar({
         </div>
       )}
 
-      {/* Control circles — hidden during long rest or survivor flow */}
+      {/* 3-column control row — hidden during long rest or survivor flow */}
       {longRestPhase === 'idle' && survivorPhase === 'idle' && (
-        <div className="flex items-center" style={{ gap: 16 }}>
-          {buttons.map(btn => {
-            const circle = (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          {/* Column 1: Time — Start / Pause / End */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={handleStart}
+              disabled={isRunning}
+              className={`rounded-full flex items-center justify-center transition-all hover:scale-105 ${isRunning ? 'animate-pulse-slow-green' : ''}`}
+              style={{
+                ...circleBase,
+                ...(isRunning ? { borderColor: '#2d8a4e', boxShadow: '0 0 12px rgba(45,138,78,0.6)' } : {}),
+              }}
+              title="Start / Resume"
+            >
+              <span className={`uppercase tracking-[0.1em] font-sans leading-tight text-center ${
+                isRunning && hasResumed ? 'text-[#5ab87a] text-xl' : 'text-white text-[0.5rem]'
+              }`}>
+                {startLabel}
+              </span>
+            </button>
+            <button
+              onClick={handlePause}
+              disabled={!isRunning}
+              className="rounded-full flex items-center justify-center transition-all hover:scale-105"
+              style={{ ...circleBase, opacity: isRunning ? 1 : 0.3 }}
+              title="Pause"
+            >
+              <span className="text-white text-[0.5rem] uppercase tracking-[0.1em] font-sans">PAUSE</span>
+            </button>
+            {!endConfirm ? (
               <button
-                key={btn.label}
-                onClick={btn.onClick}
-                disabled={btn.disabled}
-                className={`rounded-full flex items-center justify-center transition-all hover:scale-105 relative ${btn.className ?? ''}`}
-                style={btn.style}
-                title={btn.label}
+                onClick={() => { if (sessionEnded) return; setEndConfirm(true); }}
+                disabled={sessionEnded}
+                className={`rounded-full flex items-center justify-center transition-all hover:scale-105 ${sessionEnded ? 'animate-pulse-slow-red' : ''}`}
+                style={{
+                  ...circleBase,
+                  ...(sessionEnded ? { borderColor: '#a05050', boxShadow: '0 0 12px rgba(160,80,80,0.6)' } : {}),
+                }}
+                title="End Session"
               >
-                <span className={`uppercase tracking-[0.1em] font-sans leading-tight text-center px-1 whitespace-pre-line ${
-                  btn.isCheck ? 'text-[#5ab87a] text-xl' : 'text-white text-[0.55rem]'
-                }`}>
-                  {btn.label}
-                </span>
+                <span className="text-white text-[0.5rem] uppercase tracking-[0.1em] font-sans">{endConfirmLabel}</span>
               </button>
-            );
+            ) : (
+              <button
+                onClick={() => { setEndConfirm(false); handleEndSession(); }}
+                className="rounded-full flex items-center justify-center transition-all hover:scale-105"
+                style={{ ...circleBase, borderColor: '#c9a84c', boxShadow: '0 0 10px rgba(201,168,76,0.4)' }}
+                title="Confirm End Session"
+              >
+                <span className="text-[#c9a84c] text-[0.45rem] uppercase tracking-[0.1em] font-sans leading-tight text-center whitespace-pre-line">{'END\nSESSION?'}</span>
+              </button>
+            )}
+          </div>
 
-            if (btn.href) {
-              return (
-                <Link key={btn.label} href={btn.href} onClick={btn.onClick}>
-                  {circle}
-                </Link>
-              );
-            }
-            return circle;
-          })}
+          {/* Divider */}
+          <div style={{ width: 1, height: 36, background: 'rgba(201,168,76,0.2)', flexShrink: 0 }} />
+
+          {/* Column 2: Long Rest + Roll Init */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={handleLongRestClick}
+              className="rounded-full flex items-center justify-center transition-all hover:scale-105"
+              style={circleBase}
+              title="Long Rest"
+            >
+              <span className="text-white text-[0.45rem] uppercase tracking-[0.1em] font-sans leading-tight text-center whitespace-pre-line">{'LONG\nREST'}</span>
+            </button>
+            <Link href="/dm/initiative?fresh=1" onClick={handleRollInitiative}>
+              <button
+                className="rounded-full flex items-center justify-center transition-all hover:scale-105"
+                style={circleBase}
+                title="Roll Initiative"
+              >
+                <span className="text-white text-[0.45rem] uppercase tracking-[0.1em] font-sans leading-tight text-center whitespace-pre-line">{'ROLL\nINIT'}</span>
+              </button>
+            </Link>
+          </div>
+
+          {/* Divider */}
+          <div style={{ width: 1, height: 36, background: 'rgba(201,168,76,0.2)', flexShrink: 0 }} />
+
+          {/* Column 3: Player circles — quick links */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {players.filter(p => p.id !== 'dm' && p.id !== 'ajax').map(p => (
+              <Link key={p.id} href={`/players/${p.id}`} title={p.playerName}>
+                <div
+                  className="rounded-full overflow-hidden flex items-center justify-center transition-all hover:scale-110"
+                  style={{
+                    width: 48, height: 48,
+                    border: '1px solid rgba(201,168,76,0.4)',
+                    background: '#1a1714',
+                  }}
+                >
+                  {p.img ? (
+                    <img src={p.img} alt={p.playerName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span className="text-[var(--color-text-muted)] font-serif text-sm">{p.initial}</span>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -665,9 +698,11 @@ function NpcCastingBoard({
 export default function DmSessionsClient({
   initial,
   allNpcs,
+  players = [],
 }: {
   initial: Session[];
   allNpcs: Npc[];
+  players?: Player[];
 }) {
   const [sessions, setSessions] = useState<Session[]>(initial);
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -863,6 +898,7 @@ export default function DmSessionsClient({
               session={selected}
               menagerie={menagerie}
               allNpcs={allNpcs}
+              players={players}
               onLongRest={async () => {
                 // Refresh menagerie from server after omnibus long rest
                 try {
