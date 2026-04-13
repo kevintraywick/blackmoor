@@ -349,13 +349,14 @@ function SessionControlBar({
               className={`rounded-full flex items-center justify-center transition-all hover:scale-105 ${isRunning ? 'animate-pulse-slow-green' : ''}`}
               style={{
                 ...circleBase,
-                ...(isRunning ? { borderColor: '#2d8a4e', boxShadow: '0 0 12px rgba(45,138,78,0.6)' } : {}),
+                borderColor: '#4a7a5a',
+                ...(isRunning ? { boxShadow: '0 0 12px rgba(45,138,78,0.6)' } : {}),
               }}
               title="Start / Resume"
             >
               <span className={`uppercase tracking-[0.1em] font-sans leading-tight text-center ${
-                isRunning && hasResumed ? 'text-[#5ab87a] text-xl' : 'text-white text-[0.5rem]'
-              }`}>
+                isRunning && hasResumed ? 'text-xl' : 'text-[0.5rem]'
+              }`} style={{ color: '#5ab87a' }}>
                 {startLabel}
               </span>
             </button>
@@ -363,10 +364,10 @@ function SessionControlBar({
               onClick={handlePause}
               disabled={!isRunning}
               className="rounded-full flex items-center justify-center transition-all hover:scale-105"
-              style={{ ...circleBase, opacity: isRunning ? 1 : 0.3 }}
+              style={{ ...circleBase, borderColor: '#8a7d3a', opacity: isRunning ? 1 : 0.3 }}
               title="Pause"
             >
-              <span className="text-white text-[0.5rem] uppercase tracking-[0.1em] font-sans">PAUSE</span>
+              <span style={{ color: '#c9a84c' }} className="text-[0.5rem] uppercase tracking-[0.1em] font-sans">PAUSE</span>
             </button>
             {!endConfirm ? (
               <button
@@ -375,11 +376,12 @@ function SessionControlBar({
                 className={`rounded-full flex items-center justify-center transition-all hover:scale-105 ${sessionEnded ? 'animate-pulse-slow-red' : ''}`}
                 style={{
                   ...circleBase,
-                  ...(sessionEnded ? { borderColor: '#a05050', boxShadow: '0 0 12px rgba(160,80,80,0.6)' } : {}),
+                  borderColor: '#7a3a3a',
+                  ...(sessionEnded ? { boxShadow: '0 0 12px rgba(160,80,80,0.6)' } : {}),
                 }}
                 title="End Session"
               >
-                <span className="text-white text-[0.5rem] uppercase tracking-[0.1em] font-sans">{endConfirmLabel}</span>
+                <span style={{ color: '#c05050' }} className="text-[0.5rem] uppercase tracking-[0.1em] font-sans">{endConfirmLabel}</span>
               </button>
             ) : (
               <button
