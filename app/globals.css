@@ -103,6 +103,26 @@ body {
 }
 
 
+/* ── Sending sparkle: fairy-dust fountain on notification tap ─────── */
+@keyframes sending-sparkle-rise {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--sparkle-dx), var(--sparkle-dy)) scale(0.2) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+.sending-sparkle-particle {
+  animation: sending-sparkle-rise 1.6s ease-out forwards;
+  will-change: transform, opacity;
+}
+
 .raven-link-pulse-fade {
   transition: color 30s ease, text-shadow 30s ease, opacity 30s ease;
   color: var(--color-text);
