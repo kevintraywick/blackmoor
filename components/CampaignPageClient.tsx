@@ -114,22 +114,16 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
         {/* Left column: all fields */}
         <div className="space-y-2" style={{ flex: 1 }}>
           <div>
-            <label className="block text-xs text-[var(--color-text-muted)] mb-1">Name</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} onBlur={handleNameBlur} placeholder="e.g. Shadow of the Wolf" className={inputClass} style={{ fontSize: '0.85rem' }} />
+            <input type="text" value={name} onChange={e => setName(e.target.value)} onBlur={handleNameBlur} placeholder="Name" className={inputClass} style={{ fontSize: '0.85rem' }} />
           </div>
           <div>
-            <label className="block text-xs text-[var(--color-text-muted)] mb-1">World</label>
-            <input type="text" value={world} onChange={e => setWorld(e.target.value)} onBlur={handleWorldBlur} placeholder="e.g. Blackmoor" className={inputClass} style={{ fontSize: '0.85rem' }} />
+            <input type="text" value={world} onChange={e => setWorld(e.target.value)} onBlur={handleWorldBlur} placeholder="World" className={inputClass} style={{ fontSize: '0.85rem' }} />
           </div>
           <div>
-            <label className="block text-xs text-[var(--color-text-muted)] mb-1">Site Description</label>
-            <input type="text" value={description} onChange={e => setDescription(e.target.value)} onBlur={handleDescriptionBlur} placeholder="Shown in Discord embeds" className={inputClass} style={{ fontSize: '0.85rem' }} />
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Appears in social previews</p>
+            <input type="text" value={description} onChange={e => setDescription(e.target.value)} onBlur={handleDescriptionBlur} placeholder="Site description — shown in social previews" className={inputClass} style={{ fontSize: '0.85rem' }} />
           </div>
           <div>
-            <label className="block text-xs text-[var(--color-text-muted)] mb-1">DM Email</label>
-            <input type="email" value={dmEmail} onChange={e => setDmEmail(e.target.value)} onBlur={handleDmEmailBlur} placeholder="you@example.com" className={inputClass} style={{ fontSize: '0.85rem' }} />
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Get an email when enough players confirm a game</p>
+            <input type="email" value={dmEmail} onChange={e => setDmEmail(e.target.value)} onBlur={handleDmEmailBlur} placeholder="DM email — in-game email notifications" className={inputClass} style={{ fontSize: '0.85rem' }} />
           </div>
           <div className="h-6 text-sm">
             {saving && <span className="text-[var(--color-text-muted)]">Saving...</span>}
