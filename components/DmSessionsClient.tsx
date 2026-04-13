@@ -435,7 +435,7 @@ function SessionControlBar({
               const hasBoon = playersWithBoons.has(p.id);
               const hasPoisoned = playersWithPoisons.has(p.id);
               return (
-                <Link key={p.id} href={`/players/${p.id}`} title={p.playerName} className="flex flex-col items-center gap-1">
+                <Link key={p.id} href="/dm/players" title={p.playerName} className="flex flex-col items-center gap-1">
                   <div style={{ position: 'relative' }}>
                     <div
                       className="rounded-full overflow-hidden flex items-center justify-center transition-all hover:scale-110"
