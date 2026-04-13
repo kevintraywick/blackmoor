@@ -54,6 +54,27 @@ function SessionControlBar({
   const [survivorPhase, setSurvivorPhase] = useState<'idle' | 'confirm' | 'done'>('idle');
   const [survivorChecked, setSurvivorChecked] = useState<boolean[]>([]);
 
+  // Boon & poison indicators for player circles
+  const [playersWithBoons, setPlayersWithBoons] = useState<Set<string>>(new Set());
+  const [playersWithPoisons, setPlayersWithPoisons] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetch('/api/boons')
+      .then(r => r.json())
+      .then((data: { active: { player_id: string }[] }) => {
+        const ids = new Set((data.active || []).map(b => b.player_id));
+        setPlayersWithBoons(ids);
+      })
+      .catch(() => {});
+    fetch('/api/poison')
+      .then(r => r.json())
+      .then((rows: { player_id: string; active: boolean }[]) => {
+        const ids = new Set(rows.filter(r => r.active).map(r => r.player_id));
+        setPlayersWithPoisons(ids);
+      })
+      .catch(() => {});
+  }, []);
+
   const isStarted = !!session.started_at;
   const isPaused = !!session.ended_at;
   const isRunning = isStarted && !isPaused;
@@ -410,25 +431,48 @@ function SessionControlBar({
 
           {/* Column 3: Player circles — quick links */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            {players.filter(p => p.id !== 'dm' && p.id !== 'ajax').map(p => (
-              <Link key={p.id} href={`/players/${p.id}`} title={p.playerName} className="flex flex-col items-center gap-1">
-                <div
-                  className="rounded-full overflow-hidden flex items-center justify-center transition-all hover:scale-110"
-                  style={{
-                    width: 48, height: 48,
-                    border: '1px solid rgba(201,168,76,0.4)',
-                    background: '#1a1714',
-                  }}
-                >
-                  {p.img ? (
-                    <img src={p.img} alt={p.playerName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <span className="text-[var(--color-text-muted)] font-serif text-sm">{p.initial}</span>
-                  )}
-                </div>
-                <span className="text-[0.6rem] text-[var(--color-text-muted)] font-serif truncate" style={{ maxWidth: 56 }}>{p.character}</span>
-              </Link>
-            ))}
+            {players.filter(p => p.id !== 'dm' && p.id !== 'ajax').map(p => {
+              const hasBoon = playersWithBoons.has(p.id);
+              const hasPoisoned = playersWithPoisons.has(p.id);
+              return (
+                <Link key={p.id} href={`/players/${p.id}`} title={p.playerName} className="flex flex-col items-center gap-1">
+                  <div style={{ position: 'relative' }}>
+                    <div
+                      className="rounded-full overflow-hidden flex items-center justify-center transition-all hover:scale-110"
+                      style={{
+                        width: 48, height: 48,
+                        border: '1px solid rgba(201,168,76,0.4)',
+                        background: '#1a1714',
+                      }}
+                    >
+                      {p.img ? (
+                        <img src={p.img} alt={p.playerName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span className="text-[var(--color-text-muted)] font-serif text-sm">{p.initial}</span>
+                      )}
+                    </div>
+                    {hasBoon && (
+                      <div style={{
+                        position: 'absolute', bottom: 0, right: 0,
+                        width: 10, height: 10, borderRadius: '50%',
+                        background: '#ffffff',
+                        boxShadow: '0 0 6px rgba(255,255,255,0.5)',
+                        border: '1px solid rgba(26,23,20,0.6)',
+                      }} />
+                    )}
+                    {hasPoisoned && (
+                      <div style={{
+                        position: 'absolute', bottom: 0, left: 0,
+                        width: 8, height: 8, borderRadius: '50%',
+                        background: '#4a7a5a',
+                        border: '1px solid rgba(26,23,20,0.6)',
+                      }} />
+                    )}
+                  </div>
+                  <span className="text-[0.6rem] text-[var(--color-text-muted)] font-serif truncate" style={{ maxWidth: 56 }}>{p.character}</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
