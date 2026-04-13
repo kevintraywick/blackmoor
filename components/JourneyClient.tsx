@@ -128,7 +128,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
   };
 
   return (
-    <div className="max-w-full mx-auto relative">
+    <div className="max-w-full mx-auto relative" onClick={() => { setActiveJournal(null); setShowBackstory(false); }}>
       {/* Banner */}
       <div className="relative w-full h-[200px] overflow-hidden" style={{ display: 'flex', alignItems: 'center' }}>
         <Image
@@ -156,7 +156,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                 transition: 'border 0.15s, transform 0.15s',
                 cursor: campaignBackground ? 'pointer' : 'default',
               }}
-              onClick={() => { if (campaignBackground) { setShowBackstory(prev => !prev); setActiveJournal(null); } }}
+              onClick={(e) => { e.stopPropagation(); if (campaignBackground) { setShowBackstory(prev => !prev); setActiveJournal(null); } }}
               onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(key); }}
               onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); }}
               onDrop={(e) => {
@@ -224,6 +224,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             }}
           >
             <div
+              onClick={(e) => e.stopPropagation()}
               style={{
                 background: 'rgba(255,255,255,0.70)',
                 backdropFilter: 'blur(10px)',
@@ -358,7 +359,8 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                   cursor: canOpen ? 'pointer' : 'default',
                 }}
                 title={hasStarted ? (session.title || `Session ${session.number}`) : `Session ${session.number}`}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (!canOpen) return;
                   setActiveJournal(isActive ? null : session.number);
                   setShowBackstory(false);
