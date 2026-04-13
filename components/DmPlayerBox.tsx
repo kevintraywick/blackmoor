@@ -138,12 +138,12 @@ export default function DmPlayerBox({
     <div className="flex gap-3 mb-4 items-stretch">
 
       {/* Green pane: DM Notes + Status */}
-      <div className="flex-1 border border-[#4a7a5a] rounded bg-[#161d18] px-4 py-3 flex gap-0 items-stretch">
+      <div className="flex-1 border border-[#4a7a5a] rounded bg-[#161d18] px-4 py-2 flex gap-0 items-stretch">
         {/* DM Notes */}
         <div className="flex-1 min-w-0 pr-4">
           <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[#4a8a5a] mb-1.5">DM Notes</div>
           <textarea
-            rows={3}
+            rows={2}
             value={notes}
             onChange={e => handleNotesChange(e.target.value)}
             placeholder="Upcoming absences, hooks, reminders…"
@@ -198,12 +198,12 @@ export default function DmPlayerBox({
       {/* Purple pane: Sendings */}
       <div className="border border-[#5a3a6a] rounded bg-[#1d161e] flex flex-col" style={{ width: 240 }}>
         {/* Compose area */}
-        <div className="relative" style={{ minHeight: 80 }}>
+        <div className="relative" style={{ minHeight: 64 }}>
           <textarea
             value={sendingText}
             onChange={e => setSendingText(e.target.value)}
             placeholder="≤25 words, cryptic…"
-            rows={2}
+            rows={1}
             className="w-full bg-transparent text-[var(--color-text-body)] text-[0.82rem] leading-relaxed px-3 py-2.5 resize-none outline-none placeholder:text-[#4a3050] font-serif italic"
           />
           <button
@@ -237,12 +237,12 @@ export default function DmPlayerBox({
       {/* Red pane: DM's DMs */}
       <div className="border border-[#7a3a3a] rounded bg-[#1d1616] flex flex-col" style={{ width: 240 }}>
         {/* Compose area */}
-        <div className="relative" style={{ minHeight: 80 }}>
+        <div className="relative" style={{ minHeight: 64 }}>
           <textarea
             value={dmMessage}
             onChange={e => setDmMessage(e.target.value)}
             placeholder={`Message ${playerName}…`}
-            rows={2}
+            rows={1}
             className="w-full bg-transparent text-[var(--color-text-body)] text-[0.82rem] leading-relaxed px-3 py-2.5 resize-none outline-none placeholder:text-[#5a3a3a] font-serif"
           />
           <button
