@@ -273,3 +273,9 @@ All list panes (Weapons, Gear, Cantrips, Magic Items) use an inline `[+] Add ite
 
 - **Links**: Home (dice icon) | Player / Character | All Players | Marketplace | *The story so far…* (italic, links to Journey).
 - **All links** use `text-[var(--color-text)]` for consistent brightness, `hover:text-[var(--color-gold)]`.
+
+## Roadmap (`/do`)
+
+- **Ground truth is the database**, not `ROADMAP.md`. The `roadmap_items` table is seeded from `ROADMAP.md` on first access (if empty), but after that the DB is authoritative. Edits on prod persist across deploys.
+- **`ROADMAP.md` is a generated artifact.** Call `POST /api/roadmap/sync` to regenerate `ROADMAP.md` from the current DB state. Keep it in git as a human-readable snapshot, not as the source of truth.
+- **Add, remove, toggle** all write to the DB via `/api/roadmap/{add,remove,toggle}`. No filesystem writes.

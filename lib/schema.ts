@@ -1015,6 +1015,18 @@ async function _initSchema() {
     `ALTER TABLE raven_items ADD COLUMN IF NOT EXISTS raven_issue INTEGER`
   ).catch(() => {});
 
+  // Roadmap items — DB-backed so prod edits persist across deploys
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS roadmap_items (
+      id         SERIAL PRIMARY KEY,
+      ladder     TEXT NOT NULL CHECK (ladder IN ('shadow', 'common')),
+      version    INTEGER NOT NULL,
+      title      TEXT NOT NULL,
+      status     TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('built', 'in_progress', 'planned')),
+      sort_order INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+
   // API key validation — warn at startup if keys are missing or malformed
   const keyChecks: { name: string; prefix?: string; label: string }[] = [
     { name: 'ANTHROPIC_API_KEY', prefix: 'sk-ant-', label: 'World AI triage and drafting' },

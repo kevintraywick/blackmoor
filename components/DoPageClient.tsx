@@ -2,10 +2,10 @@
 
 import { useState, useRef } from 'react';
 
-type Status = 'built' | 'in_progress' | 'planned' | 'deferred';
+type Status = 'built' | 'in_progress' | 'planned';
 
 type RoadmapItem = {
-  id: string;
+  id: number;
   title: string;
   status: Status;
 };
@@ -26,7 +26,6 @@ function sortVersions(ladder: Ladder): string[] {
 }
 
 function Glyph({ status, onClick }: { status: Status; onClick?: () => void }) {
-  const clickable = onClick && status !== 'deferred';
   const base: React.CSSProperties = {
     display: 'inline-block',
     width: 12,
@@ -34,7 +33,7 @@ function Glyph({ status, onClick }: { status: Status; onClick?: () => void }) {
     borderRadius: '50%',
     marginRight: 10,
     flexShrink: 0,
-    cursor: clickable ? 'pointer' : 'default',
+    cursor: onClick ? 'pointer' : 'default',
     transition: 'transform 0.15s',
   };
 
@@ -65,17 +64,6 @@ function Glyph({ status, onClick }: { status: Status; onClick?: () => void }) {
       />
     );
   }
-  if (status === 'deferred') {
-    return (
-      <span
-        aria-label="deferred"
-        style={{
-          ...base,
-          border: '1px solid #5a4f46',
-        }}
-      />
-    );
-  }
   return (
     <span
       aria-label="planned"
@@ -100,8 +88,8 @@ function ItemRow({
   index: number;
   ladderKey: 'shadow' | 'common';
   version: string;
-  onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
-  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
+  onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
+  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
 }) {
   return (
     <li
@@ -110,14 +98,7 @@ function ItemRow({
         alignItems: 'center',
         padding: '4px 0',
         fontSize: '0.95rem',
-        color:
-          item.status === 'deferred'
-            ? '#5a4f46'
-            : item.status === 'built'
-              ? '#e8ddd0'
-              : '#c8bfb5',
-        textDecoration:
-          item.status === 'deferred' ? 'line-through' : 'none',
+        color: item.status === 'built' ? '#e8ddd0' : '#c8bfb5',
       }}
     >
       <span style={{ width: 24, flexShrink: 0, fontSize: '0.75rem', color: '#e8ddd0', fontFamily: 'var(--font-garamond)' }}>
@@ -125,10 +106,10 @@ function ItemRow({
       </span>
       <Glyph
         status={item.status}
-        onClick={item.status !== 'deferred' ? () => onToggle(ladderKey, version, item.title, item.id) : undefined}
+        onClick={() => onToggle(ladderKey, version, item.title, item.id)}
       />
       <span style={{ flex: 1 }}>{item.title}</span>
-      {item.status !== 'built' && item.status !== 'deferred' && (
+      {item.status !== 'built' && (
         <button
           onClick={() => onRemove(ladderKey, version, item.title, item.id)}
           style={{
@@ -168,8 +149,8 @@ function VersionCard({
   accent: string;
   ladderKey: 'shadow' | 'common';
   startIndex: number;
-  onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
-  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
+  onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
+  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
 }) {
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -338,8 +319,8 @@ function LadderColumn({
   bg?: string;
   ladderKey: 'shadow' | 'common';
   onAdd: (ladder: 'shadow' | 'common', version: number, text: string) => void;
-  onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
-  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: string) => void;
+  onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
+  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
 }) {
   const versions = sortVersions(ladder);
   const cumulativeIndex: Record<string, number> = {};
@@ -398,31 +379,28 @@ export default function DoPageClient({ initial }: { initial: Roadmap }) {
       body: JSON.stringify({ ladder, version, text }),
     });
     if (!res.ok) return;
+    const { item } = await res.json();
 
     const vKey = `v${version}`;
     setRoadmap((prev) => {
       const target = { ...prev[ladder] };
       const items = target[vKey] ? [...target[vKey]] : [];
-      items.push({
-        id: `${ladder}-${vKey}-${Date.now()}`,
-        title: text,
-        status: 'planned',
-      });
+      items.push({ id: item.id, title: text, status: 'planned' });
       target[vKey] = items;
       return { ...prev, [ladder]: target };
     });
   }
 
-  async function handleRemove(ladder: 'shadow' | 'common', version: string, text: string, itemId: string) {
-    const vNum = version.replace('v', '');
+  async function handleRemove(_ladder: 'shadow' | 'common', version: string, _text: string, itemId: number) {
     const res = await fetch('/api/roadmap/remove', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ladder, version: parseInt(vNum, 10), text }),
+      body: JSON.stringify({ id: itemId }),
     });
     if (!res.ok) return;
 
     setRoadmap((prev) => {
+      const ladder = _ladder;
       const target = { ...prev[ladder] };
       const items = (target[version] ?? []).filter((item) => item.id !== itemId);
       if (items.length > 0) {
@@ -434,17 +412,17 @@ export default function DoPageClient({ initial }: { initial: Roadmap }) {
     });
   }
 
-  async function handleToggle(ladder: 'shadow' | 'common', version: string, text: string, itemId: string) {
-    const vNum = version.replace('v', '');
+  async function handleToggle(_ladder: 'shadow' | 'common', version: string, _text: string, itemId: number) {
     const res = await fetch('/api/roadmap/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ladder, version: parseInt(vNum, 10), text }),
+      body: JSON.stringify({ id: itemId }),
     });
     if (!res.ok) return;
     const { status: newStatus } = await res.json();
 
     setRoadmap((prev) => {
+      const ladder = _ladder;
       const target = { ...prev[ladder] };
       const items = (target[version] ?? []).map((item) =>
         item.id === itemId ? { ...item, status: newStatus as Status } : item

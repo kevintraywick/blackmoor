@@ -4,7 +4,7 @@ The public roadmap for **Shadow of the Wolf** (the campaign site) and **Common W
 
 Each item is a checkbox list entry with a version tag. Tags look like `<!-- shadow-v2 -->` or `<!-- v6 -->`. Untagged items are ignored. Shadow and Common share one version sequence: Shadow is v1–v3, Common starts at v4.
 
-Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-progress -->` to mark partial work. Add `<!-- deferred -->` to strike through.
+Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-progress -->` to mark partial work. Note: this file is a snapshot — the DB (`roadmap_items` table) is the ground truth.
 
 ---
 
@@ -59,10 +59,7 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] Print mode for map builder <!-- shadow-v3 -->
 - [x] Hand-painted 2D hex terrain tiles (Baumgart Basic Terrain Set, replacing KayKit 3D renders) <!-- shadow-v3 -->
 - [x] Terrain painting mode on world map (paint mode, palette, Baumgart sprite rendering, cursor fix) <!-- shadow-v3 -->
-- [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- shadow-v3 --> <!-- deferred -->
-- [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- shadow-v3 --> <!-- deferred -->
-- [ ] Language overlay map <!-- shadow-v3 --> <!-- deferred -->
-
+- [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- shadow-v3 -->- [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- shadow-v3 -->- [ ] Language overlay map <!-- shadow-v3 -->
 ---
 
 ## Common World
