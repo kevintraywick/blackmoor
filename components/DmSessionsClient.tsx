@@ -409,9 +409,9 @@ function SessionControlBar({
           <div style={{ width: 1, height: 36, background: 'rgba(201,168,76,0.2)', flexShrink: 0 }} />
 
           {/* Column 3: Player circles — quick links */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             {players.filter(p => p.id !== 'dm' && p.id !== 'ajax').map(p => (
-              <Link key={p.id} href={`/players/${p.id}`} title={p.playerName}>
+              <Link key={p.id} href={`/players/${p.id}`} title={p.playerName} className="flex flex-col items-center gap-1">
                 <div
                   className="rounded-full overflow-hidden flex items-center justify-center transition-all hover:scale-110"
                   style={{
@@ -426,6 +426,7 @@ function SessionControlBar({
                     <span className="text-[var(--color-text-muted)] font-serif text-sm">{p.initial}</span>
                   )}
                 </div>
+                <span className="text-[0.6rem] text-[var(--color-text-muted)] font-serif truncate" style={{ maxWidth: 56 }}>{p.character}</span>
               </Link>
             ))}
           </div>
