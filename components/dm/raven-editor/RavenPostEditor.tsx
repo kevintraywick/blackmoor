@@ -133,8 +133,9 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
     }
   }
 
-  // Publish wiring — Unit 8 provides the endpoint. Until then, stub.
   const [publishing, setPublishing] = useState(false);
+  const [publishToast, setPublishToast] = useState<{ kind: 'ok' | 'error'; msg: string } | null>(null);
+
   const publishDisabled = !(
     draft.big_headline.trim() &&
     draft.col1_lead_body.trim() &&
@@ -146,6 +147,7 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
   async function onPublish() {
     if (publishing || publishDisabled) return;
     setPublishing(true);
+    setPublishToast(null);
     try {
       // Ensure any in-flight dirty fields land before publishing
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -153,13 +155,17 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
       const res = await fetch('/api/raven-post/issue-publish', { method: 'POST' });
       if (!res.ok) {
         const { error: msg } = await res.json().catch(() => ({ error: 'Publish failed' }));
-        alert(msg ?? 'Publish failed');
+        setPublishToast({ kind: 'error', msg: msg ?? 'Publish failed' });
         return;
       }
-      alert('Issue published!');
+      const { published_volume, published_issue } = await res.json() as { published_volume: number; published_issue: number };
+      setPublishToast({ kind: 'ok', msg: `Issue ${published_volume}·${published_issue} published!` });
+      // Draft's prose fields were wiped server-side; reload so the editor
+      // picks up a clean draft state (and next issue's volume/issue).
+      setTimeout(() => { window.location.reload(); }, 1200);
     } catch (err) {
       console.error('publish', err);
-      alert('Publish failed');
+      setPublishToast({ kind: 'error', msg: 'Network error' });
     } finally {
       setPublishing(false);
     }
@@ -170,6 +176,22 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
       {/* Top-right toolbar — outside the broadsheet frame */}
       <div style={{ position: 'absolute', top: 0, right: -90, zIndex: 10 }}>
         <EditorToolbar onPublish={onPublish} publishing={publishing} publishDisabled={publishDisabled} />
+        {publishToast && (
+          <div
+            style={{
+              marginTop: 12,
+              maxWidth: 160,
+              fontFamily: 'EB Garamond, serif',
+              fontSize: '0.75rem',
+              lineHeight: 1.3,
+              textAlign: 'center',
+              color: publishToast.kind === 'ok' ? '#6ab07a' : '#c07a8a',
+              fontStyle: publishToast.kind === 'ok' ? 'normal' : 'italic',
+            }}
+          >
+            {publishToast.msg}
+          </div>
+        )}
       </div>
 
       {/* Broadsheet parchment container — matches RavenBroadsheet */}
