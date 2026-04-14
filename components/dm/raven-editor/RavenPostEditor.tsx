@@ -9,6 +9,7 @@ import EditableHeadline from './EditableHeadline';
 import EditableProse from './EditableProse';
 import QotdEditor from './QotdEditor';
 import EditorToolbar from './EditorToolbar';
+import AdDetailsDialog from './AdDetailsDialog';
 
 interface Props {
   initialDraft: RavenIssueDraft;
@@ -85,6 +86,51 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
     setDraft(d => ({ ...d, [field]: value }));
     dirtyRef.current.add(field);
     scheduleSave();
+  }
+
+  // Ad upload flow: after the image uploads, stash its URL and open the
+  // details dialog so the DM can enter the product URL + overlay text.
+  const [pendingAdImage, setPendingAdImage] = useState<string | null>(null);
+  const [adError, setAdError] = useState<string | null>(null);
+  const [heroError, setHeroError] = useState<string | null>(null);
+
+  async function uploadImage(file: File, kind: 'hero' | 'ad'): Promise<string | null> {
+    const fd = new FormData();
+    fd.append('image', file);
+    fd.append('kind', kind);
+    const res = await fetch('/api/uploads/raven-post/issue', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const { error: msg } = await res.json().catch(() => ({ error: 'Upload failed' }));
+      return Promise.reject(new Error(msg ?? 'Upload failed'));
+    }
+    const { url } = await res.json() as { url: string };
+    return url;
+  }
+
+  async function onHeroDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setHeroError(null);
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) { setHeroError('Drop an image file'); return; }
+    try {
+      const url = await uploadImage(file, 'hero');
+      if (url) set('hero_image_url', url);
+    } catch (err) {
+      setHeroError((err as Error).message);
+    }
+  }
+
+  async function onAdDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setAdError(null);
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) { setAdError('Drop an image file'); return; }
+    try {
+      const url = await uploadImage(file, 'ad');
+      if (url) setPendingAdImage(url);
+    } catch (err) {
+      setAdError((err as Error).message);
+    }
   }
 
   // Publish wiring — Unit 8 provides the endpoint. Until then, stub.
@@ -189,22 +235,38 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
               />
             </div>
 
-            {/* Section (8) — Ad drop zone (Unit 5 will wire) */}
+            {/* Section (8) — Ad drop zone */}
             <div
+              onDragOver={e => e.preventDefault()}
+              onDrop={onAdDrop}
               style={{
-                border: '1px dashed #2b1f14',
+                position: 'relative',
+                border: draft.ad_product_id ? '1px solid #2b1f14' : '1px dashed #2b1f14',
                 height: 180,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2em',
                 color: '#8a7a60',
                 background: 'rgba(139,90,30,0.03)',
+                overflow: 'hidden',
               }}
             >
-              Drop ad image here
+              {pendingAdImage ? (
+                <img src={pendingAdImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
+              ) : draft.ad_product_id ? (
+                <span style={{ fontFamily: 'EB Garamond, serif', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                  Ad attached — drop a new image to replace
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                  Drop ad image here
+                </span>
+              )}
+              {adError && (
+                <span style={{ position: 'absolute', bottom: 4, left: 6, fontSize: '0.7rem', color: '#8b1a1a', fontStyle: 'italic' }}>
+                  {adError}
+                </span>
+              )}
             </div>
 
             {/* Section (10) — QOTD */}
@@ -220,8 +282,12 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
 
           {/* Column 2 — (4) hero + (5) caption → (7) blood moon → (9) spot prices */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* Sections (4) + (5) — hero image + caption. Drop zone stub (Unit 5) */}
-            <figure style={{ margin: 0 }}>
+            {/* Sections (4) + (5) — hero image + caption */}
+            <figure
+              style={{ margin: 0, position: 'relative' }}
+              onDragOver={e => e.preventDefault()}
+              onDrop={onHeroDrop}
+            >
               {draft.hero_image_url ? (
                 <img
                   src={draft.hero_image_url}
@@ -251,6 +317,11 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
                 >
                   Drop hero image here
                 </div>
+              )}
+              {heroError && (
+                <span style={{ position: 'absolute', top: 4, left: 6, fontSize: '0.7rem', color: '#8b1a1a', fontStyle: 'italic' }}>
+                  {heroError}
+                </span>
               )}
               <figcaption
                 style={{
@@ -351,6 +422,17 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
         {/* Bottom rule — echoes masthead */}
         <div style={{ marginTop: 4, borderTop: '4px double #2b1f14' }} />
       </div>
+
+      {pendingAdImage && (
+        <AdDetailsDialog
+          imageUrl={pendingAdImage}
+          onCancel={() => setPendingAdImage(null)}
+          onSubmit={id => {
+            set('ad_product_id', id);
+            setPendingAdImage(null);
+          }}
+        />
+      )}
     </div>
   );
 }
