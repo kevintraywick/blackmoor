@@ -12,10 +12,6 @@ export default async function DmRavenPostPage() {
       <DmNav current="raven-post" />
 
       <div className="max-w-[1000px] mx-auto px-8 py-10">
-        <header className="mb-8">
-          <h1 className="font-serif text-2xl text-[var(--color-gold)]">The Raven Post</h1>
-        </header>
-
         <RavenPostLayout players={players} />
       </div>
     </div>

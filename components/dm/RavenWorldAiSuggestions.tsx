@@ -36,9 +36,14 @@ function countdown(iso: string | null): string {
 
 export interface RavenWorldAiSuggestionsHandle {
   refresh: () => void;
+  publishFocused: () => Promise<boolean>;
 }
 
-const RavenWorldAiSuggestions = forwardRef<RavenWorldAiSuggestionsHandle>(function RavenWorldAiSuggestions(_props, ref) {
+interface SuggestionsProps {
+  onPreviewChange?: (headline: string, body: string) => void;
+}
+
+const RavenWorldAiSuggestions = forwardRef<RavenWorldAiSuggestionsHandle, SuggestionsProps>(function RavenWorldAiSuggestions({ onPreviewChange }, ref) {
   const [proposals, setProposals] = useState<WorldAiProposal[]>([]);
   const [state, setState] = useState<WorldAiState | null>(null);
   const [ticks, setTicks] = useState<WorldAiTick[]>([]);
@@ -49,6 +54,7 @@ const RavenWorldAiSuggestions = forwardRef<RavenWorldAiSuggestionsHandle>(functi
   // Draft state for inline editing
   const [bodyDrafts, setBodyDrafts] = useState<Record<string, string>>({});
   const [headlineDrafts, setHeadlineDrafts] = useState<Record<string, string>>({});
+  const [focusedId, setFocusedId] = useState<string | null>(null);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -89,7 +95,17 @@ const RavenWorldAiSuggestions = forwardRef<RavenWorldAiSuggestionsHandle>(functi
     }
   }, []);
 
-  useImperativeHandle(ref, () => ({ refresh: fetchAll }), [fetchAll]);
+  useImperativeHandle(ref, () => ({
+    refresh: fetchAll,
+    publishFocused: async () => {
+      if (!focusedId) return false;
+      try {
+        const res = await fetch(`/api/raven-post/world-ai/proposals/${focusedId}/publish`, { method: 'POST' });
+        if (res.ok) { fetchAll(); setFocusedId(null); onPreviewChange?.('', ''); return true; }
+      } catch { /* */ }
+      return false;
+    },
+  }), [fetchAll, focusedId, onPreviewChange]);
 
   useEffect(() => {
     fetchAll();
@@ -273,34 +289,13 @@ const RavenWorldAiSuggestions = forwardRef<RavenWorldAiSuggestionsHandle>(functi
             <div
               key={proposal.id}
               style={{
-                display: 'flex',
-                gap: 14,
                 padding: 14,
                 border: '1px solid #2a3a4a',
                 background: '#1a2028',
                 marginBottom: 10,
               }}
             >
-              {/* Checkbox — publish on click */}
-              <button
-                onClick={() => publishProposal(proposal.id)}
-                disabled={isPublishing}
-                aria-label="Publish this suggestion"
-                style={{
-                  width: 22,
-                  height: 22,
-                  border: '1.5px solid #6ab0ff',
-                  flexShrink: 0,
-                  marginTop: 4,
-                  background: '#0a1420',
-                  cursor: isPublishing ? 'wait' : 'pointer',
-                  position: 'relative',
-                  padding: 0,
-                  opacity: isPublishing ? 0.5 : 1,
-                }}
-              />
-
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ minWidth: 0 }}>
                 {/* Medium + confidence label row */}
                 <div
                   style={{
@@ -312,24 +307,10 @@ const RavenWorldAiSuggestions = forwardRef<RavenWorldAiSuggestionsHandle>(functi
                     display: 'flex',
                     gap: 10,
                     alignItems: 'center',
-                    flexWrap: 'wrap',
                   }}
                 >
                   <span>{MEDIUM_LABELS[proposal.medium] ?? proposal.medium}</span>
                   <span style={{ color: '#4a6a8a' }}>conf {proposal.confidence}</span>
-                  {proposal.tags.map(tag => (
-                    <span
-                      key={tag}
-                      style={{
-                        background: 'rgba(106,176,255,0.1)',
-                        padding: '1px 6px',
-                        fontSize: '0.6rem',
-                        color: '#6ab0ff',
-                      }}
-                    >
-                      {tag}
-                    </span>
-                  ))}
                 </div>
 
                 {/* Headline (broadsheet only) */}
@@ -337,9 +318,11 @@ const RavenWorldAiSuggestions = forwardRef<RavenWorldAiSuggestionsHandle>(functi
                   <input
                     type="text"
                     value={headlineDrafts[proposal.id] ?? (proposal.headline ?? '')}
-                    onChange={e =>
-                      setHeadlineDrafts(prev => ({ ...prev, [proposal.id]: e.target.value }))
-                    }
+                    onChange={e => {
+                      const v = e.target.value;
+                      setHeadlineDrafts(prev => ({ ...prev, [proposal.id]: v }));
+                      onPreviewChange?.(v, bodyDrafts[proposal.id] ?? proposal.body);
+                    }}
                     onBlur={() => saveHeadline(proposal.id)}
                     className="font-serif"
                     style={{
@@ -353,7 +336,11 @@ const RavenWorldAiSuggestions = forwardRef<RavenWorldAiSuggestionsHandle>(functi
                       marginBottom: 4,
                       outline: 'none',
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = '#6ab0ff'; }}
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = '#6ab0ff';
+                      setFocusedId(proposal.id);
+                      onPreviewChange?.(headlineDrafts[proposal.id] ?? (proposal.headline ?? ''), bodyDrafts[proposal.id] ?? proposal.body);
+                    }}
                     onBlurCapture={e => { e.currentTarget.style.borderColor = 'transparent'; }}
                   />
                 )}
@@ -362,9 +349,11 @@ const RavenWorldAiSuggestions = forwardRef<RavenWorldAiSuggestionsHandle>(functi
                 <textarea
                   rows={3}
                   value={bodyDrafts[proposal.id] ?? proposal.body}
-                  onChange={e =>
-                    setBodyDrafts(prev => ({ ...prev, [proposal.id]: e.target.value }))
-                  }
+                  onChange={e => {
+                    const v = e.target.value;
+                    setBodyDrafts(prev => ({ ...prev, [proposal.id]: v }));
+                    onPreviewChange?.(headlineDrafts[proposal.id] ?? (proposal.headline ?? ''), v);
+                  }}
                   onBlur={() => saveBody(proposal.id)}
                   className="font-serif"
                   style={{
@@ -382,6 +371,8 @@ const RavenWorldAiSuggestions = forwardRef<RavenWorldAiSuggestionsHandle>(functi
                   onFocus={e => {
                     e.currentTarget.style.borderColor = '#6ab0ff';
                     e.currentTarget.style.background = 'rgba(106,176,255,0.05)';
+                    setFocusedId(proposal.id);
+                    onPreviewChange?.(headlineDrafts[proposal.id] ?? (proposal.headline ?? ''), bodyDrafts[proposal.id] ?? proposal.body);
                   }}
                   onBlurCapture={e => {
                     e.currentTarget.style.borderColor = 'transparent';
