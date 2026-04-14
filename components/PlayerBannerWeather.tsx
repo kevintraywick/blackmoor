@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { RavenWeatherRow, WeatherCondition } from '@/lib/types';
-import RavenWeatherPill from './RavenWeatherPill';
+// Weather pill removed — temperature now shown via ambient circles
 
 // ── Two-layer weather overlay system ─────────────────────────────────────────
 // Layer 1: CSS gradient/tint atmosphere (mood, lighting, visibility)
@@ -306,10 +306,6 @@ export default function PlayerBannerWeather({ playerId }: Props) {
         />
       )}
 
-      {/* Weather pill — hidden on mobile */}
-      <div className="hidden sm:block" style={{ position: 'absolute', top: 14, right: 16 }}>
-        <RavenWeatherPill condition={weather.condition} temp_c={weather.temp_c} wind_label={weather.wind_label} />
-      </div>
     </>
   );
 }

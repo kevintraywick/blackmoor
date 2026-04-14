@@ -53,10 +53,10 @@ export default function PlayerBanner({ playerId }: { playerId: string }) {
 
   const circles = (
     <>
-      <div className="hidden sm:block" style={{ position: 'absolute', top: 72, right: 16 }}>
+      <div className="hidden sm:block" style={{ position: 'absolute', top: 12, right: 16 }}>
         <AmbientCirclesData playerId={playerId} size={52} />
       </div>
-      <div className="block sm:hidden" style={{ position: 'absolute', top: 48, right: 10 }}>
+      <div className="block sm:hidden" style={{ position: 'absolute', top: 8, right: 10 }}>
         <AmbientCirclesData playerId={playerId} size={36} />
       </div>
     </>

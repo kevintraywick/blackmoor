@@ -103,11 +103,14 @@ export default function AmbientCirclesData({ playerId, size }: Props) {
     return computeCompassBearing(partyPos);
   }, [partyPos]);
 
+  const tempC = weather?.temp_c ?? null;
+
   return (
     <AmbientCircles
       celestial={celestial}
       wind={wind}
       compass={compass}
+      tempC={tempC}
       size={size}
     />
   );
