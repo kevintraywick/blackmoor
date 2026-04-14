@@ -343,7 +343,7 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
 // ── Full player sheet form ────────────────────────────────────────────────────
 export function Sheet({ playerId, playerName, character, initial, img, data, unreadCount = 0, poisonCount = 0, boonCount = 0, boonUnseen = 0, sendingCount = 0 }: { playerId: string; playerName: string; character: string; initial: string; img?: string; data: PlayerSheetType; unreadCount?: number; poisonCount?: number; boonCount?: number; boonUnseen?: number; sendingCount?: number }) {
   const [values, setValues] = useState<PlayerSheetType>(data);
-  const [charName, setCharName] = useState(character);
+  const charName = character;
   const [showMessages, setShowMessages] = useState(false);
   const [showBoons, setShowBoons] = useState(false);
   const [showSendings, setShowSendings] = useState(false);
@@ -514,111 +514,105 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
         </div>
       )}
 
-      {/* Header — portrait + name/class fields */}
+      {/* Header — portrait + stats (left half) | notifications (right half) */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-tl-md rounded-tr-md px-3 sm:px-4 py-3 border-b-0 relative">
 
-        {/* Desktop: single row */}
+        {/* Desktop: two-half row */}
         <div className="hidden sm:block">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Portrait with HP ring */}
-            <div style={{ width: 72, height: 72, flexShrink: 0 }}>
-              <HpRing current={parseHp(data.current_hp, data.hp)} max={parseHp(data.max_hp, data.hp)}>
-                <div className="relative w-full h-full rounded-full border-2 border-[#1a1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden">
-                  <span className="text-[1.4rem] text-[var(--color-text-muted)] select-none">{initial}</span>
-                  {img && <Image src={img} alt={character} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+            {/* ── LEFT HALF: portrait+name | level/species/class | HP/GP ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: '1 1 50%', minWidth: 0 }}>
+              {/* Col 1: Portrait + character name */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, gap: 2 }}>
+                <div style={{ width: 72, height: 72 }}>
+                  <HpRing current={parseHp(data.current_hp, data.hp)} max={parseHp(data.max_hp, data.hp)}>
+                    <div className="relative w-full h-full rounded-full border-2 border-[#1a1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden">
+                      <span className="text-[1.4rem] text-[var(--color-text-muted)] select-none">{initial}</span>
+                      {img && <Image src={img} alt={character} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                    </div>
+                  </HpRing>
                 </div>
-              </HpRing>
-            </div>
-            {/* Name + Species + Class */}
-            <input
-              value={charName}
-              onChange={e => {
-                setCharName(e.target.value);
-                clearTimeout((window as unknown as Record<string, unknown>).__charTimer as ReturnType<typeof setTimeout>);
-                const val = e.target.value;
-                (window as unknown as Record<string, unknown>).__charTimer = setTimeout(() => {
-                  fetch(`/api/players/${playerId}/name`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ character: val }) });
-                }, 800);
-              }}
-              className="text-[var(--color-text)] text-xl font-bold font-serif bg-transparent border-none outline-none min-w-0"
-              style={{ width: `${Math.max(charName.length + 1, 4)}ch` }}
-            />
-            <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 60, width: 80 }} />
-            <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 60, width: 80 }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-              <label className="text-[0.6rem] text-[var(--color-text-muted)] uppercase tracking-widest font-sans">SMS</label>
-              <input type="checkbox" checked={data.sms_optin === true} onChange={async e => { await fetch('/api/sms/optin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ playerId, optin: e.target.checked }) }); }} style={{ accentColor: '#1a1614' }} />
-            </div>
-            <div style={{ flex: 1 }} />
-            {/* HP + Gold — centered */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 20, height: 20 }}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 36, fontSize: '0.925rem' }} />
+                <span className="font-serif text-[0.8rem] text-[var(--color-text)] font-bold truncate" style={{ maxWidth: 90 }}>{charName}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 20, height: 20, borderRadius: '50%' }} />
-                <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 36, fontSize: '0.925rem' }} />
+
+              {/* Col 2: Species / Class stacked */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ width: 90, fontSize: '0.9rem' }} />
+                <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ width: 90, fontSize: '0.9rem' }} />
+              </div>
+
+              {/* Col 3: HP + Gold */}
+              <div style={{ display: 'flex', gap: 8, marginLeft: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 20, height: 20 }}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 36, fontSize: '0.925rem' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <img src="/images/inventory/gold_coin.jpg" alt="Gold" style={{ width: 20, height: 20, borderRadius: '50%' }} />
+                  <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 36, fontSize: '0.925rem' }} />
+                </div>
               </div>
             </div>
-            <div style={{ flex: 1 }} />
-            {/* Notification dots */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+
+            {/* ── RIGHT HALF: Notification icons ── */}
+            <div style={{ flex: '1 1 50%', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 20 }}>
+              {/* DM Message */}
               {unread > 0 ? (
                 <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }} aria-label={`${unread} unread message${unread > 1 ? 's' : ''}`}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
               ) : messages.length > 0 ? (
                 <svg onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', opacity: 0.3 }} aria-label="View messages"><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
               ) : null}
+              {/* Boon */}
               {boonCount > 0 ? (
                 <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} aria-label={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
               ) : null}
+              {/* Poison */}
               {poisonCount > 0 ? (
                 <span onClick={togglePoisons} className="animate-pulse cursor-pointer" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
               ) : null}
+              {/* Sending */}
               {unreadSendings > 0 ? (
                 <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" title={`${unreadSendings} sending${unreadSendings > 1 ? 's' : ''}`} style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
               ) : sendings.length > 0 ? (
                 <span onClick={toggleSendings} className="cursor-pointer hover:opacity-70 transition-opacity select-none" title="View sendings" style={{ fontSize: 22, lineHeight: 1, opacity: 0.3 }}>👂</span>
               ) : null}
+              {/* Thieves' Cant — only for Rogues */}
+              {values.class?.toLowerCase().includes('rogue') && (
+                <span className="select-none" title="Thieves' Cant" style={{ fontSize: 22, lineHeight: 1, opacity: 0.25, cursor: 'default' }}>🗝️</span>
+              )}
+              {/* Druid Sign — only for Druids */}
+              {values.class?.toLowerCase().includes('druid') && (
+                <span className="select-none" title="Druid Sign" style={{ fontSize: 22, lineHeight: 1, opacity: 0.25, cursor: 'default' }}>🌿</span>
+              )}
             </div>
           </div>
         </div>
 
         {/* Mobile: stacked layout */}
         <div className="sm:hidden">
-          {/* Row 1: Portrait + Name + Species + Class */}
+          {/* Row 1: Portrait+name | Level/Species/Class | HP/GP */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 56, height: 56, flexShrink: 0 }}>
-              <HpRing current={parseHp(data.current_hp, data.hp)} max={parseHp(data.max_hp, data.hp)}>
-                <div className="relative w-full h-full rounded-full border-2 border-[#1a1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden">
-                  <span className="text-[1.1rem] text-[var(--color-text-muted)] select-none">{initial}</span>
-                  {img && <Image src={img} alt={character} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
-                </div>
-              </HpRing>
+            {/* Portrait + name */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, gap: 1 }}>
+              <div style={{ width: 56, height: 56 }}>
+                <HpRing current={parseHp(data.current_hp, data.hp)} max={parseHp(data.max_hp, data.hp)}>
+                  <div className="relative w-full h-full rounded-full border-2 border-[#1a1a1a] bg-[#2e2825] flex items-center justify-center overflow-hidden">
+                    <span className="text-[1.1rem] text-[var(--color-text-muted)] select-none">{initial}</span>
+                    {img && <Image src={img} alt={character} fill className="object-cover absolute inset-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
+                  </div>
+                </HpRing>
+              </div>
+              <span className="font-serif text-[0.7rem] text-[var(--color-text)] font-bold truncate" style={{ maxWidth: 70 }}>{charName}</span>
             </div>
-            <input
-              value={charName}
-              onChange={e => {
-                setCharName(e.target.value);
-                clearTimeout((window as unknown as Record<string, unknown>).__charTimer as ReturnType<typeof setTimeout>);
-                const val = e.target.value;
-                (window as unknown as Record<string, unknown>).__charTimer = setTimeout(() => {
-                  fetch(`/api/players/${playerId}/name`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ character: val }) });
-                }, 800);
-              }}
-              className="text-[var(--color-text)] text-lg font-bold font-serif bg-transparent border-none outline-none min-w-0"
-              style={{ width: `${Math.max(charName.length + 1, 3)}ch`, marginRight: 4 }}
-            />
-            <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 0, width: 60, fontSize: '0.85rem' }} />
-            <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 0, width: 60, fontSize: '0.85rem' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-              <label className="text-[0.55rem] text-[var(--color-text-muted)] uppercase tracking-widest font-sans">SMS</label>
-              <input type="checkbox" checked={data.sms_optin === true} onChange={async e => { await fetch('/api/sms/optin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ playerId, optin: e.target.checked }) }); }} style={{ accentColor: '#1a1614' }} />
+
+            {/* Species / Class stacked */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, minWidth: 0 }}>
+              <input value={values.species} placeholder="Species…" onChange={e => setField('species', e.target.value)} className={fi} style={{ minWidth: 0, width: '100%', fontSize: '0.8rem' }} />
+              <input value={values.class} placeholder="Class…" onChange={e => setField('class', e.target.value)} className={fi} style={{ minWidth: 0, width: '100%', fontSize: '0.8rem' }} />
             </div>
-          </div>
-          {/* Row 2: HP + Gold + Notification dots */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 58 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+
+            {/* HP + Gold */}
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 16, height: 16 }}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                 <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 32, fontSize: '0.85rem' }} />
@@ -628,26 +622,32 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                 <input value={values.gold} placeholder="—" onChange={e => setField('gold', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 32, fontSize: '0.85rem' }} />
               </div>
             </div>
-            <div style={{ flex: 1 }} />
-            {/* Dots */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              {unread > 0 ? (
-                <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
-              ) : messages.length > 0 ? (
-                <svg onClick={toggleMessages} className="cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', opacity: 0.3 }}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
-              ) : null}
-              {boonCount > 0 ? (
-                <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
-              ) : null}
-              {poisonCount > 0 ? (
-                <span onClick={togglePoisons} className="animate-pulse cursor-pointer" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
-              ) : null}
-              {unreadSendings > 0 ? (
-                <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
-              ) : sendings.length > 0 ? (
-                <span onClick={toggleSendings} className="cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, opacity: 0.3 }}>👂</span>
-              ) : null}
-            </div>
+          </div>
+
+          {/* Row 2: Notification icons */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 14, marginTop: 8 }}>
+            {unread > 0 ? (
+              <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+            ) : messages.length > 0 ? (
+              <svg onClick={toggleMessages} className="cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', opacity: 0.3 }}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+            ) : null}
+            {boonCount > 0 ? (
+              <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
+            ) : null}
+            {poisonCount > 0 ? (
+              <span onClick={togglePoisons} className="animate-pulse cursor-pointer" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
+            ) : null}
+            {unreadSendings > 0 ? (
+              <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
+            ) : sendings.length > 0 ? (
+              <span onClick={toggleSendings} className="cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, opacity: 0.3 }}>👂</span>
+            ) : null}
+            {values.class?.toLowerCase().includes('rogue') && (
+              <span className="select-none" title="Thieves' Cant" style={{ fontSize: 20, lineHeight: 1, opacity: 0.25, cursor: 'default' }}>🗝️</span>
+            )}
+            {values.class?.toLowerCase().includes('druid') && (
+              <span className="select-none" title="Druid Sign" style={{ fontSize: 20, lineHeight: 1, opacity: 0.25, cursor: 'default' }}>🌿</span>
+            )}
           </div>
         </div>
 

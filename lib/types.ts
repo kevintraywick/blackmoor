@@ -402,7 +402,7 @@ export interface MtdSpend {
 
 // ── Raven Post ─────────────────────────────────────────────────────────────
 
-export type RavenMedium = 'broadsheet' | 'raven' | 'sending' | 'overheard' | 'ad';
+export type RavenMedium = 'broadsheet' | 'raven' | 'sending' | 'overheard' | 'ad' | 'cant' | 'druid_sign';
 export type RavenTrust = 'official' | 'whispered' | 'rumored' | 'prophesied';
 export type WeatherCondition =
   // Precipitation

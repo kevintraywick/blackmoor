@@ -18,6 +18,8 @@ const WORD_CAPS: Record<RavenMedium, number> = {
   sending: 25,
   overheard: 50,
   ad: 60,
+  cant: 25,
+  druid_sign: 20,
 };
 
 const DRAFTING_SYSTEM_PROMPT = `You are a fantasy author writing an in-fiction news item for "The Raven Post," a D&D campaign broadsheet.

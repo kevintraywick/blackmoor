@@ -4,7 +4,7 @@ import { ensureSchema } from '@/lib/schema';
 import { publishItem } from '@/lib/raven-post';
 import type { RavenItem, RavenMedium, RavenTrust } from '@/lib/types';
 
-const VALID_MEDIA: RavenMedium[] = ['broadsheet', 'raven', 'sending', 'overheard', 'ad'];
+const VALID_MEDIA: RavenMedium[] = ['broadsheet', 'raven', 'sending', 'overheard', 'ad', 'cant', 'druid_sign'];
 const VALID_TRUST: RavenTrust[] = ['official', 'whispered', 'rumored', 'prophesied'];
 
 // GET /api/raven-post/items?playerId=X

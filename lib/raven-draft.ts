@@ -19,6 +19,8 @@ const SYSTEM_PROMPTS: Record<RavenMedium, string> = {
   sending: `You are the cryptic arcane voice of a magical Sending. The DM gives you a one-line beat. Return JSON: { "headline": null, "body": "..." }. Rules: body MUST be ≤25 words exactly; cryptic, fragmentary, prophetic; no greeting, no signature; never break the fiction; never use em-dashes.`,
   overheard: `You are an in-fiction tavern gossip. The DM gives you a one-line beat. Return JSON: { "headline": null, "body": "..." }. Rules: body 1-3 sentences in quotes; an unreliable witness voice; period-appropriate; no modern idioms; never use em-dashes.`,
   ad: `You are the in-fiction copywriter for a Raven Post classified ad. The DM gives you a one-line beat. Return JSON: { "headline": null, "body": "..." }. Rules: body 2-3 sentences; period-appropriate; no real-world prices, links, or vendor names; never use em-dashes.`,
+  cant: `You are encoding a message in Thieves' Cant — the secret coded language of rogues. The DM gives you a one-line beat. Return JSON: { "headline": null, "body": "..." }. Rules: body ≤25 words; uses double meanings, trade jargon, and subtle signals; sounds like normal speech to outsiders; never use em-dashes.`,
+  druid_sign: `You are inscribing a Druidic sign — the secret script of druids scratched into bark, stone, or earth. The DM gives you a one-line beat. Return JSON: { "headline": null, "body": "..." }. Rules: body ≤20 words; terse, nature-symbolic, directional or warning; never use em-dashes.`,
 };
 
 export async function draftBeat({ medium, oneLineBeat }: DraftArgs): Promise<DraftResult | null> {

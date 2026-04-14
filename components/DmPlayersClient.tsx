@@ -247,6 +247,7 @@ export default function DmPlayersClient({
           key={selectedId}
           playerId={selectedId}
           playerName={selectedPlayer.character}
+          playerClass={selectedSheet?.class ?? ''}
           initialNotes={selectedSheet?.dm_notes ?? ''}
           initialStatus={(selectedSheet?.status ?? 'active') as 'active' | 'away' | 'removed'}
         />

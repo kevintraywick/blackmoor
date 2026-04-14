@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 
-// GET /api/raven-post/sendings?playerId=X — returns sendings for a player
+// GET /api/raven-post/sendings?playerId=X&medium=sending — returns sendings for a player
+// medium defaults to 'sending'; also accepts 'cant' and 'druid_sign'
 export async function GET(req: Request) {
   try {
     await ensureSchema();
@@ -11,12 +12,14 @@ export async function GET(req: Request) {
     if (!playerId) {
       return NextResponse.json({ error: 'playerId required' }, { status: 400 });
     }
+    const ALLOWED_MEDIUMS = new Set(['sending', 'cant', 'druid_sign']);
+    const medium = ALLOWED_MEDIUMS.has(searchParams.get('medium') ?? '') ? searchParams.get('medium')! : 'sending';
     const rows = await query<{ id: string; body: string; published_at: string }>(
       `SELECT id, body, published_at FROM raven_items
-       WHERE medium = 'sending' AND target_player = $1
+       WHERE medium = $1 AND target_player = $2
        ORDER BY published_at DESC
        LIMIT 50`,
-      [playerId],
+      [medium, playerId],
     );
     return NextResponse.json(rows);
   } catch (err) {
