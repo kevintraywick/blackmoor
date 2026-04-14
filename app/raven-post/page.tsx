@@ -55,7 +55,7 @@ export default async function RavenPostPage() {
 
   // v1 placeholder for an in-fiction date — eventually this comes from the
   // game-clock formatter once that's wired in.
-  const inFictionDate = '14th of Mirtul, 1496 DR';
+  const inFictionDate = '14th of Mirtul, CY 581';
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-serif">

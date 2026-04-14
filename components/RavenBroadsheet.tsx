@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import type { RavenItem, RavenWeatherRow } from '@/lib/types';
-import RavenWeatherPill from './RavenWeatherPill';
 import RavenAdModal from './RavenAdModal';
 
 interface Props {
@@ -13,7 +12,7 @@ interface Props {
   inFictionDate: string; // e.g. "14th of Mirtul, 1496 DR"
 }
 
-export default function RavenBroadsheet({ items, weather, volume, issue, inFictionDate }: Props) {
+export default function RavenBroadsheet({ items, volume, issue, inFictionDate }: Props) {
   const [adModal, setAdModal] = useState<RavenItem | null>(null);
 
   const broadsheetItems = items.filter(i => i.medium === 'broadsheet');
@@ -36,43 +35,133 @@ export default function RavenBroadsheet({ items, weather, volume, issue, inFicti
         position: 'relative',
       }}
     >
-      {/* Volume / Issue stamp */}
+      {/* Edition Stamp — circular wax stamp at top-right of sheet */}
       <div
         style={{
           position: 'absolute',
-          top: 40,
-          right: 30,
-          fontSize: '0.58rem',
-          textTransform: 'uppercase',
-          letterSpacing: '0.2em',
-          color: '#7b1a1a',
-          border: '1.5px solid #7b1a1a',
-          padding: '4px 8px',
+          top: -20,
+          right: -6,
+          width: 118,
+          height: 118,
           transform: 'rotate(-6deg)',
-          fontWeight: 700,
-          opacity: 0.75,
+          opacity: 0.8,
+          zIndex: 2,
         }}
       >
-        Volume {volume}<br />Issue {issue}
+        <svg viewBox="0 0 120 120" width="118" height="118" style={{ overflow: 'visible' }}>
+          <defs>
+            {/* Circular path for text — starts at top, runs clockwise */}
+            <path id="stamp-curve" d="M 60,60 m -40,0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0" fill="none" />
+          </defs>
+          {/* Inner ring (enclosing Vol/Issue) */}
+          <circle cx="60" cy="60" r="36" fill="none" stroke="#7b1a1a" strokeWidth="1.5" />
+          {/* Curved text — two halves separated by bullets */}
+          <text
+            fill="#7b1a1a"
+            fontSize="8.4"
+            fontWeight="700"
+            letterSpacing="2"
+            style={{ textTransform: 'uppercase', fontFamily: 'EB Garamond, serif' }}
+          >
+            <textPath href="#stamp-curve" startOffset="0%">
+              · Published Fortnightly · Black Feather Press
+            </textPath>
+          </text>
+          {/* Vol / Issue inside */}
+          <text
+            x="60"
+            y="56"
+            textAnchor="middle"
+            fill="#7b1a1a"
+            fontSize="9"
+            fontWeight="700"
+            letterSpacing="1.5"
+            style={{ textTransform: 'uppercase', fontFamily: 'EB Garamond, serif' }}
+          >
+            Volume {volume}
+          </text>
+          <text
+            x="60"
+            y="70"
+            textAnchor="middle"
+            fill="#7b1a1a"
+            fontSize="9"
+            fontWeight="700"
+            letterSpacing="1.5"
+            style={{ textTransform: 'uppercase', fontFamily: 'EB Garamond, serif' }}
+          >
+            Issue {issue}
+          </text>
+        </svg>
       </div>
 
       {/* Masthead */}
-      <div style={{ textAlign: 'center', borderBottom: '2px double #2b1f14', paddingBottom: 10, marginBottom: 14 }}>
-        <h1 style={{
-          fontFamily: 'UnifrakturMaguntia, "EB Garamond", serif',
-          fontSize: '2.4rem',
-          letterSpacing: '0.04em',
-          margin: 0,
-        }}>
+      <div
+        style={{
+          textAlign: 'center',
+          paddingBottom: 14,
+          marginBottom: 18,
+          borderBottom: '4px double #2b1f14',
+          position: 'relative',
+        }}
+      >
+        {/* Top hairline rule above the title */}
+        <div style={{ height: 1, background: '#2b1f14', margin: '0 auto 10px', width: '92%', opacity: 0.8 }} />
+
+        <h1
+          style={{
+            fontFamily: 'UnifrakturMaguntia, "EB Garamond", serif',
+            fontSize: '4.2rem',
+            lineHeight: 0.95,
+            letterSpacing: '0.02em',
+            margin: 0,
+            color: '#1a0f08',
+            textShadow: '0 1px 0 rgba(43,31,20,0.25)',
+          }}
+        >
           The Raven Post
         </h1>
-        <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.3em', color: '#4a3723', marginTop: 2 }}>
-          Published fortnightly at the sign of the black feather
+
+        {/* Ornamental tagline with flanking rules */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 14,
+            marginTop: 10,
+          }}
+        >
+          <span style={{ flex: 1, height: 1, background: '#2b1f14', opacity: 0.55, maxWidth: 220 }} />
+          <span
+            style={{
+              fontFamily: 'EB Garamond, serif',
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.35em',
+              color: '#2b1f14',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ❦&nbsp;&nbsp;Tales of the Realm&nbsp;&nbsp;❦
+          </span>
+          <span style={{ flex: 1, height: 1, background: '#2b1f14', opacity: 0.55, maxWidth: 220 }} />
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontStyle: 'italic', marginTop: 6, color: '#4a3723' }}>
+
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: '1.05rem',
+            fontStyle: 'italic',
+            marginTop: 12,
+            color: '#2b1f14',
+            fontWeight: 600,
+          }}
+        >
           <span>{inFictionDate}</span>
-          <RavenWeatherPill condition={weather.condition} temp_c={weather.temp_c} wind_label={weather.wind_label} />
-          <span>One copper · three if bloodied</span>
+          <span>One copper</span>
         </div>
       </div>
 
