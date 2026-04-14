@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import RavenPostPlayer from '@/components/RavenPostPlayer';
+import { formatShireDate } from '@/lib/shire-date';
 import type { RavenItem, RavenWeatherRow, Campaign } from '@/lib/types';
 
 // The Raven Post is the PUBLIC broadsheet — visible to all players.
@@ -53,9 +54,9 @@ export default async function RavenPostPage() {
   const volume = campaignRows[0]?.raven_volume ?? 1;
   const issue = campaignRows[0]?.raven_issue ?? 1;
 
-  // v1 placeholder for an in-fiction date — eventually this comes from the
-  // game-clock formatter once that's wired in.
-  const inFictionDate = '14th of Mirtul, CY 581';
+  // In-fiction date tracks the real-world date on the Shire calendar.
+  // Year is fixed at CY 581; day/month drift with wall time.
+  const inFictionDate = formatShireDate();
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-serif">

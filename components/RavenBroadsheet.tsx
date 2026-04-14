@@ -167,7 +167,7 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate }:
               whiteSpace: 'nowrap',
             }}
           >
-            ❦&nbsp;&nbsp;Tales of the Realm&nbsp;&nbsp;❦
+            ❦&nbsp;&nbsp;News, Gossip and Tales of the Realm&nbsp;&nbsp;❦
           </span>
           <span style={{ flex: 1, height: 1, background: '#2b1f14', opacity: 0.55, maxWidth: 220 }} />
         </div>
