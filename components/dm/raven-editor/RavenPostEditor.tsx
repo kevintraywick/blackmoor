@@ -258,8 +258,8 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
         >
           {/* Column 1 — (3) lead → (8) ad → (10) QOTD */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* Section (3) — lead text */}
-            <ArticleBox minHeight={BOX_MIN_HEIGHTS.col1_lead}>
+            {/* Section (3) — lead text (grows to push ad + QOTD to column bottom) */}
+            <ArticleBox minHeight={BOX_MIN_HEIGHTS.col1_lead} grow>
               <EditableHeadline
                 value={draft.col1_lead_headline}
                 onChange={v => set('col1_lead_headline', v)}

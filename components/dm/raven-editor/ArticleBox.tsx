@@ -14,9 +14,11 @@ interface Props {
   children: React.ReactNode;
   /** Minimum footprint of the whole article (headline + body). */
   minHeight?: number;
+  /** If true, the box flex-grows to absorb remaining column height. */
+  grow?: boolean;
 }
 
-export default function ArticleBox({ children, minHeight }: Props) {
+export default function ArticleBox({ children, minHeight, grow }: Props) {
   return (
     <div
       style={{
@@ -26,6 +28,7 @@ export default function ArticleBox({ children, minHeight }: Props) {
         minHeight,
         display: 'flex',
         flexDirection: 'column',
+        flex: grow ? 1 : undefined,
       }}
     >
       {children}
