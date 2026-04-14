@@ -7,22 +7,26 @@
  * See DESIGN.md → "Raven Post Broadsheet — Layout 1 v1" for the section map
  * and slotting rules.
  *
- *   Masthead (edition stamp, piercing arrow, title, tagline, date/price)
+ *   (1) Masthead (edition stamp, piercing arrow, title, tagline, date/price)
  *   ─────────────────────────────────
- *   BIG HEADLINE (page-width, uppercase)
+ *   (2) BIG HEADLINE (page-width, uppercase)
  *   ─────────────────────────────────
- *   Col 1             Col 2                 Col 3
- *   (1) lorem         (2) image + (4) cap   (3) Crimson Moon
- *   (5) ad image      (6) Blood Moon        (8) Opinion
- *   (9) Quote o' Day  (7) Spot Prices
+ *   Col 1             Col 2              Col 3
+ *   (3) lorem         (4) image          (6) Crimson Moon
+ *                     (5) caption
+ *   (8) ad image      (7) Blood Moon     (11) Opinion
+ *   (10) Q.o.t.Day    (9) Spot Prices
  *   ─────────────────────────────────
  *
- * Columns stretch to equal height. Last box in each column flex-grows to
- * keep bottoms aligned. Items slot into (3) / (6) by headline regex match
- * on the `broadsheet`-medium raven_items rows.
+ * Columns stretch to equal height. QOTD (10) and Spot Prices (9) use
+ * `marginTop: auto` to pin to column bottoms so they always align.
+ * Items slot into (6) / (7) by headline regex match on the `broadsheet`-
+ * medium raven_items rows.
  */
 
 import type { RavenItem, RavenWeatherRow } from '@/lib/types';
+import Masthead from './raven/Masthead';
+import SpotPrices from './raven/SpotPrices';
 
 interface Props {
   items: RavenItem[];
@@ -55,162 +59,9 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate }:
         position: 'relative',
       }}
     >
-      {/* Edition Stamp — circular wax stamp at top-right of sheet */}
-      <div
-        style={{
-          position: 'absolute',
-          top: -20,
-          right: -6,
-          width: 118,
-          height: 118,
-          transform: 'rotate(-6deg)',
-          opacity: 0.8,
-          zIndex: 2,
-        }}
-      >
-        <svg viewBox="0 0 120 120" width="118" height="118" style={{ overflow: 'visible' }}>
-          <defs>
-            {/* Circular path for text — starts at top, runs clockwise */}
-            <path id="stamp-curve" d="M 60,60 m -40,0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0" fill="none" />
-          </defs>
-          {/* Inner ring (enclosing Vol/Issue) */}
-          <circle cx="60" cy="60" r="36" fill="none" stroke="#7b1a1a" strokeWidth="1.5" />
-          {/* Curved text — two halves separated by bullets */}
-          <text
-            fill="#7b1a1a"
-            fontSize="8.4"
-            fontWeight="700"
-            letterSpacing="2"
-            style={{ textTransform: 'uppercase', fontFamily: 'EB Garamond, serif' }}
-          >
-            <textPath href="#stamp-curve" startOffset="0%">
-              · Published Fortnightly · Black Feather Press
-            </textPath>
-          </text>
-          {/* Vol / Issue inside */}
-          <text
-            x="60"
-            y="56"
-            textAnchor="middle"
-            fill="#7b1a1a"
-            fontSize="9"
-            fontWeight="700"
-            letterSpacing="1.5"
-            style={{ textTransform: 'uppercase', fontFamily: 'EB Garamond, serif' }}
-          >
-            Volume {volume}
-          </text>
-          <text
-            x="60"
-            y="70"
-            textAnchor="middle"
-            fill="#7b1a1a"
-            fontSize="9"
-            fontWeight="700"
-            letterSpacing="1.5"
-            style={{ textTransform: 'uppercase', fontFamily: 'EB Garamond, serif' }}
-          >
-            Issue {issue}
-          </text>
-        </svg>
-      </div>
+      <Masthead volume={volume} issue={issue} inFictionDate={inFictionDate} />
 
-      {/* Masthead */}
-      <div
-        style={{
-          textAlign: 'center',
-          paddingBottom: 14,
-          marginBottom: 18,
-          borderBottom: '4px double #2b1f14',
-          position: 'relative',
-        }}
-      >
-        {/* Arrow — pierces the masthead; tip lands just below the double rule near column 1/2 gutter */}
-        <img
-          src="/images/raven-post/arrow.png"
-          alt=""
-          aria-hidden
-          style={{
-            position: 'absolute',
-            width: 130,
-            bottom: -6,
-            // spot 1 reference: left: '72%'. Current nudged right from 58%.
-            left: '68%',
-            zIndex: 0,
-            pointerEvents: 'none',
-            opacity: 0.92,
-            filter: 'drop-shadow(1px 2px 1px rgba(0,0,0,0.35))',
-            transform: 'rotate(6deg)',
-          }}
-        />
-
-        {/* Top hairline rule above the title */}
-        <div style={{ position: 'relative', zIndex: 1, height: 1, background: '#2b1f14', margin: '0 auto 10px', width: '92%', opacity: 0.8 }} />
-
-        <h1
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            fontFamily: 'UnifrakturMaguntia, "EB Garamond", serif',
-            fontSize: '4.2rem',
-            lineHeight: 0.95,
-            letterSpacing: '0.02em',
-            margin: 0,
-            color: '#1a0f08',
-            textShadow: '0 1px 0 rgba(43,31,20,0.25)',
-          }}
-        >
-          The Raven Post
-        </h1>
-
-        {/* Ornamental tagline with flanking rules */}
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 14,
-            marginTop: 10,
-          }}
-        >
-          <span style={{ flex: 1, height: 1, background: '#2b1f14', opacity: 0.55, maxWidth: 220 }} />
-          <span
-            style={{
-              fontFamily: 'EB Garamond, serif',
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.35em',
-              color: '#2b1f14',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            ❦&nbsp;&nbsp;News, Gossip and Tales of the Realm&nbsp;&nbsp;❦
-          </span>
-          <span style={{ flex: 1, height: 1, background: '#2b1f14', opacity: 0.55, maxWidth: 220 }} />
-        </div>
-
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: '1.05rem',
-            fontStyle: 'italic',
-            marginTop: 12,
-            color: '#2b1f14',
-            fontWeight: 600,
-          }}
-        >
-          <span>{inFictionDate}</span>
-          <span>One copper</span>
-        </div>
-      </div>
-
-      {/* Big headline — front-page, page-width */}
+      {/* Section (2) — Big Headline, front-page page-width */}
       <h2
         style={{
           fontFamily: '"Playfair Display", "EB Garamond", serif',
@@ -239,9 +90,9 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate }:
           alignItems: 'stretch',
         }}
       >
-        {/* Column 1: (1) lorem → (5) bone dice ad */}
+        {/* Column 1: (3) lead text → (8) ad → (10) QOTD */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Section (1) */}
+          {/* Section (3) — lead text */}
           <div style={{ fontSize: '0.88rem', lineHeight: 1.5, textAlign: 'justify' }}>
             <p style={{ margin: '0 0 8px' }}>
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
@@ -263,37 +114,68 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate }:
             </p>
           </div>
 
-          {/* Section (5) — bone dice ad */}
+          {/* Section (8) — Chaos Engine dice ad */}
+          <div
+            style={{
+              fontFamily: 'EB Garamond, serif',
+              fontSize: '0.55rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.25em',
+              textAlign: 'center',
+              color: '#4a3723',
+              marginBottom: -10,
+            }}
+          >
+            Paid Advertisement
+          </div>
           <a
-            href="https://www.etsy.com/search?q=bone+dice"
+            href="https://dnddice.com/products/chaos-engine-dice-set-limited-edition"
             target="_blank"
             rel="noopener noreferrer"
-            title="Dwarf-cut Bone Dice"
-            style={{ display: 'block' }}
+            title="Chaos Engine Dice Set — Limited Edition"
+            style={{ display: 'block', position: 'relative' }}
           >
             <img
-              src="/images/raven-post/ads/bone_dice.jpg"
-              alt="Dwarf-cut Bone Dice — forged beneath the Iron Spine"
+              src="/images/ads/dnddice_ad.jpg"
+              alt="Chaos Engine Dice Set — Limited Edition"
               style={{
                 display: 'block',
                 width: '100%',
-                height: 'auto',
+                height: 180,
+                objectFit: 'cover',
                 border: '1px solid #2b1f14',
+                filter: 'brightness(0.8)',
               }}
             />
+            <span
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                fontFamily: '"Playfair Display", "EB Garamond", serif',
+                fontSize: '2.2rem',
+                fontWeight: 900,
+                letterSpacing: '0.02em',
+                textShadow: '0 2px 6px rgba(0,0,0,0.7), 0 0 2px rgba(0,0,0,0.9)',
+                transform: 'rotate(-15deg)',
+                pointerEvents: 'none',
+              }}
+            >
+              ONLY $15!!!
+            </span>
           </a>
 
-          {/* Section (9) — Quote of the Day — flex-grows to align column bottoms */}
+          {/* Section (10) — Quote of the Day — pinned to column bottom */}
           <aside
             style={{
               border: '1px solid #2b1f14',
               padding: '8px 10px',
               textAlign: 'center',
               background: 'rgba(139,90,30,0.05)',
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
+              marginTop: 'auto',
             }}
           >
             <div
@@ -335,9 +217,9 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate }:
           </aside>
         </div>
 
-        {/* Column 2: (2) image + (4) caption → (6) Blood Moon → (7) prices */}
+        {/* Column 2: (4) image + (5) caption → (7) Blood Moon → (9) Spot Prices */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Section (2) image + (4) caption */}
+          {/* Section (4) image + (5) caption */}
           <figure style={{ margin: 0 }}>
             <img
               src="/images/raven-post/orc_fleet.jpg"
@@ -366,7 +248,7 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate }:
             </figcaption>
           </figure>
 
-          {/* Section (6) — Blood Moon */}
+          {/* Section (7) — Blood Moon */}
           {bloodMoonItem && (
             <article>
               <h3
@@ -388,93 +270,14 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate }:
             </article>
           )}
 
-          {/* Section (7) — Spot Prices */}
-          <aside
-            style={{
-              border: '1px solid #2b1f14',
-              padding: '10px 12px',
-              background: 'rgba(139,90,30,0.05)',
-            }}
-          >
-            <div
-              style={{
-                fontFamily: 'EB Garamond, serif',
-                fontSize: '0.72rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.22em',
-                fontWeight: 700,
-                color: '#2b1f14',
-                textAlign: 'center',
-                borderBottom: '1px solid #2b1f14',
-                paddingBottom: 5,
-                marginBottom: 8,
-              }}
-            >
-              Spot Prices
-            </div>
-            {([
-              { label: 'Gold',   unit: 'gp/oz', series: [52, 54, 53, 55, 58, 57, 60, 62, 61, 63, 65, 64], stroke: '#b08a1a' },
-              { label: 'Silver', unit: 'sp/oz', series: [8, 9, 8, 10, 11, 10, 12, 11, 13, 12, 11, 12],     stroke: '#6a6a78' },
-              { label: 'Copper', unit: 'cp/oz', series: [2, 3, 3, 2, 4, 3, 4, 5, 4, 4, 5, 6],              stroke: '#8a4a1a' },
-            ] as const).map(({ label, unit, series, stroke }) => {
-              const min = Math.min(...series);
-              const max = Math.max(...series);
-              const range = max - min || 1;
-              const W = 100;
-              const H = 24;
-              const pts = series
-                .map((v, i) => {
-                  const x = (i / (series.length - 1)) * W;
-                  const y = H - ((v - min) / range) * H;
-                  return `${x.toFixed(1)},${y.toFixed(1)}`;
-                })
-                .join(' ');
-              const last = series[series.length - 1];
-              const prev = series[series.length - 2];
-              const delta = ((last - prev) / prev) * 100;
-              const deltaStr = `${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toFixed(1)}%`;
-              const deltaColor = delta >= 0 ? '#2d6a3f' : '#8b1a1a';
-              return (
-                <div
-                  key={label}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '48px 1fr auto',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '4px 0',
-                    fontSize: '0.72rem',
-                    borderBottom: '1px dotted rgba(43,31,20,0.3)',
-                  }}
-                >
-                  <div style={{ fontFamily: 'EB Garamond, serif', fontWeight: 700, color: '#2b1f14' }}>
-                    {label}
-                  </div>
-                  <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display: 'block' }}>
-                    <polyline
-                      points={pts}
-                      fill="none"
-                      stroke={stroke}
-                      strokeWidth="1.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <div style={{ textAlign: 'right', color: '#2b1f14', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontWeight: 700 }}>{last}</span>{' '}
-                    <span style={{ fontSize: '0.6rem', color: '#4a3723' }}>{unit}</span>{' '}
-                    <span style={{ color: deltaColor, fontSize: '0.65rem' }}>{deltaStr}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </aside>
+          {/* Section (9) — Spot Prices — pinned to column bottom */}
+          <SpotPrices style={{ marginTop: 'auto' }} />
 
         </div>
 
-        {/* Column 3: (3) Crimson Moon → (8) opinion placeholder */}
+        {/* Column 3: (6) Crimson Moon → (11) Opinion */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Section (3) — Crimson Moon */}
+          {/* Section (6) — Crimson Moon */}
           {crimsonMoonItem && (
             <article>
               <h3
@@ -502,7 +305,7 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate }:
               </p>
             </article>
           )}
-          {/* Section (8) — Opinion */}
+          {/* Section (11) — Opinion */}
           <article>
             <h3
               style={{
