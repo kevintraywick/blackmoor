@@ -130,6 +130,7 @@ The DM's view of the Raven Post is a multi-pane curation surface, similar in spi
 - **Indicator layout**: All three indicators (boon, poison, DM) in a flex container at `right: 16` in the header. Order left-to-right: boon (white) | poison (🤢) | DM (red). Dots only, no text labels.
 - **Combat panes** (Weapons, Cantrips/Spells): Warmer background `#282220` to visually elevate above other panes.
 - **Journey Map**: Exception — cheerful saturated soft blues, white circles (`rgba(255,255,255,0.9)`), light path.
+- **AI accent**: `#4a8ab0` — muted aged-ink blue, warm-palette friendly. Use for any UI affordance driven by AI (the "brain" draft button, AI suggestion pills, AI-generated content indicators). Not for links, state, or non-AI chrome. Exported as `AI_BLUE` from `components/dm/raven-editor/EditableProse.tsx`.
 - **CYP availability dots**: Red (`#8b1a1a`) and green (`#2d8a4e`) dots per player row, `3.5×3.5` on mobile / `3×3` on desktop. Active dot gets `boxShadow: 0 0 6px` glow. Both empty = unseen (player dimmed). Row tap cycles: unseen → in (green) → out (red) → in...
 - **CYP date circles**: 77px with inline sizing (`style={{ width: 77, height: 77 }}`), not Tailwind arbitrary values. Gold border `rgba(201,168,76,0.3)`.
 - **CYP sound effects**: `swords.mp3` on "in", `run_away.mp3` on "out", `maybe.mp3` on "maybe". Volume 0.5, `.catch(() => {})` for autoplay restrictions.

@@ -5,19 +5,25 @@ import type { RavenSectionId } from '@/lib/types';
 
 /**
  * Editable prose block for the broadsheet editor. Renders a textarea styled
- * to match final prose (EB Garamond, justified, no visible border). On focus,
- * a subtle border + parchment wash appears.
+ * to match final prose (EB Garamond, justified). Focus paints a subtle
+ * parchment wash; the outer article box is drawn by the caller.
  *
- * Auto-resizes to fit content (no inner scrollbar — respects the DESIGN.md
- * "no scrollable sub-containers" rule). Word counter in the lower-right
- * counts down from `target`. Brain emoji in the lower-left fires a World AI
- * draft using the section's *headline* (passed in as `byline`) as the prompt;
- * the result replaces the current body text.
+ * Word counter in the lower-right counts down from `target`. AI-blue brain
+ * glyph in the lower-left fires a World AI draft using the section's
+ * *headline* (passed in as `byline`) as the prompt; the result replaces the
+ * current body text.
  *
  * Target word counts for Layout 1 v1: 3 (col1_lead)=80, 6 (crimson_moon)=80,
  * 7 (blood_moon)=60, 11 (opinion)=60. Sections without a target omit the
  * counter.
+ *
+ * `minHeight` keeps the textarea at a sensible published-body size even
+ * when empty, so the editor layout doesn't jump as the DM types.
  */
+
+// AI accent color — used for the brain button and reserved for all
+// AI-driven UI affordances going forward. See DESIGN.md §"AI accent".
+export const AI_BLUE = '#4a8ab0';
 
 interface Props {
   value: string;
@@ -26,6 +32,7 @@ interface Props {
   sectionId: RavenSectionId;
   target?: number;
   placeholder?: string;
+  minHeight?: number;
 }
 
 function wordCount(s: string): number {
@@ -33,7 +40,7 @@ function wordCount(s: string): number {
   return trimmed ? trimmed.split(/\s+/).length : 0;
 }
 
-export default function EditableProse({ value, onChange, byline, target, placeholder }: Props) {
+export default function EditableProse({ value, onChange, byline, target, placeholder, minHeight = 80 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +103,7 @@ export default function EditableProse({ value, onChange, byline, target, placeho
         rows={3}
         style={{
           width: '100%',
-          minHeight: 80,
+          minHeight,
           fontFamily: 'EB Garamond, serif',
           fontSize: '0.85rem',
           lineHeight: 1.4,
@@ -114,26 +121,42 @@ export default function EditableProse({ value, onChange, byline, target, placeho
         onBlur={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
       />
 
-      {/* Brain emoji — lower-left */}
+      {/* AI brain — lower-left. Blue = AI. */}
       <button
         type="button"
         onClick={onBrainClick}
         disabled={drafting}
         title={drafting ? 'Drafting…' : 'Draft body from headline with World AI'}
+        aria-label="Draft with World AI"
         style={{
           position: 'absolute',
           bottom: 2,
           left: 4,
           background: 'transparent',
           border: 'none',
-          fontSize: '0.95rem',
           cursor: drafting ? 'wait' : 'pointer',
-          opacity: drafting ? 0.5 : 0.85,
+          opacity: drafting ? 0.5 : 0.9,
           padding: 0,
-          lineHeight: 1,
+          lineHeight: 0,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        {drafting ? '…' : '🧠'}
+        {drafting ? (
+          <span style={{ fontSize: '0.85rem', color: AI_BLUE, fontFamily: 'EB Garamond, serif' }}>…</span>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={AI_BLUE} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            {/* Left hemisphere */}
+            <path d="M9.5 3.5a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0-2 4 2.5 2.5 0 0 0 0 4 2.5 2.5 0 0 0 2 4 2.5 2.5 0 0 0 2.5 2.5V3.5z" />
+            {/* Right hemisphere */}
+            <path d="M14.5 3.5a2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1 2 4 2.5 2.5 0 0 1 0 4 2.5 2.5 0 0 1-2 4 2.5 2.5 0 0 1-2.5 2.5V3.5z" />
+            {/* Central fold */}
+            <path d="M12 3.5v17" />
+            {/* Sulci hints */}
+            <path d="M9.5 8.5c1 0 1.5.7 1.5 1.5M9.5 13c1 0 1.5.7 1.5 1.5M14.5 8.5c-1 0-1.5.7-1.5 1.5M14.5 13c-1 0-1.5.7-1.5 1.5" />
+          </svg>
+        )}
       </button>
 
       {/* Word-count remaining — lower-right */}

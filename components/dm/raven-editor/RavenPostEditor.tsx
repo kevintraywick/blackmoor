@@ -10,6 +10,7 @@ import EditableProse from './EditableProse';
 import QotdEditor from './QotdEditor';
 import EditorToolbar from './EditorToolbar';
 import AdDetailsDialog from './AdDetailsDialog';
+import ArticleBox from './ArticleBox';
 
 interface Props {
   initialDraft: RavenIssueDraft;
@@ -24,6 +25,24 @@ const WORD_TARGETS = {
   blood_moon: 60,
   crimson_moon: 80,
   opinion: 60,
+} as const;
+
+// Published footprints (px) — roughly how tall each article will be once
+// full to its word target. Kept slightly conservative so the editor doesn't
+// fight the text when it runs long.
+const BOX_MIN_HEIGHTS = {
+  col1_lead: 220,
+  blood_moon: 150,
+  crimson_moon: 200,
+  opinion: 160,
+} as const;
+
+// Body-area min-heights inside each box (subtract header + padding budget).
+const BODY_MIN_HEIGHTS = {
+  col1_lead: 160,
+  blood_moon: 100,
+  crimson_moon: 140,
+  opinion: 110,
 } as const;
 
 const AUTOSAVE_MS = 800;
@@ -240,7 +259,7 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
           {/* Column 1 — (3) lead → (8) ad → (10) QOTD */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Section (3) — lead text */}
-            <div>
+            <ArticleBox minHeight={BOX_MIN_HEIGHTS.col1_lead}>
               <EditableHeadline
                 value={draft.col1_lead_headline}
                 onChange={v => set('col1_lead_headline', v)}
@@ -253,9 +272,10 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
                 byline={draft.col1_lead_headline}
                 sectionId="col1_lead"
                 target={WORD_TARGETS.col1_lead}
-                placeholder="Lead story body — type a headline and click 🧠 to draft with World AI."
+                minHeight={BODY_MIN_HEIGHTS.col1_lead}
+                placeholder="Lead story body — type a headline and click the brain to draft with World AI."
               />
-            </div>
+            </ArticleBox>
 
             {/* Section (8) — Ad drop zone */}
             <div
@@ -380,7 +400,7 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
             </figure>
 
             {/* Section (7) — Blood Moon */}
-            <div>
+            <ArticleBox minHeight={BOX_MIN_HEIGHTS.blood_moon}>
               <EditableHeadline
                 value={draft.blood_moon_headline}
                 onChange={v => set('blood_moon_headline', v)}
@@ -393,9 +413,10 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
                 byline={draft.blood_moon_headline}
                 sectionId="blood_moon"
                 target={WORD_TARGETS.blood_moon}
-                placeholder="Body — type a headline and click 🧠 to draft."
+                minHeight={BODY_MIN_HEIGHTS.blood_moon}
+                placeholder="Body — type a headline and click the brain to draft."
               />
-            </div>
+            </ArticleBox>
 
             {/* Section (9) — Spot Prices (pinned bottom) */}
             <SpotPrices style={{ marginTop: 'auto' }} />
@@ -404,7 +425,7 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
           {/* Column 3 — (6) crimson moon → (11) opinion */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Section (6) — Crimson Moon */}
-            <div>
+            <ArticleBox minHeight={BOX_MIN_HEIGHTS.crimson_moon}>
               <EditableHeadline
                 value={draft.crimson_moon_headline}
                 onChange={v => set('crimson_moon_headline', v)}
@@ -417,12 +438,13 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
                 byline={draft.crimson_moon_headline}
                 sectionId="crimson_moon"
                 target={WORD_TARGETS.crimson_moon}
-                placeholder="Body — type a headline and click 🧠 to draft."
+                minHeight={BODY_MIN_HEIGHTS.crimson_moon}
+                placeholder="Body — type a headline and click the brain to draft."
               />
-            </div>
+            </ArticleBox>
 
             {/* Section (11) — Opinion */}
-            <div>
+            <ArticleBox minHeight={BOX_MIN_HEIGHTS.opinion}>
               <EditableHeadline
                 value={draft.opinion_headline}
                 onChange={v => set('opinion_headline', v)}
@@ -435,9 +457,10 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
                 byline={draft.opinion_headline}
                 sectionId="opinion"
                 target={WORD_TARGETS.opinion}
-                placeholder="Opinion body — type a headline and click 🧠 to draft."
+                minHeight={BODY_MIN_HEIGHTS.opinion}
+                placeholder="Opinion body — type a headline and click the brain to draft."
               />
-            </div>
+            </ArticleBox>
           </div>
         </div>
 
