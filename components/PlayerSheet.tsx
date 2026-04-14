@@ -582,7 +582,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
               )}
               {/* Druid Sign — only for Druids */}
               {values.class?.toLowerCase().includes('druid') && (
-                <span className="select-none" title="Druid Sign" style={{ fontSize: 22, lineHeight: 1, opacity: 0.25, cursor: 'default' }}>🌿</span>
+                <span title="Druid Sign"><svg className="select-none" viewBox="0 0 24 24" style={{ width: 24, height: 24, opacity: 0.3, cursor: 'default' }}><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20c4 0 8.77-3 10.7-8.5L21 5.1 18 4a7.7 7.7 0 00-1 4z" fill="#c9a84c" /></svg></span>
               )}
             </div>
           </div>
@@ -646,7 +646,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
               <span className="select-none" title="Thieves' Cant" style={{ fontSize: 20, lineHeight: 1, opacity: 0.25, cursor: 'default' }}>🗝️</span>
             )}
             {values.class?.toLowerCase().includes('druid') && (
-              <span className="select-none" title="Druid Sign" style={{ fontSize: 20, lineHeight: 1, opacity: 0.25, cursor: 'default' }}>🌿</span>
+              <span title="Druid Sign"><svg className="select-none" viewBox="0 0 24 24" style={{ width: 22, height: 22, opacity: 0.3, cursor: 'default' }}><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20c4 0 8.77-3 10.7-8.5L21 5.1 18 4a7.7 7.7 0 00-1 4z" fill="#c9a84c" /></svg></span>
             )}
           </div>
         </div>

@@ -210,9 +210,6 @@ export default function DmPlayerBox({
     removed: 'text-[#c05050]',
   };
 
-  // How many panes in row 2
-  const row2Panes = [true, isRogue, isDruid].filter(Boolean).length;
-
   return (
     <div className="mb-4">
 
@@ -229,7 +226,7 @@ export default function DmPlayerBox({
               value={notes}
               onChange={e => handleNotesChange(e.target.value)}
               placeholder="Upcoming absences, hooks, reminders…"
-              className="w-full bg-transparent border border-[#243a2c] rounded text-[var(--color-text-body)] text-[0.88rem] leading-relaxed px-2 py-1.5 resize-none outline-none focus:border-[#4a7a5a] placeholder:text-[#374a3e] font-serif"
+              className="w-full bg-transparent border border-[#243a2c] rounded text-white text-[0.88rem] leading-relaxed px-2 py-1.5 resize-none outline-none focus:border-[#4a7a5a] placeholder:text-[#374a3e] font-serif"
             />
           </div>
 
@@ -278,7 +275,7 @@ export default function DmPlayerBox({
         </div>
 
         {/* Red pane: DM Messages */}
-        <div className="border border-[#7a3a3a] rounded bg-[#1d1616] flex flex-col" style={{ width: 280 }}>
+        <div className="flex-1 border border-[#7a3a3a] rounded bg-[#1d1616] flex flex-col">
           {/* Compose area */}
           <div className="relative" style={{ minHeight: 64 }}>
             <textarea
@@ -286,7 +283,7 @@ export default function DmPlayerBox({
               onChange={e => setDmMessage(e.target.value)}
               placeholder={`Message ${playerName}…`}
               rows={1}
-              className="w-full bg-transparent text-[var(--color-text-body)] text-[0.82rem] leading-relaxed px-3 py-2.5 resize-none outline-none placeholder:text-[#5a3a3a] font-serif"
+              className="w-full bg-transparent text-white text-[0.82rem] leading-relaxed px-3 py-2.5 resize-none outline-none placeholder:text-[#5a3a3a] font-serif"
             />
             <button
               onClick={sendDmMessage}
@@ -311,7 +308,7 @@ export default function DmPlayerBox({
                       }}
                       title={m.read ? 'Read' : 'Unread'}
                     />
-                    <div className={`text-[0.78rem] leading-snug font-serif ${m.read ? 'text-[#6a5a5a]' : 'text-[var(--color-text-body)]'}`}>
+                    <div className={`text-[0.78rem] leading-snug font-serif ${m.read ? 'text-[#6a5a5a]' : 'text-white'}`}>
                       {m.message}
                     </div>
                   </div>
@@ -323,80 +320,84 @@ export default function DmPlayerBox({
         </div>
       </div>
 
-      {/* ── Row 2: Druid Sign | Thieves' Cant | Sendings ── */}
+      {/* ── Row 2: Druid Sign | Thieves' Cant | Sendings — all always visible ── */}
       <div style={{ display: 'flex', gap: 12 }}>
 
-        {/* Druid Sign pane — only if Druid */}
-        {isDruid && (
-          <div className="border border-[#5ab87a] rounded bg-[#161d16] flex flex-col" style={{ flex: 1 }}>
-            <div className="relative" style={{ minHeight: 56 }}>
-              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#5ab87a] px-3 pt-2 mb-1">🌿 Druid Sign</div>
-              <textarea
-                value={druidText}
-                onChange={e => setDruidText(e.target.value)}
-                placeholder="Scratch a druidic mark…"
-                rows={1}
-                className="w-full bg-transparent text-[var(--color-text-body)] text-[0.82rem] leading-relaxed px-3 py-1 resize-none outline-none placeholder:text-[#4a8a5a] font-serif italic"
-              />
-              <button
-                onClick={sendDruidSign}
-                disabled={!druidText.trim() || druidSending}
-                className="absolute bottom-2 text-base bg-transparent border-none disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-opacity hover:scale-110" style={{ right: '12px' }}
-                title="Send druid sign"
-              >
-                {druidSent ? '✓' : '🌿'}
-              </button>
+        {/* Druid Sign pane */}
+        <div className={`border rounded flex flex-col ${isDruid ? 'border-[#5ab87a] bg-[#161d16]' : 'border-[#2a3a2a] bg-[#141a14]'}`} style={{ flex: 1, opacity: isDruid ? 1 : 0.5 }}>
+          <div className="relative" style={{ minHeight: 56 }}>
+            <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#5ab87a] px-3 pt-2 mb-1">
+              🌿 Druid Sign
+              {!isDruid && <span className="text-[#3a5a3a] ml-1.5 normal-case tracking-normal">(not a druid)</span>}
             </div>
-            {druidSigns.length > 0 && (
-              <div className="border-t border-[#3a5a3a] px-3 py-2">
-                <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#5ab87a] mb-1.5">Sent</div>
-                {druidSigns.slice(0, 8).map(s => (
-                  <div key={s.id} className="mb-2 last:mb-0">
-                    <div className="text-[0.78rem] leading-snug font-serif italic text-[#b0e8b0]">{s.body}</div>
-                    <div className="text-[0.6rem] text-[#5ab87a] mt-0.5">{formatSendingTime(s.published_at)}</div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <textarea
+              value={druidText}
+              onChange={e => setDruidText(e.target.value)}
+              placeholder="Scratch a druidic mark…"
+              rows={1}
+              disabled={!isDruid}
+              className="w-full bg-transparent text-white text-[0.82rem] leading-relaxed px-3 py-1 resize-none outline-none placeholder:text-[#4a8a5a] font-serif italic disabled:cursor-not-allowed"
+            />
+            <button
+              onClick={sendDruidSign}
+              disabled={!isDruid || !druidText.trim() || druidSending}
+              className="absolute bottom-2 text-base bg-transparent border-none disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-opacity hover:scale-110" style={{ right: '12px' }}
+              title="Send druid sign"
+            >
+              {druidSent ? '✓' : '🌿'}
+            </button>
           </div>
-        )}
-
-        {/* Thieves' Cant pane — only if Rogue */}
-        {isRogue && (
-          <div className="border border-[#5a5a3a] rounded bg-[#1d1d16] flex flex-col" style={{ flex: 1 }}>
-            <div className="relative" style={{ minHeight: 56 }}>
-              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#8a8a5a] px-3 pt-2 mb-1">🗝️ Thieves&apos; Cant</div>
-              <textarea
-                value={cantText}
-                onChange={e => setCantText(e.target.value)}
-                placeholder="Leave a coded message…"
-                rows={1}
-                className="w-full bg-transparent text-[var(--color-text-body)] text-[0.82rem] leading-relaxed px-3 py-1 resize-none outline-none placeholder:text-[#5a5a3a] font-serif italic"
-              />
-              <button
-                onClick={sendCant}
-                disabled={!cantText.trim() || cantSending}
-                className="absolute bottom-2 text-base bg-transparent border-none disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-opacity hover:scale-110" style={{ right: '12px' }}
-                title="Send thieves' cant"
-              >
-                {cantSent ? '✓' : '🗝️'}
-              </button>
+          {druidSigns.length > 0 && (
+            <div className="border-t border-[#3a5a3a] px-3 py-2">
+              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#5ab87a] mb-1.5">Sent</div>
+              {druidSigns.slice(0, 8).map(s => (
+                <div key={s.id} className="mb-2 last:mb-0">
+                  <div className="text-[0.78rem] leading-snug font-serif italic text-[#b0e8b0]">{s.body}</div>
+                  <div className="text-[0.6rem] text-[#5ab87a] mt-0.5">{formatSendingTime(s.published_at)}</div>
+                </div>
+              ))}
             </div>
-            {cants.length > 0 && (
-              <div className="border-t border-[#3a3a22] px-3 py-2">
-                <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#6a6a4a] mb-1.5">Sent</div>
-                {cants.slice(0, 8).map(s => (
-                  <div key={s.id} className="mb-2 last:mb-0">
-                    <div className="text-[0.78rem] leading-snug font-serif italic text-[#c0c08a]">{s.body}</div>
-                    <div className="text-[0.6rem] text-[#5a5a3a] mt-0.5">{formatSendingTime(s.published_at)}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Purple pane: Sendings — always visible */}
+        {/* Thieves' Cant pane */}
+        <div className={`border rounded flex flex-col ${isRogue ? 'border-[#5a5a3a] bg-[#1d1d16]' : 'border-[#3a3a2a] bg-[#1a1a14]'}`} style={{ flex: 1, opacity: isRogue ? 1 : 0.5 }}>
+          <div className="relative" style={{ minHeight: 56 }}>
+            <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#8a8a5a] px-3 pt-2 mb-1">
+              🗝️ Thieves&apos; Cant
+              {!isRogue && <span className="text-[#4a4a3a] ml-1.5 normal-case tracking-normal">(not a rogue)</span>}
+            </div>
+            <textarea
+              value={cantText}
+              onChange={e => setCantText(e.target.value)}
+              placeholder="Leave a coded message…"
+              rows={1}
+              disabled={!isRogue}
+              className="w-full bg-transparent text-white text-[0.82rem] leading-relaxed px-3 py-1 resize-none outline-none placeholder:text-[#5a5a3a] font-serif italic disabled:cursor-not-allowed"
+            />
+            <button
+              onClick={sendCant}
+              disabled={!isRogue || !cantText.trim() || cantSending}
+              className="absolute bottom-2 text-base bg-transparent border-none disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-opacity hover:scale-110" style={{ right: '12px' }}
+              title="Send thieves' cant"
+            >
+              {cantSent ? '✓' : '🗝️'}
+            </button>
+          </div>
+          {cants.length > 0 && (
+            <div className="border-t border-[#3a3a22] px-3 py-2">
+              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#6a6a4a] mb-1.5">Sent</div>
+              {cants.slice(0, 8).map(s => (
+                <div key={s.id} className="mb-2 last:mb-0">
+                  <div className="text-[0.78rem] leading-snug font-serif italic text-[#c0c08a]">{s.body}</div>
+                  <div className="text-[0.6rem] text-[#5a5a3a] mt-0.5">{formatSendingTime(s.published_at)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Purple pane: Sendings */}
         <div className="border border-[#5a3a6a] rounded bg-[#1d161e] flex flex-col" style={{ flex: 1 }}>
           <div className="relative" style={{ minHeight: 56 }}>
             <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#6a4a6a] px-3 pt-2 mb-1">✦ Sending</div>
@@ -405,7 +406,7 @@ export default function DmPlayerBox({
               onChange={e => setSendingText(e.target.value)}
               placeholder="≤25 words, cryptic…"
               rows={1}
-              className="w-full bg-transparent text-[var(--color-text-body)] text-[0.82rem] leading-relaxed px-3 py-1 resize-none outline-none placeholder:text-[#4a3050] font-serif italic"
+              className="w-full bg-transparent text-white text-[0.82rem] leading-relaxed px-3 py-1 resize-none outline-none placeholder:text-[#4a3050] font-serif italic"
             />
             <button
               onClick={sendSending}
@@ -429,9 +430,6 @@ export default function DmPlayerBox({
             </div>
           )}
         </div>
-
-        {/* Hint when no class-specific panes */}
-        {!isRogue && !isDruid && row2Panes === 1 && null}
       </div>
 
     </div>
