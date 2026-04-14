@@ -1015,6 +1015,46 @@ async function _initSchema() {
     `ALTER TABLE raven_items ADD COLUMN IF NOT EXISTS raven_issue INTEGER`
   ).catch(() => {});
 
+  // Raven Post real-world product directory — pool of D&D-adjacent products
+  // the World AI can draw from when proposing real-world classifieds.
+  // "Real" copy/link appear only in the ad-click modal; the broadsheet shows
+  // only `in_fiction_copy` so the fiction is never broken on the page.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_ad_products (
+      id              TEXT PRIMARY KEY,
+      name            TEXT NOT NULL,
+      image_url       TEXT NOT NULL DEFAULT '',
+      link            TEXT NOT NULL,
+      tags            TEXT NOT NULL DEFAULT '',
+      in_fiction_copy TEXT NOT NULL DEFAULT '',
+      real_copy       TEXT NOT NULL DEFAULT '',
+      active          BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_ad_products_active_tags
+       ON raven_ad_products(active, tags)`
+  ).catch(() => {});
+
+  // Seed one product: dwarf-cut bone dice. Link is an Etsy search URL, not a
+  // specific product ID (we never guess product URLs). DM can replace the
+  // link with a specific affiliate URL via the product directory UI.
+  await pool.query(`
+    INSERT INTO raven_ad_products (id, name, image_url, link, tags, in_fiction_copy, real_copy)
+    VALUES (
+      'dwarf-bone-dice',
+      'Dwarf-cut Bone Dice',
+      '/images/raven-post/ads/bone_dice.jpg',
+      'https://www.etsy.com/search?q=bone+dice',
+      'dice,dwarven,bone',
+      'Dwarf-cut Bone Dice — forged beneath the Iron Spine by Clan Undertow. Heft them once and you''ll never roll wooden again.',
+      'Hand-carved bone dice from independent makers on Etsy.'
+    )
+    ON CONFLICT (id) DO NOTHING
+  `).catch(() => {});
+
   // Roadmap items — DB-backed so prod edits persist across deploys
   await pool.query(`
     CREATE TABLE IF NOT EXISTS roadmap_items (

@@ -279,3 +279,31 @@ All list panes (Weapons, Gear, Cantrips, Magic Items) use an inline `[+] Add ite
 - **Ground truth is the database**, not `ROADMAP.md`. The `roadmap_items` table is seeded from `ROADMAP.md` on first access (if empty), but after that the DB is authoritative. Edits on prod persist across deploys.
 - **`ROADMAP.md` is a generated artifact.** Call `POST /api/roadmap/sync` to regenerate `ROADMAP.md` from the current DB state. Keep it in git as a human-readable snapshot, not as the source of truth.
 - **Add, remove, toggle** all write to the DB via `/api/roadmap/{add,remove,toggle}`. No filesystem writes.
+
+## Raven Post Broadsheet — Layout 1 v1
+
+Basic design for the front page of The Raven Post, rendered by `components/RavenBroadsheet.tsx`. Evolve as "Layout 2", "Layout 1 v2", etc. — do not silently mutate v1.
+
+**Structure (top to bottom):**
+1. **Masthead** — Edition Stamp (circular wax stamp, top-right, `Volume N / Issue N` inside, "Published Fortnightly · Black Feather Press" curved around the rim), arrow piercing the masthead (`public/images/raven-post/arrow.png`, `left: 68%`, rotated `6deg`, behind text), title "The Raven Post" (UnifrakturMaguntia, `4.2rem`), tagline "❦ News, Gossip and Tales of the Realm ❦" flanked by hairline rules, date row ("Nth of <ShireMonth>, CY 581" — see `lib/shire-date.ts`) + "One copper".
+2. **Big Headline** — page-width uppercase serif (`3.4rem`), rule underneath.
+3. **Three-column grid** (1fr · 1fr · 1fr, `gap: 18`, `alignItems: stretch`):
+
+   | Column 1 (left)        | Column 2 (center)               | Column 3 (right)    |
+   | ---------------------- | ------------------------------- | ------------------- |
+   | (1) Lead column text   | (2) Hero image + (4) caption    | (3) Secondary lede  |
+   | (5) Ad (linked image)  | (6) Second lede                 | (8) Opinion         |
+   | (9) Quote of the Day   | (7) Spot Prices (Gold/Silver/Copper sparklines) |                     |
+
+   Last box in each column flex-grows to keep column bottoms aligned.
+4. **Bottom rule** — `4px double` border echoing the masthead.
+
+**Slotting rules:**
+- Broadsheet items (`medium='broadsheet'`) are matched into fixed sections by headline regex:
+  - `/crimson\s*moon/i` → section (3)
+  - `/blood\s*moon/i` → section (6)
+- Unmatched broadsheet items are currently unused in v1. Future layouts can introduce an overflow region.
+
+**Ad system:**
+- Section (5) image is drawn from `raven_ad_products` (DB table seeded in `lib/schema.ts`). v1 hardcodes the `dwarf-bone-dice` row for layout purposes; the World AI will pick tag-matched products in a later pass.
+- Product images live under `public/images/raven-post/ads/`.
