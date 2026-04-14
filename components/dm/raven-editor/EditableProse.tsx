@@ -1,0 +1,176 @@
+'use client';
+
+import { useRef, useState, useEffect } from 'react';
+import type { RavenSectionId } from '@/lib/types';
+
+/**
+ * Editable prose block for the broadsheet editor. Renders a textarea styled
+ * to match final prose (EB Garamond, justified, no visible border). On focus,
+ * a subtle border + parchment wash appears.
+ *
+ * Auto-resizes to fit content (no inner scrollbar — respects the DESIGN.md
+ * "no scrollable sub-containers" rule). Word counter in the lower-right
+ * counts down from `target`. Brain emoji in the lower-left fires a World AI
+ * draft using the section's *headline* (passed in as `byline`) as the prompt;
+ * the result replaces the current body text.
+ *
+ * Target word counts for Layout 1 v1: 3 (col1_lead)=80, 6 (crimson_moon)=80,
+ * 7 (blood_moon)=60, 11 (opinion)=60. Sections without a target omit the
+ * counter.
+ */
+
+interface Props {
+  value: string;
+  onChange: (v: string) => void;
+  byline: string;
+  sectionId: RavenSectionId;
+  target?: number;
+  placeholder?: string;
+}
+
+function wordCount(s: string): number {
+  const trimmed = s.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
+export default function EditableProse({ value, onChange, byline, target, placeholder }: Props) {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [drafting, setDrafting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Auto-resize to fit content
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  const remaining = target != null ? target - wordCount(value) : null;
+  const counterColor =
+    remaining == null ? '#4a3723'
+      : remaining === 0 ? '#2d6a3f'
+      : remaining < 0   ? '#8b1a1a'
+      : '#6a5a4a';
+
+  async function onBrainClick() {
+    if (drafting) return;
+    const trimmed = byline.trim();
+    if (trimmed.length < 3) {
+      setError('Type a headline first');
+      setTimeout(() => setError(null), 2400);
+      return;
+    }
+    setDrafting(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/raven-post/draft', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ medium: 'broadsheet', oneLineBeat: trimmed }),
+      });
+      if (!res.ok) {
+        const { error: msg } = await res.json().catch(() => ({ error: 'Draft failed' }));
+        setError(msg || 'Draft failed');
+        setTimeout(() => setError(null), 2400);
+        return;
+      }
+      const { body } = await res.json() as { headline: string | null; body: string };
+      if (body) onChange(body);
+    } catch (err) {
+      console.error('brain draft', err);
+      setError('Network error');
+      setTimeout(() => setError(null), 2400);
+    } finally {
+      setDrafting(false);
+    }
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={3}
+        style={{
+          width: '100%',
+          minHeight: 80,
+          fontFamily: 'EB Garamond, serif',
+          fontSize: '0.85rem',
+          lineHeight: 1.4,
+          textAlign: 'justify',
+          color: '#1a0f08',
+          background: 'transparent',
+          border: '1px solid transparent',
+          outline: 'none',
+          padding: '4px 6px 18px',
+          resize: 'none',
+          overflow: 'hidden',
+          display: 'block',
+        }}
+        onFocus={e => { e.currentTarget.style.borderColor = '#2b1f14'; e.currentTarget.style.background = 'rgba(139,90,30,0.06)'; }}
+        onBlur={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
+      />
+
+      {/* Brain emoji — lower-left */}
+      <button
+        type="button"
+        onClick={onBrainClick}
+        disabled={drafting}
+        title={drafting ? 'Drafting…' : 'Draft body from headline with World AI'}
+        style={{
+          position: 'absolute',
+          bottom: 2,
+          left: 4,
+          background: 'transparent',
+          border: 'none',
+          fontSize: '0.95rem',
+          cursor: drafting ? 'wait' : 'pointer',
+          opacity: drafting ? 0.5 : 0.85,
+          padding: 0,
+          lineHeight: 1,
+        }}
+      >
+        {drafting ? '…' : '🧠'}
+      </button>
+
+      {/* Word-count remaining — lower-right */}
+      {remaining != null && (
+        <span
+          style={{
+            position: 'absolute',
+            bottom: 2,
+            right: 4,
+            fontFamily: 'EB Garamond, serif',
+            fontSize: '0.7rem',
+            fontVariantNumeric: 'tabular-nums',
+            color: counterColor,
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          {remaining}
+        </span>
+      )}
+
+      {/* Ephemeral error */}
+      {error && (
+        <span
+          style={{
+            position: 'absolute',
+            bottom: 2,
+            left: 24,
+            fontFamily: 'EB Garamond, serif',
+            fontSize: '0.7rem',
+            fontStyle: 'italic',
+            color: '#8b1a1a',
+          }}
+        >
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}

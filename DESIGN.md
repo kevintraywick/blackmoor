@@ -284,26 +284,46 @@ All list panes (Weapons, Gear, Cantrips, Magic Items) use an inline `[+] Add ite
 
 Basic design for the front page of The Raven Post, rendered by `components/RavenBroadsheet.tsx`. Evolve as "Layout 2", "Layout 1 v2", etc. — do not silently mutate v1.
 
+**Section map:**
+
+| #    | What it is                                            |
+| ---- | ----------------------------------------------------- |
+| (1)  | Masthead                                              |
+| (2)  | Big Headline                                          |
+| (3)  | Col 1 — lead column text                              |
+| (4)  | Col 2 — hero image                                    |
+| (5)  | Col 2 — image caption                                 |
+| (6)  | Col 3 — top-right secondary lede                      |
+| (7)  | Col 2 — middle lede (below caption)                   |
+| (8)  | Col 1 — ad (linked image)                             |
+| (9)  | Col 2 — Spot Prices (sparkline charts)                |
+| (10) | Col 1 — Quote of the Day                              |
+| (11) | Col 3 — bottom-right Opinion                          |
+
 **Structure (top to bottom):**
-1. **Masthead** — Edition Stamp (circular wax stamp, top-right, `Volume N / Issue N` inside, "Published Fortnightly · Black Feather Press" curved around the rim), arrow piercing the masthead (`public/images/raven-post/arrow.png`, `left: 68%`, rotated `6deg`, behind text), title "The Raven Post" (UnifrakturMaguntia, `4.2rem`), tagline "❦ News, Gossip and Tales of the Realm ❦" flanked by hairline rules, date row ("Nth of <ShireMonth>, CY 581" — see `lib/shire-date.ts`) + "One copper".
-2. **Big Headline** — page-width uppercase serif (`3.4rem`), rule underneath.
+1. **(1) Masthead** — Edition Stamp (circular wax stamp, top-right, `Volume N / Issue N` inside, "Published Fortnightly · Black Feather Press" curved around the rim), arrow piercing the masthead (`public/images/raven-post/arrow.png`, `left: 68%`, rotated `6deg`, behind text), title "The Raven Post" (UnifrakturMaguntia, `4.2rem`), tagline "❦ News, Gossip and Tales of the Realm ❦" flanked by hairline rules, date row ("Nth of <ShireMonth>, CY 581" — see `lib/shire-date.ts`) + "One copper".
+2. **(2) Big Headline** — page-width uppercase serif (`3.4rem`), rule underneath.
 3. **Three-column grid** (1fr · 1fr · 1fr, `gap: 18`, `alignItems: stretch`):
 
-   | Column 1 (left)        | Column 2 (center)               | Column 3 (right)    |
-   | ---------------------- | ------------------------------- | ------------------- |
-   | (1) Lead column text   | (2) Hero image + (4) caption    | (3) Secondary lede  |
-   | (5) Ad (linked image)  | (6) Second lede                 | (8) Opinion         |
-   | (9) Quote of the Day   | (7) Spot Prices (Gold/Silver/Copper sparklines) |                     |
+   | Column 1 (left)              | Column 2 (center)           | Column 3 (right)        |
+   | ---------------------------- | --------------------------- | ----------------------- |
+   | (3) Lead column text         | (4) Hero image + (5) caption | (6) Secondary lede     |
+   | (8) Ad (linked image)        | (7) Middle lede             | (11) Opinion            |
+   | (10) Quote of the Day        | (9) Spot Prices (Gold/Silver/Copper sparklines) |     |
 
-   Last box in each column flex-grows to keep column bottoms aligned.
+   Each column is a flex-column. **QOTD (10) and Spot Prices (9) use `marginTop: auto`** to pin to their column bottom — regardless of how long Opinion (11) gets, the bottoms of QOTD and Spot Prices always align.
 4. **Bottom rule** — `4px double` border echoing the masthead.
 
 **Slotting rules:**
 - Broadsheet items (`medium='broadsheet'`) are matched into fixed sections by headline regex:
-  - `/crimson\s*moon/i` → section (3)
-  - `/blood\s*moon/i` → section (6)
+  - `/crimson\s*moon/i` → section (6)
+  - `/blood\s*moon/i` → section (7)
 - Unmatched broadsheet items are currently unused in v1. Future layouts can introduce an overflow region.
 
-**Ad system:**
-- Section (5) image is drawn from `raven_ad_products` (DB table seeded in `lib/schema.ts`). v1 hardcodes the `dwarf-bone-dice` row for layout purposes; the World AI will pick tag-matched products in a later pass.
-- Product images live under `public/images/raven-post/ads/`.
+**Ad system (section 8):**
+- Tiny "Paid Advertisement" label (0.55rem, tracked, muted brown) sits above the ad image.
+- Ad image: fixed `height: 180, objectFit: cover`, dimmed via `filter: brightness(0.8)` so it doesn't overpower the parchment.
+- "ONLY $15!!!" price overlay — absolute-positioned white serif, 2.2rem weight 900, rotated `-15deg`, with a black text-shadow so it reads on any part of the image.
+- Image is wrapped in an `<a target="_blank">` linking to the real product.
+- Source of truth: `raven_ad_products` (DB table seeded in `lib/schema.ts`). v1 hardcodes the `chaos-engine-dice` row (dnddice.com); the World AI will pick tag-matched products in a later pass.
+- Product images live under `public/images/ads/`.
