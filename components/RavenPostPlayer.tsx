@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { RavenItem, RavenWeatherRow } from '@/lib/types';
-import RavenBroadsheet from './RavenBroadsheet';
+import RavenBroadsheet, { type IssueAssembly } from './RavenBroadsheet';
 
 interface IssueInfo {
   raven_volume: number;
@@ -17,9 +17,11 @@ interface Props {
   issue: number;
   inFictionDate: string;
   issues: IssueInfo[];
+  /** Assembly of the latest published issue. Undefined on fresh installs. */
+  assembly?: IssueAssembly;
 }
 
-export default function RavenPostPlayer({ items, weather, volume, issue, inFictionDate, issues }: Props) {
+export default function RavenPostPlayer({ items, weather, volume, issue, inFictionDate, issues, assembly }: Props) {
   // null = latest (current issue)
   const [selectedIssue, setSelectedIssue] = useState<{ vol: number; iss: number } | null>(null);
 
@@ -45,6 +47,7 @@ export default function RavenPostPlayer({ items, weather, volume, issue, inFicti
         volume={displayVolume}
         issue={displayIssue}
         inFictionDate={inFictionDate}
+        assembly={selectedIssue ? undefined : assembly}
       />
 
       {/* Past Issues nav */}

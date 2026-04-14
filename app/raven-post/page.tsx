@@ -5,8 +5,9 @@ import Image from 'next/image';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import RavenPostPlayer from '@/components/RavenPostPlayer';
+import type { IssueAssembly } from '@/components/RavenBroadsheet';
 import { formatShireDate } from '@/lib/shire-date';
-import type { RavenItem, RavenWeatherRow, Campaign } from '@/lib/types';
+import type { RavenItem, RavenWeatherRow, RavenIssue } from '@/lib/types';
 
 // The Raven Post is the PUBLIC broadsheet — visible to all players.
 // Personal items (ravens, sendings) belong on the player's own sheet page,
@@ -18,10 +19,17 @@ interface IssueInfo {
   published_at: string;
 }
 
+interface AdProductRow {
+  id: string;
+  image_url: string;
+  link: string;
+  real_copy: string;
+}
+
 export default async function RavenPostPage() {
   await ensureSchema();
 
-  const [items, weatherRows, campaignRows, issueRows] = await Promise.all([
+  const [items, weatherRows, latestIssueRows, issueRows] = await Promise.all([
     query<RavenItem>(
       `SELECT * FROM raven_items
        WHERE medium IN ('broadsheet', 'ad')
@@ -29,8 +37,11 @@ export default async function RavenPostPage() {
        LIMIT 200`,
     ),
     query<RavenWeatherRow>(`SELECT * FROM raven_weather WHERE hex_id = 'default'`),
-    query<Campaign & { raven_volume: number; raven_issue: number }>(
-      `SELECT * FROM campaign WHERE id = 'default'`,
+    query<RavenIssue>(
+      `SELECT * FROM raven_issues
+       WHERE campaign_id = 'default'
+       ORDER BY published_at DESC
+       LIMIT 1`,
     ),
     query<IssueInfo>(
       `SELECT DISTINCT raven_volume, raven_issue, MAX(published_at) as published_at
@@ -48,15 +59,43 @@ export default async function RavenPostPage() {
     condition: 'clear',
     temp_c: null,
     wind_label: null,
+    wind_dir_deg: null,
+    wind_speed_mph: null,
     updated_at: new Date().toISOString(),
   };
 
-  const volume = campaignRows[0]?.raven_volume ?? 1;
-  const issue = campaignRows[0]?.raven_issue ?? 1;
+  // Display the latest published issue. If nothing's been published yet,
+  // fall back to today's date + issue 1·1 + hardcoded assembly defaults.
+  const latestIssue = latestIssueRows[0] ?? null;
+  const volume = latestIssue?.volume ?? 1;
+  const issue = latestIssue?.issue ?? 1;
+  const inFictionDate = latestIssue?.in_fiction_date || formatShireDate();
 
-  // In-fiction date tracks the real-world date on the Shire calendar.
-  // Year is fixed at CY 581; day/month drift with wall time.
-  const inFictionDate = formatShireDate();
+  // Resolve the ad product for the latest issue, if any.
+  let assembly: IssueAssembly | undefined;
+  if (latestIssue) {
+    let ad: IssueAssembly['ad'] = null;
+    if (latestIssue.ad_product_id) {
+      const adRows = await query<AdProductRow>(
+        `SELECT id, image_url, link, real_copy FROM raven_ad_products WHERE id = $1`,
+        [latestIssue.ad_product_id],
+      );
+      if (adRows.length > 0) {
+        ad = {
+          imageUrl: adRows[0].image_url,
+          link: adRows[0].link,
+          overlay: adRows[0].real_copy,
+        };
+      }
+    }
+    assembly = {
+      bigHeadline: latestIssue.big_headline,
+      heroImageUrl: latestIssue.hero_image_url || null,
+      heroCaption: latestIssue.hero_caption,
+      ad,
+      qotd: { text: latestIssue.qotd_text, author: latestIssue.qotd_author },
+    };
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-serif">
@@ -82,6 +121,7 @@ export default async function RavenPostPage() {
           issue={issue}
           inFictionDate={inFictionDate}
           issues={issueRows}
+          assembly={assembly}
         />
       </div>
     </div>
