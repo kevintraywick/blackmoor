@@ -94,7 +94,11 @@ export default function EditableProse({ value, onChange, byline, target, placeho
   }
 
   return (
-    <div style={{ position: 'relative' }}>
+    // flex: 1 lets this wrapper absorb remaining space inside a flex-column
+    // parent (e.g., ArticleBox). The absolute-positioned brain + word counter
+    // below stick to the wrapper's bottom — so they pin to the outer box
+    // bottom, not the textarea's natural bottom.
+    <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
       <textarea
         ref={textareaRef}
         value={value}

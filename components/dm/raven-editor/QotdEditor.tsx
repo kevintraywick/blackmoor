@@ -48,10 +48,11 @@ export default function QotdEditor({ text, author, onChange }: Props) {
         Quote of the Day
       </div>
 
-      <input
+      <textarea
         value={text}
         onChange={e => onChange({ text: e.target.value, author })}
         placeholder="Quote…"
+        rows={2}
         style={{
           width: '100%',
           textAlign: 'center',
@@ -64,9 +65,18 @@ export default function QotdEditor({ text, author, onChange }: Props) {
           border: '1px solid transparent',
           outline: 'none',
           padding: '2px 4px',
+          resize: 'none',
+          overflow: 'hidden',
+          display: 'block',
         }}
         onFocus={e => { e.currentTarget.style.borderColor = '#2b1f14'; }}
         onBlur={e => { e.currentTarget.style.borderColor = 'transparent'; }}
+        ref={el => {
+          if (el) {
+            el.style.height = 'auto';
+            el.style.height = `${el.scrollHeight}px`;
+          }
+        }}
       />
 
       <input

@@ -443,24 +443,34 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
               />
             </ArticleBox>
 
-            {/* Section (11) — Opinion (bottom 1/3 of col 3) */}
-            <ArticleBox minHeight={BOX_MIN_HEIGHTS.opinion} grow={1}>
-              <EditableHeadline
-                value={draft.opinion_headline}
-                onChange={v => set('opinion_headline', v)}
-                placeholder="Opinion"
-                variant="opinion"
-              />
+            {/* Section (11) — Opinion (bottom 1/3 of col 3). No box — the
+                section is just headline + prose, no article frame. */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: BOX_MIN_HEIGHTS.opinion }}>
+              <h3
+                style={{
+                  fontFamily: 'EB Garamond, serif',
+                  fontWeight: 700,
+                  fontStyle: 'italic',
+                  fontSize: '1.15rem',
+                  lineHeight: 1.15,
+                  margin: '0 0 4px',
+                  borderBottom: '1px solid #2b1f14',
+                  paddingBottom: 3,
+                  color: '#2b1f14',
+                }}
+              >
+                Opinion
+              </h3>
               <EditableProse
                 value={draft.opinion_body}
                 onChange={v => set('opinion_body', v)}
-                byline={draft.opinion_headline}
+                byline={draft.opinion_headline || 'Opinion'}
                 sectionId="opinion"
                 target={WORD_TARGETS.opinion}
                 minHeight={BODY_MIN_HEIGHTS.opinion}
-                placeholder="Opinion body — type a headline and click the brain to draft."
+                placeholder="Opinion body — click the brain to draft."
               />
-            </ArticleBox>
+            </div>
           </div>
         </div>
 
