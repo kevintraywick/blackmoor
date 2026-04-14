@@ -424,8 +424,8 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
 
           {/* Column 3 — (6) crimson moon → (11) opinion */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* Section (6) — Crimson Moon */}
-            <ArticleBox minHeight={BOX_MIN_HEIGHTS.crimson_moon}>
+            {/* Section (6) — Crimson Moon (top 2/3 of col 3) */}
+            <ArticleBox minHeight={BOX_MIN_HEIGHTS.crimson_moon} grow={2}>
               <EditableHeadline
                 value={draft.crimson_moon_headline}
                 onChange={v => set('crimson_moon_headline', v)}
@@ -443,8 +443,8 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
               />
             </ArticleBox>
 
-            {/* Section (11) — Opinion */}
-            <ArticleBox minHeight={BOX_MIN_HEIGHTS.opinion}>
+            {/* Section (11) — Opinion (bottom 1/3 of col 3) */}
+            <ArticleBox minHeight={BOX_MIN_HEIGHTS.opinion} grow={1}>
               <EditableHeadline
                 value={draft.opinion_headline}
                 onChange={v => set('opinion_headline', v)}

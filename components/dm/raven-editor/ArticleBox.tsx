@@ -14,11 +14,15 @@ interface Props {
   children: React.ReactNode;
   /** Minimum footprint of the whole article (headline + body). */
   minHeight?: number;
-  /** If true, the box flex-grows to absorb remaining column height. */
-  grow?: boolean;
+  /** Flex-grow weight. `true` = 1. Number shares the column proportionally. */
+  grow?: boolean | number;
 }
 
 export default function ArticleBox({ children, minHeight, grow }: Props) {
+  const flexValue =
+    grow === true ? 1 :
+    typeof grow === 'number' ? grow :
+    undefined;
   return (
     <div
       style={{
@@ -28,7 +32,7 @@ export default function ArticleBox({ children, minHeight, grow }: Props) {
         minHeight,
         display: 'flex',
         flexDirection: 'column',
-        flex: grow ? 1 : undefined,
+        flex: flexValue,
       }}
     >
       {children}
