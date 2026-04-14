@@ -105,11 +105,32 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate }:
           position: 'relative',
         }}
       >
+        {/* Arrow — pierces the masthead; tip lands just below the double rule near column 1/2 gutter */}
+        <img
+          src="/images/raven-post/arrow.png"
+          alt=""
+          aria-hidden
+          style={{
+            position: 'absolute',
+            width: 130,
+            bottom: -6,
+            // spot 1 reference: left: '72%'. Current nudged right from 58%.
+            left: '68%',
+            zIndex: 0,
+            pointerEvents: 'none',
+            opacity: 0.92,
+            filter: 'drop-shadow(1px 2px 1px rgba(0,0,0,0.35))',
+            transform: 'rotate(6deg)',
+          }}
+        />
+
         {/* Top hairline rule above the title */}
-        <div style={{ height: 1, background: '#2b1f14', margin: '0 auto 10px', width: '92%', opacity: 0.8 }} />
+        <div style={{ position: 'relative', zIndex: 1, height: 1, background: '#2b1f14', margin: '0 auto 10px', width: '92%', opacity: 0.8 }} />
 
         <h1
           style={{
+            position: 'relative',
+            zIndex: 1,
             fontFamily: 'UnifrakturMaguntia, "EB Garamond", serif',
             fontSize: '4.2rem',
             lineHeight: 0.95,
@@ -125,6 +146,8 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate }:
         {/* Ornamental tagline with flanking rules */}
         <div
           style={{
+            position: 'relative',
+            zIndex: 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -151,6 +174,8 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate }:
 
         <div
           style={{
+            position: 'relative',
+            zIndex: 1,
             display: 'flex',
             justifyContent: 'space-between',
             fontSize: '1.05rem',
