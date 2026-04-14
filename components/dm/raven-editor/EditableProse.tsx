@@ -121,7 +121,7 @@ export default function EditableProse({ value, onChange, byline, target, placeho
         onBlur={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
       />
 
-      {/* AI brain — lower-left. Blue = AI. */}
+      {/* AI brain emoji — tinted blue via CSS filter. Blue = AI. */}
       <button
         type="button"
         onClick={onBrainClick}
@@ -134,29 +134,17 @@ export default function EditableProse({ value, onChange, byline, target, placeho
           left: 4,
           background: 'transparent',
           border: 'none',
+          fontSize: '1rem',
+          lineHeight: 1,
           cursor: drafting ? 'wait' : 'pointer',
-          opacity: drafting ? 0.5 : 0.9,
+          opacity: drafting ? 0.5 : 0.95,
           padding: 0,
-          lineHeight: 0,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          // Tint the pink brain emoji toward AI_BLUE. Works in most modern
+          // browsers; specific rendering varies by OS/font.
+          filter: 'hue-rotate(200deg) saturate(1.3)',
         }}
       >
-        {drafting ? (
-          <span style={{ fontSize: '0.85rem', color: AI_BLUE, fontFamily: 'EB Garamond, serif' }}>…</span>
-        ) : (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={AI_BLUE} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            {/* Left hemisphere */}
-            <path d="M9.5 3.5a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0-2 4 2.5 2.5 0 0 0 0 4 2.5 2.5 0 0 0 2 4 2.5 2.5 0 0 0 2.5 2.5V3.5z" />
-            {/* Right hemisphere */}
-            <path d="M14.5 3.5a2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1 2 4 2.5 2.5 0 0 1 0 4 2.5 2.5 0 0 1-2 4 2.5 2.5 0 0 1-2.5 2.5V3.5z" />
-            {/* Central fold */}
-            <path d="M12 3.5v17" />
-            {/* Sulci hints */}
-            <path d="M9.5 8.5c1 0 1.5.7 1.5 1.5M9.5 13c1 0 1.5.7 1.5 1.5M14.5 8.5c-1 0-1.5.7-1.5 1.5M14.5 13c-1 0-1.5.7-1.5 1.5" />
-          </svg>
-        )}
+        {drafting ? '…' : '🧠'}
       </button>
 
       {/* Word-count remaining — lower-right */}
@@ -167,7 +155,7 @@ export default function EditableProse({ value, onChange, byline, target, placeho
             bottom: 2,
             right: 4,
             fontFamily: 'EB Garamond, serif',
-            fontSize: '0.7rem',
+            fontSize: '0.88rem',
             fontVariantNumeric: 'tabular-nums',
             color: counterColor,
             pointerEvents: 'none',
