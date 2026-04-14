@@ -418,6 +418,15 @@ export type WeatherCondition =
   // Magical / Fantasy
   | 'dust' | 'embers' | 'fae' | 'blood_moon' | 'aurora';
 
+// Broadsheet section slots — set on `raven_items.section_id` so the player
+// renderer can place each prose block without headline-regex matching.
+export type RavenSectionId =
+  | 'big_headline'
+  | 'col1_lead'
+  | 'blood_moon'
+  | 'crimson_moon'
+  | 'opinion';
+
 export interface RavenItem {
   id: string;
   medium: RavenMedium;
@@ -433,8 +442,50 @@ export interface RavenItem {
   newsie_mp3: string | null;
   raven_volume: number | null;
   raven_issue: number | null;
+  section_id: RavenSectionId | null;
   published_at: string;
   created_at: string;
+}
+
+// The DM editor's draft state. One row per campaign, overwritten on every
+// debounced autosave. Prose fields are wiped on publish; hero/ad/QOTD carry
+// forward as a starting point for the next issue.
+export interface RavenIssueDraft {
+  campaign_id: string;
+  big_headline: string;
+  col1_lead_headline: string;
+  col1_lead_body: string;
+  blood_moon_headline: string;
+  blood_moon_body: string;
+  crimson_moon_headline: string;
+  crimson_moon_body: string;
+  opinion_headline: string;
+  opinion_body: string;
+  hero_image_url: string;
+  hero_caption: string;
+  ad_product_id: string | null;
+  qotd_text: string;
+  qotd_author: string;
+  in_fiction_date: string;
+  updated_at: string;
+}
+
+// A published issue's assembly record — non-prose artifacts stored here so
+// /raven-post can render without scanning items for them. Prose lives in
+// `raven_items` stamped with (volume, issue, section_id).
+export interface RavenIssue {
+  id: string;
+  campaign_id: string;
+  volume: number;
+  issue: number;
+  big_headline: string;
+  hero_image_url: string;
+  hero_caption: string;
+  ad_product_id: string | null;
+  qotd_text: string;
+  qotd_author: string;
+  in_fiction_date: string;
+  published_at: string;
 }
 
 export interface RavenOverheardQueueRow {

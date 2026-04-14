@@ -1038,22 +1038,101 @@ async function _initSchema() {
        ON raven_ad_products(active, tags)`
   ).catch(() => {});
 
-  // Seed one product: dwarf-cut bone dice. Link is an Etsy search URL, not a
-  // specific product ID (we never guess product URLs). DM can replace the
-  // link with a specific affiliate URL via the product directory UI.
+  // Seed starter product: Chaos Engine dice set (dnddice.com).
+  // DM can add more rows via the product directory UI (future pass).
   await pool.query(`
     INSERT INTO raven_ad_products (id, name, image_url, link, tags, in_fiction_copy, real_copy)
     VALUES (
-      'dwarf-bone-dice',
-      'Dwarf-cut Bone Dice',
-      '/images/raven-post/ads/bone_dice.jpg',
-      'https://www.etsy.com/search?q=bone+dice',
-      'dice,dwarven,bone',
-      'Dwarf-cut Bone Dice — forged beneath the Iron Spine by Clan Undertow. Heft them once and you''ll never roll wooden again.',
-      'Hand-carved bone dice from independent makers on Etsy.'
+      'chaos-engine-dice',
+      'Chaos Engine Dice Set — Limited Edition',
+      '/images/ads/dnddice_ad.jpg',
+      'https://dnddice.com/products/chaos-engine-dice-set-limited-edition',
+      'dice,amber,limited',
+      'Chaos Engine Dice — amber cogs suspended in resin, each die a limited casting from the Artificer''s Hall.',
+      'Limited-edition Chaos Engine polyhedral set from dnddice.com.'
     )
     ON CONFLICT (id) DO NOTHING
   `).catch(() => {});
+  // Retire the earlier placeholder row if it was seeded on any dev DB.
+  await pool.query(
+    `DELETE FROM raven_ad_products WHERE id = 'dwarf-bone-dice'`
+  ).catch(() => {});
+
+  // ─── Raven Post broadsheet editor (Layout 1 v1) ─────────────────────────
+  // section_id lets the renderer slot broadsheet items by explicit position
+  // instead of brittle headline regex. Nullable so legacy rows survive.
+  await pool.query(
+    `ALTER TABLE raven_items ADD COLUMN IF NOT EXISTS section_id TEXT`
+  ).catch(() => {});
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_items_section ON raven_items(section_id) WHERE section_id IS NOT NULL`
+  ).catch(() => {});
+
+  // One-time backfill: tag legacy broadsheet rows by headline match so the
+  // renderer finds them via section_id after the migration.
+  await pool.query(
+    `UPDATE raven_items SET section_id = 'blood_moon'
+       WHERE section_id IS NULL AND medium = 'broadsheet'
+         AND headline ~* 'blood\\s*moon'`
+  ).catch(() => {});
+  await pool.query(
+    `UPDATE raven_items SET section_id = 'crimson_moon'
+       WHERE section_id IS NULL AND medium = 'broadsheet'
+         AND headline ~* 'crimson\\s*moon'`
+  ).catch(() => {});
+
+  // Issue draft — one row per campaign, overwritten by the DM editor as
+  // they type (debounced autosave). Wiped on publish (prose only), so
+  // hero image / ad / QOTD carry over to the next issue as a starting
+  // point.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_issue_draft (
+      campaign_id            TEXT PRIMARY KEY,
+      big_headline           TEXT NOT NULL DEFAULT '',
+      col1_lead_headline     TEXT NOT NULL DEFAULT '',
+      col1_lead_body         TEXT NOT NULL DEFAULT '',
+      blood_moon_headline    TEXT NOT NULL DEFAULT '',
+      blood_moon_body        TEXT NOT NULL DEFAULT '',
+      crimson_moon_headline  TEXT NOT NULL DEFAULT '',
+      crimson_moon_body      TEXT NOT NULL DEFAULT '',
+      opinion_headline       TEXT NOT NULL DEFAULT '',
+      opinion_body           TEXT NOT NULL DEFAULT '',
+      hero_image_url         TEXT NOT NULL DEFAULT '',
+      hero_caption           TEXT NOT NULL DEFAULT '',
+      ad_product_id          TEXT,
+      qotd_text              TEXT NOT NULL DEFAULT '',
+      qotd_author            TEXT NOT NULL DEFAULT '',
+      in_fiction_date        TEXT NOT NULL DEFAULT '',
+      updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // Published issues — front-page assembly record. One row per volume+issue
+  // publish event. `raven_items` remains the prose log; this table stores
+  // the non-prose pieces (hero image, caption, ad, QOTD, big headline) so
+  // `/raven-post` can render the latest assembled issue without scanning
+  // items for non-prose artifacts.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS raven_issues (
+      id                TEXT PRIMARY KEY,
+      campaign_id       TEXT NOT NULL,
+      volume            INTEGER NOT NULL,
+      issue             INTEGER NOT NULL,
+      big_headline      TEXT NOT NULL DEFAULT '',
+      hero_image_url    TEXT NOT NULL DEFAULT '',
+      hero_caption      TEXT NOT NULL DEFAULT '',
+      ad_product_id     TEXT REFERENCES raven_ad_products(id),
+      qotd_text         TEXT NOT NULL DEFAULT '',
+      qotd_author       TEXT NOT NULL DEFAULT '',
+      in_fiction_date   TEXT NOT NULL DEFAULT '',
+      published_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (campaign_id, volume, issue)
+    )
+  `);
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_raven_issues_campaign_published
+       ON raven_issues(campaign_id, published_at DESC)`
+  ).catch(() => {});
 
   // Roadmap items — DB-backed so prod edits persist across deploys
   await pool.query(`

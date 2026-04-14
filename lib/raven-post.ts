@@ -4,7 +4,7 @@ import { query, withTransaction } from './db';
 import { ensureSchema } from './schema';
 import { renderNewsie } from './elevenlabs';
 import { sendSms } from './twilio';
-import type { RavenItem, RavenMedium, RavenTrust } from './types';
+import type { RavenItem, RavenMedium, RavenSectionId, RavenTrust } from './types';
 
 // Library coords (Citadel Tree). v1 hardcoded; future versions support
 // multiple registered locations.
@@ -28,6 +28,7 @@ interface PublishArgs {
   ad_image_url?: string | null;
   ad_real_link?: string | null;
   ad_real_copy?: string | null;
+  section_id?: RavenSectionId | null;
 }
 
 /**
@@ -52,8 +53,9 @@ export async function publishItem(args: PublishArgs, client?: PoolClient): Promi
   const rows = await q<RavenItem>(
     `INSERT INTO raven_items
        (id, medium, body, headline, sender, target_player, trust, tags,
-        ad_image_url, ad_real_link, ad_real_copy, raven_volume, raven_issue)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        ad_image_url, ad_real_link, ad_real_copy, raven_volume, raven_issue,
+        section_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
      RETURNING *`,
     [
       id,
@@ -69,6 +71,7 @@ export async function publishItem(args: PublishArgs, client?: PoolClient): Promi
       args.ad_real_copy ?? null,
       vol,
       iss,
+      args.section_id ?? null,
     ],
   );
 
