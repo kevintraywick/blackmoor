@@ -48,6 +48,7 @@ export default function DmPlayerBox({
   const [druidSending, setDruidSending] = useState(false);
   const [druidSent, setDruidSent]     = useState(false);
   const [druidSigns, setDruidSigns]   = useState<Sending[]>([]);
+  const [sendError, setSendError]     = useState<string | null>(null);
 
   const sentTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const sendingSentTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -101,18 +102,25 @@ export default function DmPlayerBox({
   async function sendDmMessage() {
     if (!dmMessage.trim() || sending) return;
     setSending(true);
+    setSendError(null);
     try {
       const res = await fetch('/api/dm-messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ player_id: playerId, message: dmMessage.trim() }),
       });
-      const row: DmMessage = await res.json();
-      setMessages(prev => [row, ...prev]);
+      const row = await res.json();
+      if (!res.ok) {
+        setSendError(`DM message: ${row.error || res.status}`);
+        return;
+      }
+      setMessages(prev => [row as DmMessage, ...prev]);
       setDmMessage('');
       setSent(true);
       clearTimeout(sentTimer.current);
       sentTimer.current = setTimeout(() => setSent(false), 2000);
+    } catch (err) {
+      setSendError(`DM message: ${err instanceof Error ? err.message : 'network error'}`);
     } finally {
       setSending(false);
     }
@@ -121,20 +129,25 @@ export default function DmPlayerBox({
   async function sendSending() {
     if (!sendingText.trim() || sendingSending) return;
     setSendingSending(true);
+    setSendError(null);
     try {
       const res = await fetch('/api/raven-post/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ medium: 'sending', body: sendingText.trim(), target_player: playerId, trust: 'official' }),
       });
-      if (res.ok) {
-        const item = await res.json();
-        setSendings(prev => [{ id: item.id, body: item.body, published_at: item.published_at }, ...prev]);
-        setSendingText('');
-        setSendingSent(true);
-        clearTimeout(sendingSentTimer.current);
-        sendingSentTimer.current = setTimeout(() => setSendingSent(false), 2000);
+      const item = await res.json();
+      if (!res.ok) {
+        setSendError(`Sending: ${item.error || res.status}`);
+        return;
       }
+      setSendings(prev => [{ id: item.id, body: item.body, published_at: item.published_at }, ...prev]);
+      setSendingText('');
+      setSendingSent(true);
+      clearTimeout(sendingSentTimer.current);
+      sendingSentTimer.current = setTimeout(() => setSendingSent(false), 2000);
+    } catch (err) {
+      setSendError(`Sending: ${err instanceof Error ? err.message : 'network error'}`);
     } finally {
       setSendingSending(false);
     }
@@ -212,6 +225,19 @@ export default function DmPlayerBox({
 
   return (
     <div className="mb-4">
+      {sendError && (
+        <div
+          role="alert"
+          onClick={() => setSendError(null)}
+          style={{
+            marginBottom: 8, background: '#3a1414', color: '#ffb4b4',
+            border: '1px solid #8b1a1a', padding: '8px 12px', borderRadius: 4,
+            fontSize: '0.8rem', cursor: 'pointer',
+          }}
+        >
+          Send failed — {sendError} · click to dismiss
+        </div>
+      )}
 
       {/* ── Row 1: DM Notes + Status | DM Messages ── */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
