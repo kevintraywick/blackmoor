@@ -35,10 +35,8 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
   const [imageMap, setImageMap] = useState<Record<string, string>>(initialImageMap);
   const [dragTarget, setDragTarget] = useState<string | null>(null);
 
-  // Find completed sessions and default to the last one
-  const completedSessions = sessions.filter(s => !!s.started_at && !!s.journal_public);
-  const lastCompleted = completedSessions.length > 0 ? completedSessions[completedSessions.length - 1].number : null;
-  const [activeJournal, setActiveJournal] = useState<number | null>(lastCompleted);
+  // Start with no popup open — the page resets to closed on every visit.
+  const [activeJournal, setActiveJournal] = useState<number | null>(null);
   const [showBackstory, setShowBackstory] = useState(false);
 
   // Box dimensions — contiguous, no gaps
