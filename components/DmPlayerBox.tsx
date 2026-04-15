@@ -304,12 +304,15 @@ export default function DmPlayerBox({
         <div className="flex-1 border border-[#7a3a3a] rounded bg-[#1d1616] flex flex-col">
           {/* Compose area */}
           <div className="relative" style={{ minHeight: 64 }}>
+            <div className="text-[0.55rem] uppercase tracking-[0.15em] text-white px-3 pt-2 mb-1">
+              ⚡ DM Message
+            </div>
             <textarea
               value={dmMessage}
               onChange={e => setDmMessage(e.target.value)}
               placeholder={`Message ${playerName}…`}
               rows={1}
-              className="w-full bg-transparent text-white text-[0.82rem] leading-relaxed px-3 py-2.5 resize-none outline-none placeholder:text-[#5a3a3a] font-serif"
+              className="w-full bg-transparent text-white text-[0.82rem] leading-relaxed px-3 py-1 resize-none outline-none placeholder:text-[#5a3a3a] font-serif"
             />
             <button
               onClick={sendDmMessage}
