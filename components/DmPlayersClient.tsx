@@ -207,7 +207,7 @@ export default function DmPlayersClient({
                 <span className={`text-[0.72rem] uppercase tracking-[0.1em] transition-colors ${
                   isActive ? 'text-[var(--color-gold)]' : 'text-[var(--color-text-muted)]'
                 }`}>
-                  {p.playerName}
+                  {p.character}
                   {isAway    ? ' · away'    : ''}
                   {isRemoved ? ' · removed' : ''}
                 </span>
