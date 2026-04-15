@@ -144,6 +144,21 @@ The DM's view of the Raven Post is a multi-pane curation surface, similar in spi
 - **Pane body text**: `text-[1.05rem]` — unified across all player sheet panes.
 - **Stat values**: `text-[1.1rem]` in the stats row.
 
+## Player Notifications
+
+The right half of the player sheet header is a row of notification glyphs. Order left-to-right; each one only renders when its condition is true. Click a glyph to open its panel.
+
+| Notification    | Glyph                              | Color / treatment                                | Trigger                          | On click                                                                  |
+| --------------- | ---------------------------------- | ------------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------- |
+| DM Message      | ⚡ lightning bolt (SVG)            | Red `#dc2626`, rotated −15°, pulses when unread  | DM sends a message to the player | Opens message pane; marks all read                                        |
+| Boon            | ⚡ lightning bolt (SVG)            | White `#ffffff` w/ glow; pulses until first seen | DM grants a boon                 | Opens boon panel; marks seen                                              |
+| Poison          | 🤢                                 | Pulses while active                              | Poison applied to player         | Opens poison panel                                                        |
+| Sending         | 👂                                 | Pink/magenta glow; pulses while unread           | Raven Post sending published     | **Fountain of sparkles** (`SendingSparkle.tsx`) erupts at click point; opens sendings list; marks read |
+| Thieves' Cant   | 🗝️                                 | Dim, no behavior (placeholder)                   | Class includes "rogue"           | —                                                                         |
+| Druid Sign      | 🌿 feather (SVG)                   | Dim, no behavior (placeholder)                   | Class includes "druid"           | —                                                                         |
+
+**Sparkle fountain (sendings):** ~40 particles (✦/✧/·) in soft purple, gold, and warm white. Fountain shape — biased upward with horizontal spread, ~2.5s lifetime. Fires at the cursor position, not the icon's bounding box, so it follows the click. Disabled until the icon is clicked (no auto-fire on page load).
+
 ## Map Builder (`/dm/map-builder`)
 
 ### Primary purpose

@@ -7,6 +7,7 @@ import { useAutosave } from '@/lib/useAutosave';
 import type { SaveStatus } from '@/lib/useAutosave';
 import { autoFillWeapon, lookupWeapon } from '@/lib/srd-weapons';
 import HpRing from '@/components/HpRing';
+import SendingSparkle from '@/components/SendingSparkle';
 import { parseHp } from '@/lib/hp';
 
 // ── Boon list — clickable ☐/☑ lines parsed from stored text ─────────────────
@@ -356,6 +357,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
   const [sendings, setSendings] = useState<{ id: string; body: string; published_at: string }[]>([]);
   const [unreadSendings, setUnreadSendings] = useState(sendingCount);
   const [loadingSendings, setLoadingSendings] = useState(false);
+  const [sparkle, setSparkle] = useState<{ id: number; x: number; y: number } | null>(null);
   const [showPoisons, setShowPoisons] = useState(false);
   const [poisons, setPoisons] = useState<PoisonStatus[]>([]);
   const [loadingPoisons, setLoadingPoisons] = useState(false);
@@ -475,8 +477,12 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
     }
   }
 
-  async function toggleSendings() {
+  async function toggleSendings(e?: React.MouseEvent) {
     if (showSendings) { setShowSendings(false); return; }
+    // Fire fountain of sparkles from the click point
+    if (e) {
+      setSparkle({ id: Date.now(), x: e.clientX, y: e.clientY });
+    }
     setShowSendings(true);
     setLoadingSendings(true);
     try {
@@ -507,6 +513,16 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
 
   return (
     <>
+      {/* Sending sparkle fountain — fires when 👂 is clicked */}
+      {sparkle && (
+        <SendingSparkle
+          key={sparkle.id}
+          x={sparkle.x}
+          y={sparkle.y}
+          onDone={() => setSparkle(null)}
+        />
+      )}
+
       {/* Save indicator */}
       {saveStatus !== 'idle' && (
         <div className={`fixed bottom-4 right-4 text-xs px-3 py-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)] ${statusColor}`}>
