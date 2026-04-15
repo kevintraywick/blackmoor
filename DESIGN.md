@@ -144,6 +144,15 @@ The DM's view of the Raven Post is a multi-pane curation surface, similar in spi
 - **Pane body text**: `text-[1.05rem]` — unified across all player sheet panes.
 - **Stat values**: `text-[1.1rem]` in the stats row.
 
+## DM Comm Boxes
+
+The DM-side communication boxes on `/dm/players` (DM Notes, DM Message, Druid Sign, Thieves' Cant, Sending) share a readability rule:
+
+- **All readable text is white.** Section labels, status labels (when inactive), sent-message bodies, and sent-item quotes all use `text-white`. Previously these used tinted low-contrast greens/purples/reds/yellows that were hard to read against the dark themed backgrounds.
+- **Dimness is expressed through `opacity`, not off-white hues.** Read-but-still-visible items use `opacity-60`. Timestamps and ancillary metadata use `opacity-50`. Disabled / "(not a rogue)" hints use `opacity-50`.
+- **Placeholders stay dim themed colors** so they read as empty state, not as content.
+- **Active status labels keep their semantic color** (green = active, gold = away, red = remove) — that color *is* the signal.
+
 ## Player Notifications
 
 The right half of the player sheet header is a row of notification glyphs. Order left-to-right; each one only renders when its condition is true. Click a glyph to open its panel.

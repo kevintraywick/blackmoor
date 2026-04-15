@@ -220,7 +220,7 @@ export default function DmPlayerBox({
         <div className="flex-1 border border-[#4a7a5a] rounded bg-[#161d18] px-4 py-2 flex gap-0 items-stretch">
           {/* DM Notes */}
           <div className="flex-1 min-w-0 pr-4">
-            <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[#4a8a5a] mb-1.5">DM Notes</div>
+            <div className="text-[0.6rem] uppercase tracking-[0.15em] text-white mb-1.5">DM Notes</div>
             <textarea
               rows={2}
               value={notes}
@@ -235,7 +235,7 @@ export default function DmPlayerBox({
 
           {/* Status radio buttons */}
           <div className="flex-shrink-0 pl-4 flex flex-col justify-center gap-2">
-            <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[#4a8a5a] mb-0.5">Status</div>
+            <div className="text-[0.6rem] uppercase tracking-[0.15em] text-white mb-0.5">Status</div>
             {STATUSES.map(s => {
               const active = status === s.key;
               return (
@@ -245,7 +245,7 @@ export default function DmPlayerBox({
                   }`}>
                     {active && <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-bg)]" />}
                   </div>
-                  <span className={`font-serif text-sm transition-colors ${active ? labelColor[s.key] : 'text-[#4a6a55]'}`}>
+                  <span className={`font-serif text-sm transition-colors ${active ? labelColor[s.key] : 'text-white'}`}>
                     {s.label}
                   </span>
                 </label>
@@ -264,7 +264,7 @@ export default function DmPlayerBox({
                   </button>
                   <button
                     onClick={() => setConfirm(false)}
-                    className="text-[0.68rem] px-2 py-0.5 text-[#4a6a55] border border-[#243a2c] rounded hover:bg-[#1a2a20] transition-colors"
+                    className="text-[0.68rem] px-2 py-0.5 text-white border border-[#243a2c] rounded hover:bg-[#1a2a20] transition-colors"
                   >
                     Cancel
                   </button>
@@ -298,7 +298,7 @@ export default function DmPlayerBox({
           {/* Sent messages */}
           {messages.length > 0 && (
             <div className="border-t border-[#3a2222] px-3 py-2">
-              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#6a4a4a] mb-1.5">Sent</div>
+              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-white mb-1.5">Sent</div>
               {messages.map(m => (
                 <div key={m.id} className="mb-2 last:mb-0">
                   <div className="flex items-start gap-1.5">
@@ -308,11 +308,11 @@ export default function DmPlayerBox({
                       }}
                       title={m.read ? 'Read' : 'Unread'}
                     />
-                    <div className={`text-[0.78rem] leading-snug font-serif ${m.read ? 'text-[#6a5a5a]' : 'text-white'}`}>
+                    <div className={`text-[0.78rem] leading-snug font-serif text-white ${m.read ? 'opacity-60' : ''}`}>
                       {m.message}
                     </div>
                   </div>
-                  <div className="text-[0.6rem] text-[#5a3a3a] ml-[13px] mt-0.5">{formatTime(m.created_at)}</div>
+                  <div className="text-[0.6rem] text-white opacity-50 ml-[13px] mt-0.5">{formatTime(m.created_at)}</div>
                 </div>
               ))}
             </div>
@@ -326,9 +326,9 @@ export default function DmPlayerBox({
         {/* Druid Sign pane */}
         <div className={`border rounded flex flex-col ${isDruid ? 'border-[#5ab87a] bg-[#161d16]' : 'border-[#2a3a2a] bg-[#141a14]'}`} style={{ flex: 1, opacity: isDruid ? 1 : 0.5 }}>
           <div className="relative" style={{ minHeight: 56 }}>
-            <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#5ab87a] px-3 pt-2 mb-1">
+            <div className="text-[0.55rem] uppercase tracking-[0.15em] text-white px-3 pt-2 mb-1">
               🌿 Druid Sign
-              {!isDruid && <span className="text-[#3a5a3a] ml-1.5 normal-case tracking-normal">(not a druid)</span>}
+              {!isDruid && <span className="text-white opacity-50 ml-1.5 normal-case tracking-normal">(not a druid)</span>}
             </div>
             <textarea
               value={druidText}
@@ -349,11 +349,11 @@ export default function DmPlayerBox({
           </div>
           {druidSigns.length > 0 && (
             <div className="border-t border-[#3a5a3a] px-3 py-2">
-              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#5ab87a] mb-1.5">Sent</div>
+              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-white mb-1.5">Sent</div>
               {druidSigns.slice(0, 8).map(s => (
                 <div key={s.id} className="mb-2 last:mb-0">
-                  <div className="text-[0.78rem] leading-snug font-serif italic text-[#b0e8b0]">{s.body}</div>
-                  <div className="text-[0.6rem] text-[#5ab87a] mt-0.5">{formatSendingTime(s.published_at)}</div>
+                  <div className="text-[0.78rem] leading-snug font-serif italic text-white">{s.body}</div>
+                  <div className="text-[0.6rem] text-white opacity-50 mt-0.5">{formatSendingTime(s.published_at)}</div>
                 </div>
               ))}
             </div>
@@ -363,9 +363,9 @@ export default function DmPlayerBox({
         {/* Thieves' Cant pane */}
         <div className={`border rounded flex flex-col ${isRogue ? 'border-[#5a5a3a] bg-[#1d1d16]' : 'border-[#3a3a2a] bg-[#1a1a14]'}`} style={{ flex: 1, opacity: isRogue ? 1 : 0.5 }}>
           <div className="relative" style={{ minHeight: 56 }}>
-            <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#8a8a5a] px-3 pt-2 mb-1">
+            <div className="text-[0.55rem] uppercase tracking-[0.15em] text-white px-3 pt-2 mb-1">
               🗝️ Thieves&apos; Cant
-              {!isRogue && <span className="text-[#4a4a3a] ml-1.5 normal-case tracking-normal">(not a rogue)</span>}
+              {!isRogue && <span className="text-white opacity-50 ml-1.5 normal-case tracking-normal">(not a rogue)</span>}
             </div>
             <textarea
               value={cantText}
@@ -386,11 +386,11 @@ export default function DmPlayerBox({
           </div>
           {cants.length > 0 && (
             <div className="border-t border-[#3a3a22] px-3 py-2">
-              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#6a6a4a] mb-1.5">Sent</div>
+              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-white mb-1.5">Sent</div>
               {cants.slice(0, 8).map(s => (
                 <div key={s.id} className="mb-2 last:mb-0">
-                  <div className="text-[0.78rem] leading-snug font-serif italic text-[#c0c08a]">{s.body}</div>
-                  <div className="text-[0.6rem] text-[#5a5a3a] mt-0.5">{formatSendingTime(s.published_at)}</div>
+                  <div className="text-[0.78rem] leading-snug font-serif italic text-white">{s.body}</div>
+                  <div className="text-[0.6rem] text-white opacity-50 mt-0.5">{formatSendingTime(s.published_at)}</div>
                 </div>
               ))}
             </div>
@@ -400,7 +400,7 @@ export default function DmPlayerBox({
         {/* Purple pane: Sendings */}
         <div className="border border-[#5a3a6a] rounded bg-[#1d161e] flex flex-col" style={{ flex: 1 }}>
           <div className="relative" style={{ minHeight: 56 }}>
-            <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#6a4a6a] px-3 pt-2 mb-1">✦ Sending</div>
+            <div className="text-[0.55rem] uppercase tracking-[0.15em] text-white px-3 pt-2 mb-1">✦ Sending</div>
             <textarea
               value={sendingText}
               onChange={e => setSendingText(e.target.value)}
@@ -420,11 +420,11 @@ export default function DmPlayerBox({
 
           {sendings.length > 0 && (
             <div className="border-t border-[#2a1a30] px-3 py-2">
-              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-[#6a4a6a] mb-1.5">Sent</div>
+              <div className="text-[0.55rem] uppercase tracking-[0.15em] text-white mb-1.5">Sent</div>
               {sendings.slice(0, 8).map(s => (
                 <div key={s.id} className="mb-2 last:mb-0">
-                  <div className="text-[0.78rem] leading-snug font-serif italic text-[#c4a8d0]">{s.body}</div>
-                  <div className="text-[0.6rem] text-[#4a3050] mt-0.5">{formatSendingTime(s.published_at)}</div>
+                  <div className="text-[0.78rem] leading-snug font-serif italic text-white">{s.body}</div>
+                  <div className="text-[0.6rem] text-white opacity-50 mt-0.5">{formatSendingTime(s.published_at)}</div>
                 </div>
               ))}
             </div>

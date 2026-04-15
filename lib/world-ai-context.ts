@@ -156,7 +156,7 @@ export async function assembleTriageContext(): Promise<TriageContext> {
       `SELECT id, species, class, level, hp, ac, gold, player_notes, general_notes, dm_notes, align
        FROM player_sheets WHERE id != 'dm' AND status = 'active'`
     ),
-    getPlayers(),
+    getPlayers({ publicOnly: true }),
     query<SessionRow>(
       `SELECT number, title, journal FROM sessions
        WHERE journal IS NOT NULL AND journal != ''

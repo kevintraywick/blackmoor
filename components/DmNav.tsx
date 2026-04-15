@@ -149,7 +149,7 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
               <Image src="/images/dm.png" alt="" fill className="object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             </div>
           </Link>
-          <Link href="/players/ajax" className="flex items-center no-underline flex-shrink-0">
+          <Link href="/dm/players?player=ajax" className="flex items-center no-underline flex-shrink-0">
             <div className="relative rounded-full border border-[#c9a84c] overflow-hidden flex-shrink-0" style={{ width: 36, height: 36 }}>
               <Image src="/images/players/ajax.png" alt="Ajax" fill className="object-cover" />
             </div>

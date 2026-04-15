@@ -10,7 +10,7 @@ export default async function CanYouPlayPage() {
   await ensureSchema();
 
   const [players, availabilityRows, campaignRows] = await Promise.all([
-    getPlayers(),
+    getPlayers({ publicOnly: true }),
     query<Availability>('SELECT player_id, saturday, status FROM availability'),
     query<{ quorum: number }>('SELECT quorum FROM campaign LIMIT 1'),
   ]);

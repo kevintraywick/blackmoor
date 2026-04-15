@@ -30,7 +30,7 @@ async function getSheets(playerIds: string[]): Promise<Record<string, PlayerShee
 
 export default async function PlayersPage() {
   await ensureSchema();
-  const players = await getPlayers();
+  const players = await getPlayers({ publicOnly: true });
   const sheets = await getSheets(players.map(p => p.id));
 
   return (

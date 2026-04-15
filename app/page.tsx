@@ -9,7 +9,7 @@ import { query } from '@/lib/db';
 export default async function HomePage() {
   await ensureSchema();
   const [players, presenceRows, campaignRows] = await Promise.all([
-    getPlayers(),
+    getPlayers({ publicOnly: true }),
     query<{ player_id: string }>(
       `SELECT player_id FROM player_presence WHERE last_seen > NOW() - INTERVAL '90 seconds'`
     ),

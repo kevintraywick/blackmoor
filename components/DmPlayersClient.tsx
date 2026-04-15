@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import type { PlayerSheet, Player } from '@/lib/types';
 import { Sheet } from '@/components/PlayerSheet';
@@ -108,8 +108,13 @@ export default function DmPlayersClient({
   sheets: Record<string, PlayerSheet>;
 }) {
   const [showAddModal, setShowAddModal] = useState(false);
+  const searchParams = useSearchParams();
   const firstActive = players.find(p => (sheets[p.id]?.status ?? 'active') !== 'removed')?.id ?? players[0]?.id ?? '';
-  const [selectedId, setSelectedId] = useState(firstActive);
+  // Allow deep-linking to a specific player via ?player=<id>, falling back to
+  // the first non-removed roster member. Used by the Ajax shortcut in DmNav.
+  const requested = searchParams.get('player');
+  const initialSelected = requested && players.some(p => p.id === requested) ? requested : firstActive;
+  const [selectedId, setSelectedId] = useState(initialSelected);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [imgOverrides, setImgOverrides] = useState<Record<string, string>>({});
 

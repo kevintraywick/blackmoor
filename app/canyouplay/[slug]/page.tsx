@@ -21,7 +21,7 @@ export default async function InvitationPage({ params }: { params: Promise<{ slu
   const dates: string[] = Array.isArray(invitation.dates) ? invitation.dates : [];
 
   const [players, availabilityRows, campaignRows] = await Promise.all([
-    getPlayers(),
+    getPlayers({ publicOnly: true }),
     query<Availability>(
       `SELECT player_id, saturday, status FROM availability WHERE saturday = ANY($1::text[])`,
       [dates]
