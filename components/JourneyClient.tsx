@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Session } from '@/lib/types';
 
 // Terrain color/style map for the tall boxes
@@ -34,6 +34,21 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
   const scrollRef = useRef<HTMLDivElement>(null);
   const [imageMap, setImageMap] = useState<Record<string, string>>(initialImageMap);
   const [dragTarget, setDragTarget] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Safari drops files on the window unless every level of dragover/drop
+  // calls preventDefault. Block page-level navigation so in-page zones receive the drop.
+  useEffect(() => {
+    const block = (e: DragEvent) => {
+      if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
+    };
+    window.addEventListener('dragover', block);
+    window.addEventListener('drop', block);
+    return () => {
+      window.removeEventListener('dragover', block);
+      window.removeEventListener('drop', block);
+    };
+  }, []);
 
   // Start with no popup open — the page resets to closed on every visit.
   const [activeJournal, setActiveJournal] = useState<number | null>(null);
@@ -72,14 +87,17 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
     formData.append('slot', slot);
     formData.append('image', file);
 
+    setUploadError(null);
     try {
       const res = await fetch('/api/uploads/journey', { method: 'POST', body: formData });
       const data = await res.json();
-      if (data.path) {
+      if (!res.ok) {
+        setUploadError(data.error || `Upload failed (${res.status})`);
+      } else if (data.path) {
         setImageMap(prev => ({ ...prev, [`s${sessionNumber}_${slot}`]: data.path + '?t=' + Date.now() }));
       }
-    } catch {
-      // silent fail
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
     }
     setDragTarget(null);
   }, []);
@@ -90,14 +108,17 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
     formData.append('key', key);
     formData.append('image', file);
 
+    setUploadError(null);
     try {
       const res = await fetch('/api/uploads/journey', { method: 'POST', body: formData });
       const data = await res.json();
-      if (data.path) {
+      if (!res.ok) {
+        setUploadError(data.error || `Upload failed (${res.status})`);
+      } else if (data.path) {
         setImageMap(prev => ({ ...prev, [key]: data.path + '?t=' + Date.now() }));
       }
-    } catch {
-      // silent fail
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
     }
     setDragTarget(null);
   }, []);
@@ -127,6 +148,20 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
 
   return (
     <div className="max-w-full mx-auto relative" onClick={() => { setActiveJournal(null); setShowBackstory(false); }}>
+      {uploadError && (
+        <div
+          role="alert"
+          onClick={(e) => { e.stopPropagation(); setUploadError(null); }}
+          style={{
+            position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 50,
+            background: '#3a1414', color: '#ffb4b4', border: '1px solid #8b1a1a',
+            padding: '10px 16px', borderRadius: 4, fontFamily: 'var(--font-sans, sans-serif)',
+            fontSize: '0.85rem', cursor: 'pointer', maxWidth: 480,
+          }}
+        >
+          Upload failed: {uploadError} · click to dismiss
+        </div>
+      )}
       {/* Banner */}
       <div className="relative w-full h-[200px] overflow-hidden" style={{ display: 'flex', alignItems: 'center' }}>
         <Image
