@@ -220,8 +220,7 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
       }
       const { published_volume, published_issue } = await res.json() as { published_volume: number; published_issue: number };
       setPublishToast({ kind: 'ok', msg: `Issue ${published_volume}·${published_issue} published!` });
-      // Draft's prose fields were wiped server-side; reload so the editor
-      // picks up a clean draft state (and next issue's volume/issue).
+      // Reload so the editor picks up the bumped volume/issue number.
       setTimeout(() => { window.location.reload(); }, 1200);
     } catch (err) {
       console.error('publish', err);

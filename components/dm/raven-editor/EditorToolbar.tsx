@@ -44,21 +44,22 @@ export default function EditorToolbar({
   onBeforePreview,
 }: Props) {
   const circleBase: React.CSSProperties = {
-    width: 64,
-    height: 64,
+    width: '64px',
+    height: '64px',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontFamily: 'EB Garamond, serif',
-    fontSize: '0.55rem',
+    fontSize: '0.65rem',
     textTransform: 'uppercase',
-    letterSpacing: '0.12em',
+    letterSpacing: '0.08em',
+    lineHeight: '1',
     textAlign: 'center',
     cursor: 'pointer',
     border: '1px solid rgba(201,168,76,0.4)',
     background: 'transparent',
-    color: '#ffffff',
+    color: '#111111',
   };
 
   async function onPreviewClick(e: React.MouseEvent<HTMLAnchorElement>) {
@@ -109,10 +110,15 @@ export default function EditorToolbar({
         style={{
           ...circleBase,
           textDecoration: 'none',
+          background: '#FFD700',
+          borderColor: '#FFC107',
+          color: '#111111',
+          fontWeight: '700',
         }}
       >
         Preview
       </a>
+      {/* 20px extra gap so Publish isn't an accidental click target */}
       <button
         type="button"
         onClick={onPublish}
@@ -120,11 +126,13 @@ export default function EditorToolbar({
         title={publishDisabled ? 'Fill in the required fields before publishing' : 'Publish this issue'}
         style={{
           ...circleBase,
-          background: publishDisabled ? '#3a4a3a' : '#2d5a3f',
-          borderColor: publishDisabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
+          marginTop: '20px',
+          background: '#4ade40',
+          borderColor: 'rgba(74,222,64,0.8)',
+          color: '#111111',
           cursor: publishing ? 'wait' : (publishDisabled ? 'not-allowed' : 'pointer'),
-          opacity: publishing ? 0.7 : 1,
-          fontWeight: 700,
+          opacity: publishing ? '0.7' : '1',
+          fontWeight: '700',
         }}
       >
         {publishing ? 'Publishing…' : 'Publish'}

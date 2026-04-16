@@ -110,20 +110,10 @@ export async function POST() {
         [nextVolume, nextIssue, CAMPAIGN_ID],
       );
 
-      // Wipe prose fields in the draft; preserve hero/ad/qotd as a starting
-      // point for the next issue. in_fiction_date is wiped so next issue
-      // picks up today's date automatically.
+      // Preserve all draft content so the DM can tweak and republish.
+      // Only wipe in_fiction_date so the next publish picks up today's date.
       await client.query(
         `UPDATE raven_issue_draft SET
-           big_headline = '',
-           col1_lead_headline = '',
-           col1_lead_body = '',
-           blood_moon_headline = '',
-           blood_moon_body = '',
-           crimson_moon_headline = '',
-           crimson_moon_body = '',
-           opinion_headline = '',
-           opinion_body = '',
            in_fiction_date = '',
            updated_at = NOW()
          WHERE campaign_id = $1`,
