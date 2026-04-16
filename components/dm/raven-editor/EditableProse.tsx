@@ -44,6 +44,7 @@ export default function EditableProse({ value, onChange, byline, target, placeho
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isEmpty = value.trim().length === 0;
 
   // Auto-resize to fit content
   useEffect(() => {
@@ -74,7 +75,7 @@ export default function EditableProse({ value, onChange, byline, target, placeho
       const res = await fetch('/api/raven-post/draft', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ medium: 'broadsheet', oneLineBeat: trimmed }),
+        body: JSON.stringify({ medium: 'broadsheet', oneLineBeat: trimmed, targetWords: target }),
       });
       if (!res.ok) {
         const { error: msg } = await res.json().catch(() => ({ error: 'Draft failed' }));
@@ -99,11 +100,33 @@ export default function EditableProse({ value, onChange, byline, target, placeho
     // below stick to the wrapper's bottom — so they pin to the outer box
     // bottom, not the textarea's natural bottom.
     <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      {/* Layout-X — diagonal cross à la InDesign placeholder frame.
+          Vanishes on first keystroke. */}
+      {isEmpty && (
+        <svg
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+          }}
+          preserveAspectRatio="none"
+        >
+          <line x1="0" y1="0" x2="100%" y2="100%" stroke="#2b1f14" strokeOpacity={0.12} strokeWidth={0.5} />
+          <line x1="100%" y1="0" x2="0" y2="100%" stroke="#2b1f14" strokeOpacity={0.12} strokeWidth={0.5} />
+        </svg>
+      )}
+
       <textarea
         ref={textareaRef}
         value={value}
         onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
+        // Suppress the placeholder while skeleton is showing — they would
+        // overlap and read as noise. The skeleton communicates "this is
+        // where prose goes."
+        placeholder={isEmpty ? '' : placeholder}
         rows={3}
         style={{
           width: '100%',

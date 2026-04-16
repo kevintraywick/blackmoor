@@ -6,6 +6,7 @@ import type { RavenMedium } from './types';
 interface DraftArgs {
   medium: RavenMedium;
   oneLineBeat: string;
+  targetWords?: number;
 }
 
 interface DraftResult {
@@ -23,7 +24,7 @@ const SYSTEM_PROMPTS: Record<RavenMedium, string> = {
   druid_sign: `You are inscribing a Druidic sign — the secret script of druids scratched into bark, stone, or earth. The DM gives you a one-line beat. Return JSON: { "headline": null, "body": "..." }. Rules: body ≤20 words; terse, nature-symbolic, directional or warning; never use em-dashes.`,
 };
 
-export async function draftBeat({ medium, oneLineBeat }: DraftArgs): Promise<DraftResult | null> {
+export async function draftBeat({ medium, oneLineBeat, targetWords }: DraftArgs): Promise<DraftResult | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || !oneLineBeat.trim()) return null;
 
@@ -36,10 +37,20 @@ export async function draftBeat({ medium, oneLineBeat }: DraftArgs): Promise<Dra
   const model = 'claude-haiku-4-5-20251001';
 
   try {
+    let systemPrompt = SYSTEM_PROMPTS[medium];
+    if (targetWords) {
+      const lo = targetWords - 6;
+      const hi = targetWords + 6;
+      systemPrompt = systemPrompt.replace(
+        /body \d+-\d+ sentences,?\s*\d+-\d+ words/,
+        `body EXACTLY ${lo}–${hi} words (count carefully)`
+      );
+    }
+
     const message = await client.messages.create({
       model,
       max_tokens: 400,
-      system: SYSTEM_PROMPTS[medium],
+      system: systemPrompt,
       messages: [{ role: 'user', content: `Beat: ${oneLineBeat.trim()}` }],
     });
 
