@@ -18,11 +18,13 @@ const SERIES = [
 /** Additional style to merge onto the outer aside (e.g., `marginTop: auto` to pin-bottom). */
 interface Props {
   style?: React.CSSProperties;
+  className?: string;
 }
 
-export default function SpotPrices({ style }: Props) {
+export default function SpotPrices({ style, className }: Props) {
   return (
     <aside
+      className={className}
       style={{
         border: '1px solid #2b1f14',
         padding: '10px 12px',

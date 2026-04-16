@@ -80,6 +80,104 @@ const LEGACY_HEADLINE_REGEX: Partial<Record<RavenSectionId, RegExp>> = {
   crimson_moon: /crimson\s*moon/i,
 };
 
+/**
+ * Layout CSS. Items are direct grid children; `grid-template-areas` places
+ * them into the 3-column desktop layout regardless of DOM order. DOM order
+ * matches the mobile reading order (hero → lead → crimson → blood → opinion
+ * → spot → ad → QOTD), so on mobile we just collapse to a single column.
+ *
+ * `align-self: end` on QOTD and Spot Prices pins them to the bottom of the
+ * stretched final row (mimicking the original `marginTop: auto`).
+ */
+const LAYOUT_CSS = `
+.raven-bs__grid {
+  grid-template-areas:
+    "lead hero  crimson"
+    "ad   blood opinion"
+    "qotd spot  .";
+  grid-template-rows: auto auto 1fr;
+}
+.raven-bs__lead        { grid-area: lead; }
+.raven-bs__hero        { grid-area: hero; }
+.raven-bs__crimsonmoon { grid-area: crimson; }
+.raven-bs__ad          { grid-area: ad; }
+.raven-bs__bloodmoon   { grid-area: blood; }
+.raven-bs__opinion     { grid-area: opinion; }
+.raven-bs__qotd        { grid-area: qotd; align-self: end; }
+.raven-bs__spotprices  { grid-area: spot; align-self: end; }
+
+@media (max-width: 640px) {
+  .raven-bs__root {
+    padding: 16px 14px !important;
+    box-shadow: 0 4px 12px rgba(43,31,20,0.3), inset 0 0 60px rgba(139,90,30,0.08) !important;
+  }
+  .raven-bs__big-headline {
+    font-size: 1.9rem !important;
+    line-height: 1.0 !important;
+    margin: 0 0 12px !important;
+    padding-bottom: 8px !important;
+    letter-spacing: 0 !important;
+  }
+  .raven-bs__grid {
+    grid-template-columns: 1fr !important;
+    grid-template-areas: none !important;
+    grid-template-rows: none !important;
+    gap: 16px !important;
+    margin-bottom: 14px !important;
+  }
+  .raven-bs__lead, .raven-bs__hero, .raven-bs__crimsonmoon, .raven-bs__ad,
+  .raven-bs__bloodmoon, .raven-bs__opinion, .raven-bs__qotd, .raven-bs__spotprices {
+    grid-area: auto !important;
+    align-self: auto !important;
+  }
+  .raven-bs__lead { font-size: 1rem !important; line-height: 1.55 !important; }
+  .raven-bs__crimsonmoon p,
+  .raven-bs__bloodmoon  p,
+  .raven-bs__opinion    p {
+    font-size: 0.98rem !important;
+    line-height: 1.5 !important;
+  }
+  .raven-bs__crimsonmoon h3,
+  .raven-bs__bloodmoon  h3,
+  .raven-bs__opinion    h3 {
+    font-size: 1.3rem !important;
+  }
+
+  /* Masthead shrink */
+  .raven-mast__root {
+    padding-bottom: 10px !important;
+    margin-bottom: 12px !important;
+  }
+  .raven-mast__title {
+    font-size: 2.4rem !important;
+    line-height: 0.95 !important;
+  }
+  .raven-mast__stamp {
+    width: 70px !important;
+    height: 70px !important;
+    top: -8px !important;
+    right: -2px !important;
+  }
+  .raven-mast__arrow { display: none !important; }
+  .raven-mast__tagline-text {
+    font-size: 0.6rem !important;
+    letter-spacing: 0.18em !important;
+    white-space: normal !important;
+  }
+  .raven-mast__tagline-rule { display: none !important; }
+  .raven-mast__daterow {
+    font-size: 0.78rem !important;
+    margin-top: 8px !important;
+  }
+
+  /* Mobile: shift the ad overlay down so it stops obscuring the image center */
+  .raven-bs__ad-overlay {
+    align-items: flex-end !important;
+    padding-bottom: 14px !important;
+  }
+}
+`;
+
 function bySection(items: RavenItem[], id: RavenSectionId): RavenItem | undefined {
   const direct = items.find(i => i.section_id === id);
   if (direct) return direct;
@@ -114,7 +212,7 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate, a
 
   return (
     <div
-      className="font-serif"
+      className="font-serif raven-bs__root"
       style={{
         background: '#efe3c4',
         backgroundImage:
@@ -127,10 +225,12 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate, a
         position: 'relative',
       }}
     >
+      <style>{LAYOUT_CSS}</style>
       <Masthead volume={volume} issue={issue} inFictionDate={inFictionDate} />
 
       {/* Section (2) — Big Headline */}
       <h2
+        className="raven-bs__big-headline"
         style={{
           fontFamily: '"Playfair Display", "EB Garamond", serif',
           fontSize: '3.4rem',
@@ -148,8 +248,11 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate, a
         {bigHeadline}
       </h2>
 
-      {/* 3-column grid */}
+      {/* Flat grid — items placed via grid-template-areas (LAYOUT_CSS) on
+          desktop; collapse to single column in DOM order on mobile. DOM order
+          here matches mobile reading order. */}
       <div
+        className="raven-bs__grid"
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr 1fr',
@@ -158,291 +261,283 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate, a
           alignItems: 'stretch',
         }}
       >
-        {/* Column 1 — (3) lead text → (8) ad → (10) QOTD */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Section (3) — lead text */}
-          <div style={{ fontSize: '0.88rem', lineHeight: 1.5, textAlign: 'justify' }}>
-            {col1LeadItem ? (
-              <>
-                {col1LeadItem.headline && (
-                  <h3
-                    style={{
-                      fontFamily: 'EB Garamond, serif',
-                      fontWeight: 700,
-                      fontSize: '1.05rem',
-                      lineHeight: 1.15,
-                      margin: '0 0 4px',
-                      borderBottom: '1px solid #2b1f14',
-                      paddingBottom: 3,
-                    }}
-                  >
-                    {col1LeadItem.headline}
-                  </h3>
-                )}
-                {col1LeadItem.body.split(/\n{2,}/).map((para, idx) => (
-                  <p key={idx} style={{ margin: idx === 0 ? '0 0 8px' : '0 0 8px' }}>
-                    {para}
-                  </p>
-                ))}
-              </>
-            ) : (
-              LEAD_LOREM.map((p, i) => (
-                <p key={i} style={{ margin: i === LEAD_LOREM.length - 1 ? 0 : '0 0 8px' }}>{p}</p>
-              ))
-            )}
-          </div>
-
-          {/* Section (8) — ad */}
-          {a.ad && (
-            <>
-              <div
+        {/* Section (4) + (5) — hero image + caption */}
+        {a.heroImageUrl && (
+          <figure className="raven-bs__hero" style={{ margin: 0 }}>
+            <img
+              src={a.heroImageUrl}
+              alt=""
+              style={{
+                display: 'block',
+                width: '100%',
+                height: 'auto',
+                border: '1px solid #2b1f14',
+                filter: 'sepia(0.15) contrast(1.05)',
+              }}
+            />
+            {a.heroCaption && (
+              <figcaption
                 style={{
-                  fontFamily: 'EB Garamond, serif',
-                  fontSize: '0.55rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.25em',
+                  fontSize: '0.8rem',
+                  fontStyle: 'italic',
                   textAlign: 'center',
-                  color: '#4a3723',
-                  marginBottom: -10,
-                }}
-              >
-                Paid Advertisement
-              </div>
-              <a
-                href={a.ad.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={a.ad.overlay || 'Sponsored'}
-                style={{ display: 'block', position: 'relative' }}
-              >
-                <img
-                  src={a.ad.imageUrl}
-                  alt=""
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    height: 180,
-                    objectFit: 'cover',
-                    border: '1px solid #2b1f14',
-                    filter: 'brightness(0.8)',
-                  }}
-                />
-                {a.ad.overlay && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#ffffff',
-                      fontFamily: '"Playfair Display", "EB Garamond", serif',
-                      fontSize: '2.2rem',
-                      fontWeight: 900,
-                      letterSpacing: '0.02em',
-                      textShadow: '0 2px 6px rgba(0,0,0,0.7), 0 0 2px rgba(0,0,0,0.9)',
-                      transform: 'rotate(-15deg)',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    {a.ad.overlay}
-                  </span>
-                )}
-              </a>
-            </>
-          )}
-
-          {/* Section (10) — QOTD — pinned to column bottom */}
-          <aside
-            style={{
-              border: '1px solid #2b1f14',
-              padding: '8px 10px',
-              textAlign: 'center',
-              background: 'rgba(139,90,30,0.05)',
-              marginTop: 'auto',
-            }}
-          >
-            <div
-              style={{
-                fontFamily: 'EB Garamond, serif',
-                fontSize: '0.65rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2em',
-                fontWeight: 700,
-                color: '#2b1f14',
-                marginBottom: 4,
-              }}
-            >
-              Quote of the Day
-            </div>
-            <blockquote
-              style={{
-                margin: 0,
-                fontFamily: 'EB Garamond, serif',
-                fontStyle: 'italic',
-                fontSize: '0.82rem',
-                lineHeight: 1.35,
-                color: '#2b1f14',
-              }}
-            >
-              “{a.qotd.text}”
-              <footer
-                style={{
-                  fontStyle: 'normal',
-                  fontSize: '0.68rem',
+                  borderTop: '1px solid #2b1f14',
+                  borderBottom: '1px solid #2b1f14',
+                  padding: '4px 0',
                   marginTop: 4,
-                  letterSpacing: '0.05em',
-                  color: '#4a3723',
+                  color: '#2b1f14',
                 }}
               >
-                — {a.qotd.author}
-              </footer>
-            </blockquote>
-          </aside>
-        </div>
+                {a.heroCaption}
+              </figcaption>
+            )}
+          </figure>
+        )}
 
-        {/* Column 2 — (4) image + (5) caption → (7) Blood Moon → (9) Spot Prices */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Section (4) + (5) */}
-          {a.heroImageUrl && (
-            <figure style={{ margin: 0 }}>
-              <img
-                src={a.heroImageUrl}
-                alt=""
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  height: 'auto',
-                  border: '1px solid #2b1f14',
-                  filter: 'sepia(0.15) contrast(1.05)',
-                }}
-              />
-              {a.heroCaption && (
-                <figcaption
+        {/* Section (3) — lead text */}
+        <div className="raven-bs__lead" style={{ fontSize: '0.88rem', lineHeight: 1.5, textAlign: 'justify' }}>
+          {col1LeadItem ? (
+            <>
+              {col1LeadItem.headline && (
+                <h3
                   style={{
-                    fontSize: '0.8rem',
-                    fontStyle: 'italic',
-                    textAlign: 'center',
-                    borderTop: '1px solid #2b1f14',
+                    fontFamily: 'EB Garamond, serif',
+                    fontWeight: 700,
+                    fontSize: '1.05rem',
+                    lineHeight: 1.15,
+                    margin: '0 0 4px',
                     borderBottom: '1px solid #2b1f14',
-                    padding: '4px 0',
-                    marginTop: 4,
-                    color: '#2b1f14',
+                    paddingBottom: 3,
                   }}
                 >
-                  {a.heroCaption}
-                </figcaption>
+                  {col1LeadItem.headline}
+                </h3>
               )}
-            </figure>
-          )}
-
-          {/* Section (7) — Blood Moon */}
-          {bloodMoonItem && (
-            <article>
-              <h3
-                style={{
-                  fontFamily: 'EB Garamond, serif',
-                  fontWeight: 700,
-                  fontSize: '1.2rem',
-                  lineHeight: 1.15,
-                  margin: '0 0 4px',
-                  borderBottom: '1px solid #2b1f14',
-                  paddingBottom: 3,
-                }}
-              >
-                {bloodMoonItem.headline}
-              </h3>
-              <p style={{ fontSize: '0.85rem', lineHeight: 1.4, margin: 0, textAlign: 'justify' }}>
-                {bloodMoonItem.body}
-              </p>
-            </article>
-          )}
-
-          {/* Section (9) — Spot Prices */}
-          <SpotPrices style={{ marginTop: 'auto' }} />
-        </div>
-
-        {/* Column 3 — (6) Crimson Moon → (11) Opinion */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Section (6) — Crimson Moon */}
-          {crimsonMoonItem && (
-            <article>
-              <h3
-                style={{
-                  fontFamily: 'EB Garamond, serif',
-                  fontWeight: 700,
-                  fontSize: '1.15rem',
-                  lineHeight: 1.15,
-                  margin: '0 0 4px',
-                  borderBottom: '1px solid #2b1f14',
-                  paddingBottom: 3,
-                }}
-              >
-                {crimsonMoonItem.headline}
-              </h3>
-              {crimsonMoonItem.body.split(/\n{2,}/).map((para, idx) => (
-                <p
-                  key={idx}
-                  style={{
-                    fontSize: '0.85rem',
-                    lineHeight: 1.4,
-                    margin: idx === 0 ? '0 0 6px' : '0 0 6px',
-                    textAlign: 'justify',
-                  }}
-                >
+              {col1LeadItem.body.split(/\n{2,}/).map((para, idx) => (
+                <p key={idx} style={{ margin: idx === 0 ? '0 0 8px' : '0 0 8px' }}>
                   {para}
                 </p>
               ))}
-            </article>
+            </>
+          ) : (
+            LEAD_LOREM.map((p, i) => (
+              <p key={i} style={{ margin: i === LEAD_LOREM.length - 1 ? 0 : '0 0 8px' }}>{p}</p>
+            ))
           )}
+        </div>
 
-          {/* Section (11) — Opinion */}
-          <article>
+        {/* Section (6) — Crimson Moon */}
+        {crimsonMoonItem && (
+          <article className="raven-bs__crimsonmoon">
             <h3
               style={{
                 fontFamily: 'EB Garamond, serif',
                 fontWeight: 700,
                 fontSize: '1.15rem',
-                fontStyle: 'italic',
                 lineHeight: 1.15,
                 margin: '0 0 4px',
                 borderBottom: '1px solid #2b1f14',
                 paddingBottom: 3,
               }}
             >
-              {opinionItem?.headline || 'Opinion'}
+              {crimsonMoonItem.headline}
             </h3>
-            {opinionItem ? (
-              opinionItem.body.split(/\n{2,}/).map((para, idx, arr) => (
-                <p
-                  key={idx}
-                  style={{
-                    fontSize: '0.85rem',
-                    lineHeight: 1.4,
-                    margin: idx === arr.length - 1 ? 0 : '0 0 6px',
-                    textAlign: 'justify',
-                  }}
-                >
-                  {para}
-                </p>
-              ))
-            ) : (
-              OPINION_LOREM.map((p, i) => (
-                <p
-                  key={i}
-                  style={{
-                    fontSize: '0.85rem',
-                    lineHeight: 1.4,
-                    margin: i === OPINION_LOREM.length - 1 ? 0 : '0 0 6px',
-                    textAlign: 'justify',
-                  }}
-                >
-                  {p}
-                </p>
-              ))
-            )}
+            {crimsonMoonItem.body.split(/\n{2,}/).map((para, idx) => (
+              <p
+                key={idx}
+                style={{
+                  fontSize: '0.85rem',
+                  lineHeight: 1.4,
+                  margin: idx === 0 ? '0 0 6px' : '0 0 6px',
+                  textAlign: 'justify',
+                }}
+              >
+                {para}
+              </p>
+            ))}
           </article>
-        </div>
+        )}
+
+        {/* Section (7) — Blood Moon */}
+        {bloodMoonItem && (
+          <article className="raven-bs__bloodmoon">
+            <h3
+              style={{
+                fontFamily: 'EB Garamond, serif',
+                fontWeight: 700,
+                fontSize: '1.2rem',
+                lineHeight: 1.15,
+                margin: '0 0 4px',
+                borderBottom: '1px solid #2b1f14',
+                paddingBottom: 3,
+              }}
+            >
+              {bloodMoonItem.headline}
+            </h3>
+            <p style={{ fontSize: '0.85rem', lineHeight: 1.4, margin: 0, textAlign: 'justify' }}>
+              {bloodMoonItem.body}
+            </p>
+          </article>
+        )}
+
+        {/* Section (11) — Opinion */}
+        <article className="raven-bs__opinion">
+          <h3
+            style={{
+              fontFamily: 'EB Garamond, serif',
+              fontWeight: 700,
+              fontSize: '1.15rem',
+              fontStyle: 'italic',
+              lineHeight: 1.15,
+              margin: '0 0 4px',
+              borderBottom: '1px solid #2b1f14',
+              paddingBottom: 3,
+            }}
+          >
+            {opinionItem?.headline || 'Opinion'}
+          </h3>
+          {opinionItem ? (
+            opinionItem.body.split(/\n{2,}/).map((para, idx, arr) => (
+              <p
+                key={idx}
+                style={{
+                  fontSize: '0.85rem',
+                  lineHeight: 1.4,
+                  margin: idx === arr.length - 1 ? 0 : '0 0 6px',
+                  textAlign: 'justify',
+                }}
+              >
+                {para}
+              </p>
+            ))
+          ) : (
+            OPINION_LOREM.map((p, i) => (
+              <p
+                key={i}
+                style={{
+                  fontSize: '0.85rem',
+                  lineHeight: 1.4,
+                  margin: i === OPINION_LOREM.length - 1 ? 0 : '0 0 6px',
+                  textAlign: 'justify',
+                }}
+              >
+                {p}
+              </p>
+            ))
+          )}
+        </article>
+
+        {/* Section (9) — Spot Prices */}
+        <SpotPrices className="raven-bs__spotprices" />
+
+        {/* Section (8) — ad */}
+        {a.ad && (
+          <div className="raven-bs__ad" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div
+              style={{
+                fontFamily: 'EB Garamond, serif',
+                fontSize: '0.55rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.25em',
+                textAlign: 'center',
+                color: '#4a3723',
+                marginBottom: -10,
+              }}
+            >
+              Paid Advertisement
+            </div>
+            <a
+              href={a.ad.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={a.ad.overlay || 'Sponsored'}
+              style={{ display: 'block', position: 'relative' }}
+            >
+              <img
+                src={a.ad.imageUrl}
+                alt=""
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: 180,
+                  objectFit: 'cover',
+                  border: '1px solid #2b1f14',
+                  filter: 'brightness(0.8)',
+                }}
+              />
+              {a.ad.overlay && (
+                <span
+                  className="raven-bs__ad-overlay"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ffffff',
+                    fontFamily: '"Playfair Display", "EB Garamond", serif',
+                    fontSize: '2.2rem',
+                    fontWeight: 900,
+                    letterSpacing: '0.02em',
+                    textShadow: '0 2px 6px rgba(0,0,0,0.7), 0 0 2px rgba(0,0,0,0.9)',
+                    transform: 'rotate(-15deg)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  {a.ad.overlay}
+                </span>
+              )}
+            </a>
+          </div>
+        )}
+
+        {/* Section (10) — QOTD */}
+        <aside
+          className="raven-bs__qotd"
+          style={{
+            border: '1px solid #2b1f14',
+            padding: '8px 10px',
+            textAlign: 'center',
+            background: 'rgba(139,90,30,0.05)',
+          }}
+        >
+          <div
+            style={{
+              fontFamily: 'EB Garamond, serif',
+              fontSize: '0.65rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.2em',
+              fontWeight: 700,
+              color: '#2b1f14',
+              marginBottom: 4,
+            }}
+          >
+            Quote of the Day
+          </div>
+          <blockquote
+            style={{
+              margin: 0,
+              fontFamily: 'EB Garamond, serif',
+              fontStyle: 'italic',
+              fontSize: '0.82rem',
+              lineHeight: 1.35,
+              color: '#2b1f14',
+            }}
+          >
+            “{a.qotd.text}”
+            <footer
+              style={{
+                fontStyle: 'normal',
+                fontSize: '0.68rem',
+                marginTop: 4,
+                letterSpacing: '0.05em',
+                color: '#4a3723',
+              }}
+            >
+              — {a.qotd.author}
+            </footer>
+          </blockquote>
+        </aside>
       </div>
 
       {/* Bottom rule */}

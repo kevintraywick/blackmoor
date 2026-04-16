@@ -19,6 +19,7 @@ interface Props {
 export default function Masthead({ volume, issue, inFictionDate, price = 'One copper' }: Props) {
   return (
     <div
+      className="raven-mast__root"
       style={{
         position: 'relative',
         textAlign: 'center',
@@ -29,6 +30,7 @@ export default function Masthead({ volume, issue, inFictionDate, price = 'One co
     >
       {/* Edition Stamp — circular wax stamp at top-right of sheet */}
       <div
+        className="raven-mast__stamp"
         style={{
           position: 'absolute',
           top: -20,
@@ -40,7 +42,7 @@ export default function Masthead({ volume, issue, inFictionDate, price = 'One co
           zIndex: 2,
         }}
       >
-        <svg viewBox="0 0 120 120" width="118" height="118" style={{ overflow: 'visible' }}>
+        <svg viewBox="0 0 120 120" width="100%" height="100%" style={{ overflow: 'visible', display: 'block' }}>
           <defs>
             <path id="stamp-curve" d="M 60,60 m -40,0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0" fill="none" />
           </defs>
@@ -85,6 +87,7 @@ export default function Masthead({ volume, issue, inFictionDate, price = 'One co
 
       {/* Arrow piercing the masthead */}
       <img
+        className="raven-mast__arrow"
         src="/images/raven-post/arrow.png"
         alt=""
         aria-hidden
@@ -104,6 +107,7 @@ export default function Masthead({ volume, issue, inFictionDate, price = 'One co
       <div style={{ position: 'relative', zIndex: 1, height: 1, background: '#2b1f14', margin: '0 auto 10px', width: '92%', opacity: 0.8 }} />
 
       <h1
+        className="raven-mast__title"
         style={{
           position: 'relative',
           zIndex: 1,
@@ -130,8 +134,9 @@ export default function Masthead({ volume, issue, inFictionDate, price = 'One co
           marginTop: 10,
         }}
       >
-        <span style={{ flex: 1, height: 1, background: '#2b1f14', opacity: 0.55, maxWidth: 220 }} />
+        <span className="raven-mast__tagline-rule" style={{ flex: 1, height: 1, background: '#2b1f14', opacity: 0.55, maxWidth: 220 }} />
         <span
+          className="raven-mast__tagline-text"
           style={{
             fontFamily: 'EB Garamond, serif',
             fontSize: '0.95rem',
@@ -144,10 +149,11 @@ export default function Masthead({ volume, issue, inFictionDate, price = 'One co
         >
           ❦&nbsp;&nbsp;News, Gossip and Tales of the Realm&nbsp;&nbsp;❦
         </span>
-        <span style={{ flex: 1, height: 1, background: '#2b1f14', opacity: 0.55, maxWidth: 220 }} />
+        <span className="raven-mast__tagline-rule" style={{ flex: 1, height: 1, background: '#2b1f14', opacity: 0.55, maxWidth: 220 }} />
       </div>
 
       <div
+        className="raven-mast__daterow"
         style={{
           position: 'relative',
           zIndex: 1,
