@@ -65,11 +65,21 @@ export default function EditorToolbar({
     e.preventDefault();
     // Open the tab synchronously so popup blockers allow it; navigate it
     // once the save has flushed.
-    const w = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    // NOTE: do NOT pass 'noopener'/'noreferrer' here — per spec, window.open
+    // returns null when noopener is set, leaving the new tab stuck on
+    // about:blank. We need the window handle so we can navigate it after
+    // the autosave flush completes. Same-origin, so the lost noopener
+    // protection is not a concern.
+    const w = window.open('about:blank', '_blank');
     try {
       await onBeforePreview();
     } finally {
-      if (w) w.location.href = '/dm/raven-post/preview';
+      if (w) {
+        w.location.href = '/dm/raven-post/preview';
+      } else {
+        // Popup blocked — fall back to navigating in this tab.
+        window.location.href = '/dm/raven-post/preview';
+      }
     }
   }
 
