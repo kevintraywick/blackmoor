@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { RavenIssueDraft } from '@/lib/types';
 import { pickRandomQotd } from '@/lib/qotd';
 import Masthead from '@/components/raven/Masthead';
@@ -62,21 +62,16 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
   const dirtyRef = useRef<Set<DraftField>>(new Set());
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Persist QOTD seed on first mount if we synthesized one.
-  useEffect(() => {
-    if (!initialDraft.qotd_text && draft.qotd_text) {
-      dirtyRef.current.add('qotd_text');
-      dirtyRef.current.add('qotd_author');
-      scheduleSave();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Save status for the "Saved ✓" indicator above Preview.
+  type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 
-  const scheduleSave = useCallback(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(flushSave, AUTOSAVE_MS);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Hold the latest flushSave in a ref so timers, unmount, and toolbar
+  // callbacks always call the current-render closure (with the current
+  // `draft`). The previous useCallback-with-[] version captured the
+  // *initial* render's flushSave, which read the initial (empty) draft
+  // and silently overwrote the DB with blanks on every autosave.
+  const flushSaveRef = useRef<() => Promise<void>>(async () => {});
 
   async function flushSave() {
     const dirty = Array.from(dirtyRef.current);
@@ -84,27 +79,73 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
     dirtyRef.current = new Set();
     const patch: Record<string, unknown> = {};
     for (const f of dirty) patch[f] = draft[f];
+    setSaveStatus('saving');
     try {
-      await fetch('/api/raven-post/issue-draft', {
+      const res = await fetch('/api/raven-post/issue-draft', {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(patch),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Only mark 'saved' if no new edits arrived during the request.
+      setSaveStatus(dirtyRef.current.size === 0 ? 'saved' : 'dirty');
     } catch (err) {
       console.error('[editor] autosave failed', err);
+      setSaveStatus('error');
+      // Put the fields back on the dirty list so the next tick retries.
+      for (const f of dirty) dirtyRef.current.add(f);
     }
   }
+  flushSaveRef.current = flushSave;
+
+  function scheduleSave() {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => { flushSaveRef.current(); }, AUTOSAVE_MS);
+  }
+
+  // Persist QOTD seed on first mount if we synthesized one.
+  useEffect(() => {
+    if (!initialDraft.qotd_text && draft.qotd_text) {
+      dirtyRef.current.add('qotd_text');
+      dirtyRef.current.add('qotd_author');
+      setSaveStatus('dirty');
+      scheduleSave();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Flush on unmount so fast navigations don't lose the last edit.
   useEffect(() => {
-    return () => { flushSave(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { flushSaveRef.current(); };
+  }, []);
+
+  // Safety nets: flush when the tab is hidden or about to unload.
+  useEffect(() => {
+    function onVis() {
+      if (document.visibilityState === 'hidden') flushSaveRef.current();
+    }
+    function onBeforeUnload() {
+      // Best-effort — browsers don't wait, but this fires the request.
+      flushSaveRef.current();
+    }
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
   }, []);
 
   function set<K extends DraftField>(field: K, value: RavenIssueDraft[K]) {
     setDraft(d => ({ ...d, [field]: value }));
     dirtyRef.current.add(field);
+    setSaveStatus('dirty');
     scheduleSave();
+  }
+
+  async function flushForPreview() {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    await flushSaveRef.current();
   }
 
   // Ad upload flow: after the image uploads, stash its URL and open the
@@ -194,7 +235,13 @@ export default function RavenPostEditor({ initialDraft, volume, issue, inFiction
     <div style={{ position: 'relative' }}>
       {/* Top-right toolbar — outside the broadsheet frame */}
       <div style={{ position: 'absolute', top: 0, right: -90, zIndex: 10 }}>
-        <EditorToolbar onPublish={onPublish} publishing={publishing} publishDisabled={publishDisabled} />
+        <EditorToolbar
+          onPublish={onPublish}
+          publishing={publishing}
+          publishDisabled={publishDisabled}
+          saveStatus={saveStatus}
+          onBeforePreview={flushForPreview}
+        />
         {publishToast && (
           <div
             style={{
