@@ -35,8 +35,16 @@ function ordinal(n: number): string {
   }
 }
 
-export function formatShireDate(date: Date = new Date()): string {
-  const day = date.getDate();
-  const month = SHIRE_MONTHS[date.getMonth()];
+export function formatShireDate(date: Date = new Date(), timeZone = 'America/Chicago'): string {
+  // Resolve the date in the DM's local time zone so the server (UTC)
+  // doesn't jump a day ahead of the table.
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    day: 'numeric',
+    month: 'numeric',
+  }).formatToParts(date);
+  const day = Number(parts.find(p => p.type === 'day')!.value);
+  const monthIdx = Number(parts.find(p => p.type === 'month')!.value) - 1;
+  const month = SHIRE_MONTHS[monthIdx];
   return `${ordinal(day)} of ${month}, CY ${CAMPAIGN_YEAR}`;
 }

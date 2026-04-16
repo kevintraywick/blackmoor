@@ -108,34 +108,45 @@ export default async function DmRavenPostPreviewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] py-10">
-      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 24px' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'baseline',
-            marginBottom: 16,
-            fontFamily: 'EB Garamond, serif',
-            fontSize: '0.75rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.2em',
-            color: '#8b7a5a',
-          }}
-        >
-          <span>Preview — draft of issue {volume}·{issue}</span>
-          <a href="/dm/raven-post" style={{ color: '#c9a84c' }}>
-            ← back to editor
-          </a>
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
+      {/* Match the editor page layout: same max-width, px-8, py-10 */}
+      <div className="max-w-[1000px] mx-auto" style={{ padding: '40px 32px' }}>
+        <div style={{ position: 'relative' }}>
+          {/* Back to Editor circle — same position as the Preview circle
+              on the draft page (absolute, top-right, outside the frame). */}
+          <div style={{ position: 'absolute', top: 0, right: -90, zIndex: 10 }}>
+            <a
+              href="/dm/raven-post"
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'EB Garamond, serif',
+                fontSize: '0.5rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                textAlign: 'center',
+                lineHeight: 1.3,
+                border: '1px solid rgba(201,168,76,0.4)',
+                color: '#ffffff',
+                textDecoration: 'none',
+              }}
+            >
+              Back to<br />Editor
+            </a>
+          </div>
+          <RavenBroadsheet
+            items={items}
+            weather={weather}
+            volume={volume}
+            issue={issue}
+            inFictionDate={inFictionDate}
+            assembly={assembly}
+          />
         </div>
-        <RavenBroadsheet
-          items={items}
-          weather={weather}
-          volume={volume}
-          issue={issue}
-          inFictionDate={inFictionDate}
-          assembly={assembly}
-        />
       </div>
     </div>
   );
