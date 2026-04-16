@@ -1,9 +1,12 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import type { Session, Campaign } from '@/lib/types';
 import type { SessionStats } from '@/lib/journal-stats';
+
+const AUTOSAVE_MS = 800;
+type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 
 interface Props {
   sessions: Session[];
@@ -50,54 +53,90 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
   const [notes, setNotes] = useState(initialNotes);
   const [pubText, setPubText] = useState(initialPublic);
   const [summary, setSummary] = useState(summaryText);
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<SaveStatus>('idle');
   const lastNotesRef = useRef(initialNotes);
   const lastPubRef = useRef(initialPublic);
   const lastSummaryRef = useRef(summaryText);
-  const flashTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedFadeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref-based save avoids stale closures — see the RP editor's autosave pattern.
+  const flushSaveRef = useRef<() => Promise<void>>(async () => {});
 
-  const flash = useCallback(() => {
-    setSaved(true);
-    if (flashTimer.current) clearTimeout(flashTimer.current);
-    flashTimer.current = setTimeout(() => setSaved(false), 1800);
-  }, []);
-
-  const isDirty = kind === 'campaign'
-    ? summary !== lastSummaryRef.current
-    : notes !== lastNotesRef.current || pubText !== lastPubRef.current;
-
-  const handleSave = useCallback(async () => {
+  const flushSave = useCallback(async () => {
+    const isDirty = kind === 'campaign'
+      ? summary !== lastSummaryRef.current
+      : notes !== lastNotesRef.current || pubText !== lastPubRef.current;
     if (!isDirty) return;
-    setSaving(true);
-    setSaved(false);
+    setStatus('saving');
     try {
       if (kind === 'campaign') {
-        await fetch(saveUrl, {
+        const res = await fetch(saveUrl, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ background: summary }),
         });
+        if (!res.ok) throw new Error(String(res.status));
         lastSummaryRef.current = summary;
       } else {
         const patch: Record<string, string> = {};
         if (notes !== lastNotesRef.current) patch.journal = notes;
         if (pubText !== lastPubRef.current) patch.journal_public = pubText;
-        await fetch(saveUrl, {
+        const res = await fetch(saveUrl, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(patch),
         });
+        if (!res.ok) throw new Error(String(res.status));
         if (patch.journal !== undefined) lastNotesRef.current = notes;
         if (patch.journal_public !== undefined) lastPubRef.current = pubText;
       }
-      flash();
-    } catch {
-      // silent
-    } finally {
-      setSaving(false);
+      setStatus('saved');
+      if (savedFadeRef.current) clearTimeout(savedFadeRef.current);
+      savedFadeRef.current = setTimeout(() => setStatus('idle'), 1800);
+    } catch (err) {
+      console.error('[journal] save failed', err);
+      setStatus('error');
     }
-  }, [kind, isDirty, notes, pubText, summary, saveUrl, flash]);
+  }, [kind, notes, pubText, summary, saveUrl]);
+  flushSaveRef.current = flushSave;
+
+  function scheduleSave() {
+    setStatus('dirty');
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => { flushSaveRef.current(); }, AUTOSAVE_MS);
+  }
+
+  function saveNow() {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    flushSaveRef.current();
+  }
+
+  // Flush pending edits before the tab is hidden / closed.
+  useEffect(() => {
+    const onHide = () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        flushSaveRef.current();
+      }
+    };
+    window.addEventListener('beforeunload', onHide);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      window.removeEventListener('beforeunload', onHide);
+      document.removeEventListener('visibilitychange', onHide);
+    };
+  }, []);
+
+  const statusLabel: Record<SaveStatus, string> = {
+    idle: '', dirty: 'Unsaved', saving: 'Saving…', saved: 'Saved ✓', error: 'Save failed',
+  };
+  const statusColor: Record<SaveStatus, string> = {
+    idle: 'transparent', dirty: '#c9a84c', saving: '#8a7a60', saved: '#6ab07a', error: '#dc2626',
+  };
 
   return (
     <div className="mb-10">
@@ -110,22 +149,30 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
           )}
         </div>
         <div className="flex items-baseline gap-3">
-          {saving && <span className="text-[0.6rem] text-[var(--color-text-muted)] font-sans">Saving…</span>}
-          {!saving && saved && <span className="text-[0.6rem] text-[var(--color-gold)] font-sans">Saved</span>}
-          {!saving && !saved && isDirty && (
+          {(status === 'dirty' || status === 'error') && (
             <button
-              onClick={handleSave}
-              className="journal-save-pulse text-[0.6rem] uppercase tracking-[0.1em] font-sans cursor-pointer"
+              type="button"
+              onClick={saveNow}
+              className="text-[0.6rem] uppercase tracking-[0.1em] font-sans cursor-pointer"
               style={{
-                background: 'none',
-                border: '1px solid #dc2626',
+                background: status === 'error' ? '#dc2626' : '#c9a84c',
+                border: 'none',
                 borderRadius: 3,
-                color: '#dc2626',
-                padding: '2px 10px',
+                color: '#111111',
+                padding: '3px 12px',
+                fontWeight: 700,
               }}
             >
-              Save
+              {status === 'error' ? 'Retry Save' : 'Save'}
             </button>
+          )}
+          {(status === 'saving' || status === 'saved') && (
+            <span
+              className="text-[0.6rem] uppercase tracking-[0.15em] font-sans"
+              style={{ color: statusColor[status], transition: 'color 200ms ease' }}
+            >
+              {statusLabel[status]}
+            </span>
           )}
         </div>
       </div>
@@ -135,8 +182,7 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
           <textarea
             rows={6}
             value={summary}
-            onChange={e => setSummary(e.target.value)}
-            onBlur={handleSave}
+            onChange={e => { setSummary(e.target.value); scheduleSave(); }}
             placeholder="The campaign backstory…"
             className="w-full bg-transparent font-serif text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-none focus:outline-none placeholder:text-[var(--color-text-muted)]/40"
           />
@@ -148,8 +194,7 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
             <textarea
               rows={6}
               value={notes}
-              onChange={e => setNotes(e.target.value)}
-              onBlur={handleSave}
+              onChange={e => { setNotes(e.target.value); scheduleSave(); }}
               placeholder="Themes, foreshadowing, things to bring back later…"
               className="w-full bg-transparent text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-y outline-none font-serif placeholder:text-[var(--color-text-muted)]"
             />
@@ -159,8 +204,7 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
               <textarea
                 rows={6}
                 value={pubText}
-                onChange={e => setPubText(e.target.value)}
-                onBlur={handleSave}
+                onChange={e => { setPubText(e.target.value); scheduleSave(); }}
                 placeholder="What players see on the Journey page…"
                 className="w-full bg-transparent text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-y outline-none font-serif placeholder:text-[var(--color-text-muted)]"
               />
@@ -194,13 +238,6 @@ export default function DmJournalClient({ sessions, campaign, statsMap, initialJ
 
   return (
     <>
-      <style>{`
-        @keyframes journal-save-pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-        .journal-save-pulse { animation: journal-save-pulse 1.5s ease-in-out infinite; }
-      `}</style>
       {/* Banner with drop circle */}
       <div className="relative w-full h-[200px] overflow-hidden" style={{ display: 'flex', alignItems: 'center' }}>
         <Image
