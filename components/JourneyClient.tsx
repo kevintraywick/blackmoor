@@ -381,7 +381,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             const isDragOver = dragTarget === circleKey;
             const hasStarted = !!session.started_at;
             const isActive = activeJournal === session.number;
-            const canOpen = hasStarted && !!session.journal_public;
+            const canOpen = !!session.journal_public;
 
             return (
               <div
