@@ -319,8 +319,8 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                 onDragLeave={onDragLeave}
                 onDrop={(e) => onDrop(e, session.number, 'bg')}
               >
-                {/* Box background image — only show for started sessions */}
-                {hasStarted && bgImage ? (
+                {/* Box background image — uploaded bg always shows; default placeholder only for started sessions */}
+                {bgImage ? (
                   <img
                     src={bgImage}
                     alt={terrain.label}
