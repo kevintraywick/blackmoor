@@ -74,7 +74,7 @@ export default async function PlayerPage({ params }: Props) {
           Raven Post
         </Link>
         <span className="text-[var(--color-border)]">·</span>
-        <Link href="/dm/journey" className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline italic">Our story so far…</Link>
+        <Link href="/journey" className="text-[var(--color-text)] hover:text-[var(--color-gold)] no-underline italic">Our story so far…</Link>
       </div>
 
       <WolfHowl playerId={player.id} />

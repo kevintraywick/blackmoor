@@ -28,9 +28,11 @@ interface Props {
   sessions: Session[];
   imageMap?: Record<string, string>;
   campaignBackground?: string;
+  /** Player view — hides DM-only affordances (drag-and-drop image uploads, upload errors). */
+  readOnly?: boolean;
 }
 
-export default function JourneyClient({ sessions, imageMap: initialImageMap = {}, campaignBackground = '' }: Props) {
+export default function JourneyClient({ sessions, imageMap: initialImageMap = {}, campaignBackground = '', readOnly = false }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [imageMap, setImageMap] = useState<Record<string, string>>(initialImageMap);
   const [dragTarget, setDragTarget] = useState<string | null>(null);
@@ -82,6 +84,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
 
   // Upload handler for drag-and-drop (session images)
   const handleDrop = useCallback(async (sessionNumber: number, slot: 'circle' | 'bg', file: File) => {
+    if (readOnly) return;
     const formData = new FormData();
     formData.append('session_number', String(sessionNumber));
     formData.append('slot', slot);
@@ -100,10 +103,11 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
     }
     setDragTarget(null);
-  }, []);
+  }, [readOnly]);
 
   // Upload handler for named keys (e.g. campaign_bg)
   const handleKeyDrop = useCallback(async (key: string, file: File) => {
+    if (readOnly) return;
     const formData = new FormData();
     formData.append('key', key);
     formData.append('image', file);
@@ -121,21 +125,24 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
     }
     setDragTarget(null);
-  }, []);
+  }, [readOnly]);
 
   const onDragOver = (e: React.DragEvent, key: string) => {
+    if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
     setDragTarget(key);
   };
 
   const onDragLeave = (e: React.DragEvent) => {
+    if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
     setDragTarget(null);
   };
 
   const onDrop = (e: React.DragEvent, sessionNumber: number, slot: 'circle' | 'bg') => {
+    if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
     const file = e.dataTransfer.files[0];
@@ -148,7 +155,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
 
   return (
     <div className="max-w-full mx-auto relative" onClick={() => { setActiveJournal(null); setShowBackstory(false); }}>
-      {uploadError && (
+      {!readOnly && uploadError && (
         <div
           role="alert"
           onClick={(e) => { e.stopPropagation(); setUploadError(null); }}
@@ -190,9 +197,9 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                 cursor: campaignBackground ? 'pointer' : 'default',
               }}
               onClick={(e) => { e.stopPropagation(); if (campaignBackground) { setShowBackstory(prev => !prev); setActiveJournal(null); } }}
-              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(key); }}
-              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); }}
-              onDrop={(e) => {
+              onDragOver={readOnly ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(key); }}
+              onDragLeave={readOnly ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); }}
+              onDrop={readOnly ? undefined : (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 const file = e.dataTransfer.files[0];
@@ -409,9 +416,9 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                     border: isDragOver ? '2px solid #4a7a5a' : isActive ? '3px solid rgba(201,168,76,0.7)' : '3px solid #000000',
                     transform: isDragOver ? 'scale(1.1)' : undefined,
                   }}
-                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(circleKey); }}
-                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); }}
-                  onDrop={(e) => { e.preventDefault(); e.stopPropagation(); const file = e.dataTransfer.files[0]; if (file && file.type.startsWith('image/')) { handleDrop(session.number, 'circle', file); } else { setDragTarget(null); } }}
+                  onDragOver={readOnly ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(circleKey); }}
+                  onDragLeave={readOnly ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); }}
+                  onDrop={readOnly ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); const file = e.dataTransfer.files[0]; if (file && file.type.startsWith('image/')) { handleDrop(session.number, 'circle', file); } else { setDragTarget(null); } }}
                 >
                   {hasStarted ? (
                     <>
