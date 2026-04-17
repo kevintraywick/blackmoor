@@ -53,10 +53,6 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 ### v6 — DM identity
 
 - [ ] `dms` table with handle, email, chronicler_handle, tier <!-- common-v6 -->
-- [ ] Magic-link login via Resend <!-- common-v6 -->
-- [ ] `/login` page <!-- common-v6 -->
-- [ ] `/dms/[handle]` stub (logged-in only) <!-- common-v6 -->
-- [ ] Signup allowlist gate (env-var) <!-- common-v6 -->
 
 ### v7 — Campaign scoping (multi-tenancy)
 
@@ -201,6 +197,10 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 
 ### v21 — Closed beta (real DMs)
 
+- [ ] Login system — decide between magic link / OAuth / passkey (review before build) <!-- common-v21 -->
+- [ ] `/login` page <!-- common-v21 -->
+- [ ] `/dms/[handle]` stub (logged-in only) <!-- common-v21 -->
+- [ ] Signup allowlist gate (env-var) <!-- common-v21 -->
 - [ ] Recruit 5–10 real DMs from existing network <!-- common-v21 -->
 - [ ] DM self-serve onboarding docs (can a new DM reach first claim without handholding?) <!-- common-v21 -->
 - [ ] Beta covenant page — what's stable, what isn't, what may change <!-- common-v21 -->
