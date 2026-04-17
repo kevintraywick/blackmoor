@@ -373,44 +373,61 @@ export default function DoPageClient({ initial }: { initial: Roadmap }) {
           50% { opacity: 0.4; }
         }
         .do-pulse { animation: do-pulse 2s ease-in-out infinite; }
+        @media (min-width: 768px) {
+          .do-columns { flex-direction: row !important; gap: 40px !important; align-items: flex-start !important; }
+        }
       `}</style>
 
       <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 24,
-          maxWidth: 480,
-        }}
+        className="do-columns"
+        style={{ display: 'flex', flexDirection: 'column', gap: 24 }}
       >
-        <div
-          style={{
-            fontFamily: 'var(--font-garamond)',
-            fontSize: '1.5rem',
-            color: accent,
-            marginBottom: 0,
-          }}
-        >
-          Common World
-        </div>
-        <AddInput placeholder={placeholder} onAdd={handleAdd} />
-        {versions.length === 0 ? (
-          <div style={{ color: '#5a4f46', fontStyle: 'italic' }}>
-            Nothing tagged yet.
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-garamond)',
+              fontSize: '1.5rem',
+              color: accent,
+              marginBottom: 0,
+            }}
+          >
+            Common World
           </div>
-        ) : (
-          versions.map((v) => (
-            <VersionCard
-              key={v}
-              version={v}
-              items={roadmap[v]}
-              accent={accent}
-              startIndex={cumulativeIndex[v]}
-              onRemove={handleRemove}
-              onToggle={handleToggle}
-            />
-          ))
-        )}
+          <AddInput placeholder={placeholder} onAdd={handleAdd} />
+          {versions.length === 0 ? (
+            <div style={{ color: '#5a4f46', fontStyle: 'italic' }}>
+              Nothing tagged yet.
+            </div>
+          ) : (
+            versions.map((v) => (
+              <VersionCard
+                key={v}
+                version={v}
+                items={roadmap[v]}
+                accent={accent}
+                startIndex={cumulativeIndex[v]}
+                onRemove={handleRemove}
+                onToggle={handleToggle}
+              />
+            ))
+          )}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-garamond)',
+              fontSize: '1.5rem',
+              color: accent,
+              marginBottom: 0,
+            }}
+          >
+            Delivery
+          </div>
+          <div style={{ color: '#5a4f46', fontStyle: 'italic', fontSize: '0.9rem' }}>
+            Delivery dates will live here.
+          </div>
+        </div>
       </div>
     </>
   );
