@@ -35,7 +35,7 @@ export default async function HomePage() {
               src={splashSrc}
               alt="Shadow of the Wolf"
               className="hidden sm:block absolute inset-0 w-full h-full object-contain object-top"
-              style={{ transform: 'scale(1.35) translateY(-114px)', transformOrigin: 'top center' }}
+              style={{ transform: 'scale(1.35) translateY(-64px)', transformOrigin: 'top center' }}
             />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -53,7 +53,7 @@ export default async function HomePage() {
               fill
               className="hidden sm:block object-contain object-top"
               priority
-              style={{ transform: 'scale(1.35) translateY(-114px)', transformOrigin: 'top center' }}
+              style={{ transform: 'scale(1.35) translateY(-64px)', transformOrigin: 'top center' }}
             />
             {/* Mobile splash — no scale, cover the screen */}
             <Image
