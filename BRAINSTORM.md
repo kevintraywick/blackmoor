@@ -12,7 +12,7 @@ Sections are numbered for easy reference. New numbers go at the end; existing nu
 - **World layer.** Shared canon + living narrative, written by the World AI, read by all campaigns.
 - The world layer is really three things fused: a **map** (hexes, terrain), a **living population** (NPCs, armies, caravans, storms), and a **canon record** (what happened, when, with what trust).
 - A campaign is a *lens* onto the world. The world doesn't know about campaigns; campaigns subscribe.
-- **Pocket mode** is worth preserving as a flag: a DM can opt a campaign out of Common and run a private world. Same schema. Hedge against DMs who don't want their canon touched.
+- **Pocket mode** is worth preserving as a flag: a DM can opt a campaign out of Common and run a private world. Same schema. Hedge against DMs who don't want their canon touched. **Low-priority hedge — not a primary focus.** **Shadow of the Wolf is CW canon from day one**, not pocket mode.
 
 ## 2. The World AI as orchestrator, not singleton
 
@@ -256,69 +256,65 @@ Two economies running in parallel, each with its own merchants, taxes, banks, an
 
 ## 17. Flagged but not dived into
 
-- **Trust tiers** (Official / Whispered / Rumored / Prophesied). Huge design space. Medium implies trust, but *who* reports it matters too.
-- **Moderation / three-strikes** for player comments. Outside v1 scope; surface will attract trolls.
-- **Crossover sessions.** Bilateral handshake, joint initiative, dual-journal writes. Already on the ladder (v15).
-- **Creative destruction** (DCs, build-effort symmetry). Feels like a different kind of agent — a physics agent.
-- **D&D royalty canon research.** Pick the right terminology for Houses/Holds/Reaches/etc. (§11).
-- **Wild magic surges** — reuse 5e surge tables, add world-consequence variants (§13).
-- **Airship ownership / operation** as a player path (§12).
-- **MP conservation vs generation** (§13 open bit).
+Phase 2 integration (2026-04-17) moved most of these onto the ladder. Remaining:
+
+- **D&D royalty canon research.** Pick the right terminology for Houses/Holds/Reaches/Thrones/Marches/Dominions/etc. before v12 faction work starts.
+- **MP conservation vs generation.** Does the world have a fixed MP supply, or is it renewable per tick? Affects v14 schema.
+- **Void naming + cosmology.** Twelve voids seed in v9 as placeholders — who names them, and when do the names lock? Affects v9 content + v11 canon-lock rules.
+- **Airship ownership / operation as a player path.** v16 lands trade/infra; player-owned airships is a later extension.
+- **Agent cost budget.** Per-campaign/month ceiling for Haiku+Sonnet calls across all World AI loops. Needs a cap + kill switch before v12.
 
 ---
 
 ## 18. Meta — sequencing into the roadmap
 
-**Ladder restructured 2026-04-18.** H3 adoption is **v4**, Phase-1 reorganization moved three v3 items to their natural homes, and battle-testing gets its own pair of versions (v17 + v18) before public launch. See `ROADMAP.md` for the authoritative list.
+**Ladder restructured 2026-04-17 (Phase 2).** Brainstorm themes integrated: v12 split into Living world + Economy, Magic system (v14), Steampunk (v16) added as standalone versions, 30 new items scattered into existing versions. See `ROADMAP.md` for the authoritative list.
 
 Start with **plumbing** (v6–v8): DM identity, `campaigns` table, `campaign_id` on every scoped row, `/dm/[slug]/*` routes. Without this, the World AI has nowhere to write.
 
-H3 adoption is **v4**, before DM identity — spatial keys baked in before the identity refactor. Retrofitting after would hurt.
+H3 adoption is **v4**, before DM identity — spatial keys baked in before the identity refactor.
 
-Rough mapping of themes to roadmap versions (post-restructure):
+Final ladder after Phase 2 integration:
 
-| Theme | Version(s) |
-|-------|------------|
-| **H3 adoption** | **v4** (new) |
-| DM identity | v6 |
-| Campaign scoping (multi-tenancy) | v7 |
-| Cutover — `campaign_id` NOT NULL | v8 |
-| Read-only Common canvas | v9 |
-| Claim mechanic + proximity rule | v10 (add `k-ring(N)` constraint) |
-| Content lifecycle + canon | v11 |
-| NPC Layer A (ambient loops) | v12 (with world entities) |
-| Factions — data model | v12 (entities layer) |
-| Economy v1 — monetary (treasury/upkeep) | v12 |
-| **Economy v2 — MP as currency** | **v12 or new v12.5** (slots alongside treasury work) |
-| **Magic system — vessels, containment** | **v12 or new v12.5** (pairs with MP economy) |
-| **Ley-line hex state** | v12 (geographic MP supply) |
-| Raven Post propagation | v13 |
-| Real-world data feeds (weather, moon, solar) | v13 |
-| Earth-region remap / laundering | v13 (or dedicated version for cartography) |
-| **Steampunk / airships** | **v14 or later** — requires MP economy + world trade routes |
-| Creative destruction | v14 |
-| Moderated comments | v15 |
-| Crossover sessions + simultaneity tools | v16 (add overlap-notification surface) |
-| **Internal battle-test (synthetic)** | **v17** (new) |
-| **Closed beta (real DMs)** | **v18** (new) |
-| Public launch | v19 |
-| Contributor portfolios | v20 |
-| NPC Layer B (mechanic NPCs) | v12–v14 spread |
-| NPC Layer C (hero NPCs) | v20+ (portfolio / long agents) |
-| ERC-20 token bridge (planning only) | v21 |
+| v | Title | Notes |
+|---|-------|-------|
+| v3 | Map Builder | In flight |
+| v4 | Spatial substrate (H3) | Pentagon-cell helper included |
+| v5 | Housekeeping + ops | |
+| v6 | DM identity | |
+| v7 | Campaign scoping (multi-tenancy) | + `pocket_mode` flag |
+| v8 | Cutover — `campaign_id` NOT NULL | |
+| v9 | Read-only Common World | + twelve astral voids seeded |
+| v10 | Claim + publish (contributor flow) | + k-ring(N), chronicler override |
+| v11 | Content lifecycle + canon | + cross-campaign overlap, Common Year alignment |
+| v12 | Living world (entities + agents) | NPCs A/B, factions, void routing |
+| v13 | Economy — monetary | gp/sp/cp treasury + upkeep |
+| v14 | Magic system + MP economy | MP, vessels, ley-lines, wild magic |
+| v15 | News, weather, celestial | NOAA feeds, trust tiers, Earth-remap |
+| v16 | Steampunk + airships | Airship yards/routes, MP engines, sky-pirates |
+| v17 | Creative destruction | |
+| v18 | Moderated comments | |
+| v19 | Crossover sessions | + simultaneity surfacing |
+| v20 | Internal battle-test (synthetic campaigns) | |
+| v21 | Closed beta (real DMs) | |
+| v22 | Public launch | |
+| v23 | Contributor portfolios | + NPC Layer C (hero agents) |
+| v24 | ERC-20 token bridge (planning only) | |
 
-Proposed new ladder items to insert later (Phase 2 — brainstorm integration):
-- **v12.5 — Magic economy + vessels.** MP on player sheet, vessels table, ley-line hex state, per-hex MP pricing.
-- **v14 (extend) — Airship trade infrastructure.** Airship yards as world entities, trade routes as lines on the map, passage-booking as a player flow.
-- **v12 (extend) — Cross-campaign overlap detection + notification.** When two campaigns' explored hexes intersect, surface it to both DMs.
+## 19. Open questions
 
-## 19. What to discuss next session
+Resolved:
+- ~~Magic economy placement~~ → its own v14.
+- ~~Local map coordinates~~ → square (see §20).
+- ~~Cross-campaign collisions~~ → permissive + simultaneity is the feature (§4).
+- ~~Time reconciliation~~ → Common Year adopted (§5).
 
-1. Should the magic economy slot into v12 or merit its own v12.5? (Leaning v12.5 — it's big enough.)
-2. Naming the twelve voids — do we seed them in v9 or leave them blank for DMs to name through canon-lock?
-3. Royalty terminology — research pass, then pick 3-5 default terms.
-4. Walk through the v6–v8 plan one more time with this richer context and see if anything in the data model needs to change (note: `docs/plans/2026-04-11-003-feat-common-v3-multitenancy-plan.md` predates the renumber — its "v3/v4" internal references mean the old Common-ladder numbers, i.e. current v7/v8).
-5. ~~Local map coordinates — hex vs square~~ **Decided 2026-04-18: square at the local level (see §20).**
+Still open:
+1. **Royalty terminology** — research D&D canon, pick 3-5 default terms before v12 factions.
+2. **Void cosmology + names** — who names them, when does the canon lock?
+3. **MP conservation vs generation** — fixed world supply, or renewable per tick? v14 schema depends.
+4. **Agent cost budget** — per-campaign/month ceiling + kill switch for World AI loops. Needs a number before v12.
+5. **Walk v6–v8 plan** against the richer context. Note: `docs/plans/2026-04-11-003-feat-common-v3-multitenancy-plan.md` predates every renumber — its "v3/v4" internal references mean old Common-ladder numbers, i.e. current v7/v8.
 
 ## 20. Local map coordinates — decision
 

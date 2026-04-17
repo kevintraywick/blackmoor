@@ -2,7 +2,7 @@
 
 The roadmap for **Common World** (the platform) and the campaigns running on it. Shadow of the Wolf is the flagship campaign. This file is parsed at build time and rendered at `/do`.
 
-Each item is a checkbox list entry with a version tag. Tags look like `<!-- common-v4 -->`. Untagged items are ignored. Versions run v3 (maps, in flight) through v21 (planning horizon).
+Each item is a checkbox list entry with a version tag. Tags look like `<!-- common-v4 -->`. Untagged items are ignored. Versions run v3 (maps, in flight) through v24 (planning horizon).
 
 Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-progress -->` to mark partial work. Note: this file is a snapshot — the DB (`roadmap_items` table) is the ground truth.
 
@@ -67,6 +67,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] API route migration pass (writes) <!-- common-v7 -->
 - [ ] `lib/world.ts` + `lib/raven-post.ts` + `lib/world-ai-*.ts` rescoped <!-- common-v7 -->
 - [ ] Shadow backfill — every existing row gets `shadow` campaign_id <!-- common-v7 -->
+- [ ] `pocket_mode` flag on campaigns (opt out of Common World integration) <!-- common-v7 -->
 
 ### v8 — Cutover — `campaign_id` NOT NULL
 
@@ -87,6 +88,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] Seeded central region hand-painted via Map Builder <!-- common-v9 -->
 - [ ] Seeded wilds via AI generation <!-- common-v9 -->
 - [ ] Language overlay map <!-- common-v9 -->
+- [ ] Seed the twelve astral voids at pentagon cells (named cosmological placeholders) <!-- common-v9 -->
 
 ### v10 — Claim + publish (contributor flow)
 
@@ -97,6 +99,8 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] SMS approval via Twilio (10 min SLA target) <!-- common-v10 -->
 - [ ] Author tracking: `author_dm_id` on content tables <!-- common-v10 -->
 - [ ] Publish flow for towns, roads, NPCs, items <!-- common-v10 -->
+- [ ] k-ring(N) proximity rule — new DM claims must be adjacent to existing claims <!-- common-v10 -->
+- [ ] Chronicler override — undo or negotiate a contested canon mutation after-the-fact <!-- common-v10 -->
 
 ### v11 — Content lifecycle + canon
 
@@ -105,79 +109,116 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] `common_entity_references` + canon-lock at count ≥ 2 <!-- common-v11 -->
 - [ ] Naming etiquette check with translation pass <!-- common-v11 -->
 - [ ] Watchlist for first-campaign DMs <!-- common-v11 -->
+- [ ] Cross-campaign overlap detection + notification (surface when two campaigns' explored hexes intersect) <!-- common-v11 -->
+- [ ] Common Year alignment rules (close-in-time campaigns bring-forward to world frontier) <!-- common-v11 -->
 
-### v12 — Living world + economy
+### v12 — Living world (entities + agents)
 
 - [ ] `common_world_entities` table (storms, ships, caravans, armies) <!-- common-v12 -->
 - [ ] World AI movement loop on common-clock tick <!-- common-v12 -->
-- [ ] `treasury_gp` / `treasury_sp` / `treasury_cp` on campaigns <!-- common-v12 -->
-- [ ] Upkeep ledger + debit per common-day <!-- common-v12 -->
-- [ ] Common item price sheet (`/common-world/prices`) <!-- common-v12 -->
-- [ ] `/dm/[slug]/treasury` page <!-- common-v12 -->
 - [ ] DM game clock advance UI on world map (advance N hours/days, entity tick) <!-- common-v12 -->
+- [ ] NPC Layer A — ambient/loop NPCs (hex-schedule data model, baker pattern) <!-- common-v12 -->
+- [ ] NPC Layer B scaffold — mechanic NPCs (merchants, criers, innkeepers) <!-- common-v12 -->
+- [ ] Factions table (thieves, assassins, merchants, religious orders, royalty) <!-- common-v12 -->
+- [ ] Faction agents with agendas + pairwise relationships <!-- common-v12 -->
+- [ ] Pentagon/void routing — entities route around the twelve voids <!-- common-v12 -->
+- [ ] Overheard-on-pass — Layer A NPC proximity triggers SMS/Discord snippet <!-- common-v12 -->
 
-### v13 — News, weather, celestial
+### v13 — Economy — monetary
 
-- [ ] Raven Post Common Desk (inbox of nearby/tagged common-world headlines) <!-- common-v13 -->
-- [ ] Distance-based arrival delay by item kind <!-- common-v13 -->
-- [ ] Trust-tier degradation by hex distance <!-- common-v13 -->
-- [ ] Real-world moon phase → global celestial events <!-- common-v13 -->
-- [ ] Local weather derived from common weather layer <!-- common-v13 -->
-- [ ] Environment pill on local maps (weather + day/night from parent hex) <!-- common-v13 -->
+- [ ] `treasury_gp` / `treasury_sp` / `treasury_cp` on campaigns <!-- common-v13 -->
+- [ ] Upkeep ledger + debit per common-day <!-- common-v13 -->
+- [ ] Common item price sheet (`/common-world/prices`) <!-- common-v13 -->
+- [ ] `/dm/[slug]/treasury` page <!-- common-v13 -->
 
-### v14 — Creative destruction
+### v14 — Magic system + MP economy
 
-- [ ] `destructible_kind` enum on common_entities <!-- common-v14 -->
-- [ ] `object_dc` + build-effort symmetry rule <!-- common-v14 -->
-- [ ] Physical-interaction gate for destruction <!-- common-v14 -->
-- [ ] `destroyed` / `rebuilt` lifecycle states <!-- common-v14 -->
-- [ ] Research brief: 5e DMG object rules + siege warfare DCs <!-- common-v14 -->
+- [ ] MP on player sheet — natural capacity + current held (per-class/race cap) <!-- common-v14 -->
+- [ ] `vessels` table — owner, type, capacity, current_mp, recharge_rate, condition <!-- common-v14 -->
+- [ ] Affinity classification — natural / channeler / mundane on player sheets <!-- common-v14 -->
+- [ ] Ley-line hex state — per-hex MP reserves and regeneration <!-- common-v14 -->
+- [ ] Per-hex MP pricing + regional gp↔MP exchange rates <!-- common-v14 -->
+- [ ] Magic merchants + magic banks (storage, loans, interest) <!-- common-v14 -->
+- [ ] Moon-phase recharge modifier on vessels + natural holders <!-- common-v14 -->
+- [ ] Wild-magic surge tables (5e-based) + world-consequence variants <!-- common-v14 -->
 
-### v15 — Moderated comments
+### v15 — News, weather, celestial
 
-- [ ] Comment surface on towns, bridges, hero NPCs, bespoke items, taverns/inns, landmarks <!-- common-v15 -->
-- [ ] In-fiction tone rules enforcement <!-- common-v15 -->
-- [ ] Three-strike moderation flow <!-- common-v15 -->
+- [ ] Raven Post Common Desk (inbox of nearby/tagged common-world headlines) <!-- common-v15 -->
+- [ ] Distance-based arrival delay by item kind <!-- common-v15 -->
+- [ ] Trust-tier degradation by hex distance <!-- common-v15 -->
+- [ ] Real-world moon phase → global celestial events <!-- common-v15 -->
+- [ ] Local weather derived from common weather layer <!-- common-v15 -->
+- [ ] Environment pill on local maps (weather + day/night from parent hex) <!-- common-v15 -->
+- [ ] NOAA GFS weather subscription → in-fiction storms (identity-laundered) <!-- common-v15 -->
+- [ ] NOAA SWPC aurora/solar-flare feed → sky-danced events <!-- common-v15 -->
+- [ ] Trust tiers on items (Official / Whispered / Rumored / Prophesied) <!-- common-v15 -->
+- [ ] Earth-region remap engine — per-world rotation/mirror/shuffle of real geography <!-- common-v15 -->
 
-### v16 — Crossover sessions
+### v16 — Steampunk + airships
 
-- [ ] Bilateral crossover handshake <!-- common-v16 -->
-- [ ] Joint initiative order <!-- common-v16 -->
-- [ ] Dual-journal writes <!-- common-v16 -->
+- [ ] Airship yards as world entities at anchor hexes <!-- common-v16 -->
+- [ ] Airship trade routes as world entities (lines between yards) <!-- common-v16 -->
+- [ ] MP-burning engine mechanics — vessels power propulsion <!-- common-v16 -->
+- [ ] Air-current navigation using laundered real jet-stream data <!-- common-v16 -->
+- [ ] Passage-booking flow for player parties (fast travel option) <!-- common-v16 -->
+- [ ] Sky-pirates as faction (steampunk air-raid mechanics) <!-- common-v16 -->
 
-### v17 — Internal battle-test (synthetic campaigns)
+### v17 — Creative destruction
 
-- [ ] Synthetic DM + player personas (3–5 DMs, 4-player parties each, varied tiers) <!-- common-v17 -->
-- [ ] Scripted end-to-end run: onboarding → first claim → publish → 5+ sessions → content-lifecycle triggers <!-- common-v17 -->
-- [ ] Cross-campaign collision + crossover session scenarios exercised <!-- common-v17 -->
-- [ ] World-AI loops under synthetic load (entity movement, weather, rumors) <!-- common-v17 -->
-- [ ] Economy + common price-sheet flow exercised across 3+ campaigns <!-- common-v17 -->
-- [ ] Performance baseline + bug triage pass from battle-test findings <!-- common-v17 -->
+- [ ] `destructible_kind` enum on common_entities <!-- common-v17 -->
+- [ ] `object_dc` + build-effort symmetry rule <!-- common-v17 -->
+- [ ] Physical-interaction gate for destruction <!-- common-v17 -->
+- [ ] `destroyed` / `rebuilt` lifecycle states <!-- common-v17 -->
+- [ ] Research brief: 5e DMG object rules + siege warfare DCs <!-- common-v17 -->
 
-### v18 — Closed beta (real DMs)
+### v18 — Moderated comments
 
-- [ ] Recruit 5–10 real DMs from existing network <!-- common-v18 -->
-- [ ] DM self-serve onboarding docs (can a new DM reach first claim without handholding?) <!-- common-v18 -->
-- [ ] Beta covenant page — what's stable, what isn't, what may change <!-- common-v18 -->
-- [ ] In-app feedback capture + weekly sync cadence <!-- common-v18 -->
-- [ ] Usage telemetry — per-feature touch rates, drop-off points <!-- common-v18 -->
-- [ ] Closed-beta exit criteria (crash rate, NPS, feature completeness) gating public launch <!-- common-v18 -->
+- [ ] Comment surface on towns, bridges, hero NPCs, bespoke items, taverns/inns, landmarks <!-- common-v18 -->
+- [ ] In-fiction tone rules enforcement <!-- common-v18 -->
+- [ ] Three-strike moderation flow <!-- common-v18 -->
 
-### v19 — Public launch
+### v19 — Crossover sessions
 
-- [ ] Flip signup allowlist off (public DM signup opens) <!-- common-v19 -->
-- [ ] Loremaster tier operations <!-- common-v19 -->
-- [ ] Delegated moderation for Loremasters <!-- common-v19 -->
-- [ ] `/common-world/chronicle` public activity log <!-- common-v19 -->
-- [ ] Research TODO: ethical content moderation best practices for D&D <!-- common-v19 -->
+- [ ] Bilateral crossover handshake <!-- common-v19 -->
+- [ ] Joint initiative order <!-- common-v19 -->
+- [ ] Dual-journal writes <!-- common-v19 -->
+- [ ] Same-location-same-time surfacing (two parties in same hex at same in-fiction time) <!-- common-v19 -->
 
-### v20 — Contributor portfolios
+### v20 — Internal battle-test (synthetic campaigns)
 
-- [ ] `/dms/[handle]` full portfolio page (logged-in only) <!-- common-v20 -->
-- [ ] Cross-campaign DM history surface <!-- common-v20 -->
-- [ ] Reference graph visualization <!-- common-v20 -->
+- [ ] Synthetic DM + player personas (3–5 DMs, 4-player parties each, varied tiers) <!-- common-v20 -->
+- [ ] Scripted end-to-end run: onboarding → first claim → publish → 5+ sessions → content-lifecycle triggers <!-- common-v20 -->
+- [ ] Cross-campaign collision + crossover session scenarios exercised <!-- common-v20 -->
+- [ ] World-AI loops under synthetic load (entity movement, weather, rumors) <!-- common-v20 -->
+- [ ] Economy + common price-sheet flow exercised across 3+ campaigns <!-- common-v20 -->
+- [ ] Performance baseline + bug triage pass from battle-test findings <!-- common-v20 -->
 
-### v21 — ERC-20 token bridge (planning only)
+### v21 — Closed beta (real DMs)
 
-- [ ] Planning doc for common currency ERC-20 token <!-- common-v21 -->
-- [ ] Legal review (KYC, tax, real-money stakes) <!-- common-v21 -->
+- [ ] Recruit 5–10 real DMs from existing network <!-- common-v21 -->
+- [ ] DM self-serve onboarding docs (can a new DM reach first claim without handholding?) <!-- common-v21 -->
+- [ ] Beta covenant page — what's stable, what isn't, what may change <!-- common-v21 -->
+- [ ] In-app feedback capture + weekly sync cadence <!-- common-v21 -->
+- [ ] Usage telemetry — per-feature touch rates, drop-off points <!-- common-v21 -->
+- [ ] Closed-beta exit criteria (crash rate, NPS, feature completeness) gating public launch <!-- common-v21 -->
+
+### v22 — Public launch
+
+- [ ] Flip signup allowlist off (public DM signup opens) <!-- common-v22 -->
+- [ ] Loremaster tier operations <!-- common-v22 -->
+- [ ] Delegated moderation for Loremasters <!-- common-v22 -->
+- [ ] `/common-world/chronicle` public activity log <!-- common-v22 -->
+- [ ] Research TODO: ethical content moderation best practices for D&D <!-- common-v22 -->
+
+### v23 — Contributor portfolios
+
+- [ ] `/dms/[handle]` full portfolio page (logged-in only) <!-- common-v23 -->
+- [ ] Cross-campaign DM history surface <!-- common-v23 -->
+- [ ] Reference graph visualization <!-- common-v23 -->
+- [ ] NPC Layer C — hero NPCs as long-horizon agents with memory + agendas <!-- common-v23 -->
+
+### v24 — ERC-20 token bridge (planning only)
+
+- [ ] Planning doc for common currency ERC-20 token <!-- common-v24 -->
+- [ ] Legal review (KYC, tax, real-money stakes) <!-- common-v24 -->
