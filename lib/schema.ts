@@ -1134,17 +1134,29 @@ async function _initSchema() {
        ON raven_issues(campaign_id, published_at DESC)`
   ).catch(() => {});
 
-  // Roadmap items — DB-backed so prod edits persist across deploys
+  // Roadmap items — DB-backed so prod edits persist across deploys.
+  // The `ladder` column is legacy (was 'shadow' | 'common'); all rows
+  // are now 'common'. Column is kept for one release cycle before drop.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS roadmap_items (
       id         SERIAL PRIMARY KEY,
-      ladder     TEXT NOT NULL CHECK (ladder IN ('shadow', 'common')),
+      ladder     TEXT NOT NULL DEFAULT 'common' CHECK (ladder = 'common'),
       version    INTEGER NOT NULL,
       title      TEXT NOT NULL,
       status     TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('built', 'in_progress', 'planned')),
       sort_order INTEGER NOT NULL DEFAULT 0
     )
   `);
+  await pool.query(
+    `DO $$
+     BEGIN
+       IF EXISTS (SELECT 1 FROM information_schema.constraint_column_usage
+                  WHERE table_name = 'roadmap_items' AND constraint_name = 'roadmap_items_ladder_check') THEN
+         ALTER TABLE roadmap_items DROP CONSTRAINT roadmap_items_ladder_check;
+         ALTER TABLE roadmap_items ADD CONSTRAINT roadmap_items_ladder_check CHECK (ladder = 'common');
+       END IF;
+     END $$;`,
+  ).catch(() => {});
 
   // API key validation — warn at startup if keys are missing or malformed
   const keyChecks: { name: string; prefix?: string; label: string }[] = [

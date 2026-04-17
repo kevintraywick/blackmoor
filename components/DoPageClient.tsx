@@ -10,15 +10,10 @@ type RoadmapItem = {
   status: Status;
 };
 
-type Ladder = Record<string, RoadmapItem[]>;
+export type Roadmap = Record<string, RoadmapItem[]>;
 
-type Roadmap = {
-  shadow: Ladder;
-  common: Ladder;
-};
-
-function sortVersions(ladder: Ladder): string[] {
-  return Object.keys(ladder).sort((a, b) => {
+function sortVersions(roadmap: Roadmap): string[] {
+  return Object.keys(roadmap).sort((a, b) => {
     const na = parseInt(a.slice(1), 10);
     const nb = parseInt(b.slice(1), 10);
     return na - nb;
@@ -79,17 +74,15 @@ function Glyph({ status, onClick }: { status: Status; onClick?: () => void }) {
 function ItemRow({
   item,
   index,
-  ladderKey,
   version,
   onRemove,
   onToggle,
 }: {
   item: RoadmapItem;
   index: number;
-  ladderKey: 'shadow' | 'common';
   version: string;
-  onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
-  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
+  onRemove: (version: string, text: string, itemId: number) => void;
+  onToggle: (version: string, text: string, itemId: number) => void;
 }) {
   return (
     <li
@@ -106,12 +99,12 @@ function ItemRow({
       </span>
       <Glyph
         status={item.status}
-        onClick={() => onToggle(ladderKey, version, item.title, item.id)}
+        onClick={() => onToggle(version, item.title, item.id)}
       />
       <span style={{ flex: 1 }}>{item.title}</span>
       {item.status !== 'built' && (
         <button
-          onClick={() => onRemove(ladderKey, version, item.title, item.id)}
+          onClick={() => onRemove(version, item.title, item.id)}
           style={{
             background: 'none',
             border: 'none',
@@ -139,7 +132,6 @@ function VersionCard({
   version,
   items,
   accent,
-  ladderKey,
   startIndex,
   onRemove,
   onToggle,
@@ -147,10 +139,9 @@ function VersionCard({
   version: string;
   items: RoadmapItem[];
   accent: string;
-  ladderKey: 'shadow' | 'common';
   startIndex: number;
-  onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
-  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
+  onRemove: (version: string, text: string, itemId: number) => void;
+  onToggle: (version: string, text: string, itemId: number) => void;
 }) {
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -187,7 +178,7 @@ function VersionCard({
         {active.length > 0 && (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {active.map(({ item, origIdx }) => (
-              <ItemRow key={item.id} item={item} index={startIndex + origIdx} ladderKey={ladderKey} version={version} onRemove={onRemove} onToggle={onToggle} />
+              <ItemRow key={item.id} item={item} index={startIndex + origIdx} version={version} onRemove={onRemove} onToggle={onToggle} />
             ))}
           </ul>
         )}
@@ -232,7 +223,7 @@ function VersionCard({
           {showCompleted && (
             <ul style={{ listStyle: 'none', padding: '0 16px 10px', margin: 0 }}>
               {completed.map(({ item, origIdx }) => (
-                <ItemRow key={item.id} item={item} index={startIndex + origIdx} ladderKey={ladderKey} version={version} onRemove={onRemove} onToggle={onToggle} />
+                <ItemRow key={item.id} item={item} index={startIndex + origIdx} version={version} onRemove={onRemove} onToggle={onToggle} />
               ))}
             </ul>
           )}
@@ -243,13 +234,11 @@ function VersionCard({
 }
 
 function AddInput({
-  ladderKey,
   placeholder,
   onAdd,
 }: {
-  ladderKey: 'shadow' | 'common';
   placeholder: string;
-  onAdd: (ladder: 'shadow' | 'common', version: number, text: string) => void;
+  onAdd: (version: number, text: string) => void;
 }) {
   const [value, setValue] = useState('');
   const [error, setError] = useState('');
@@ -267,7 +256,7 @@ function AddInput({
     }
     const version = parseInt(match[1], 10);
     const text = match[2].trim();
-    onAdd(ladderKey, version, text);
+    onAdd(version, text);
     setValue('');
     setError('');
   }
@@ -303,96 +292,41 @@ function AddInput({
   );
 }
 
-function LadderColumn({
-  title,
-  ladder,
-  accent,
-  bg,
-  ladderKey,
-  onAdd,
-  onRemove,
-  onToggle,
-}: {
-  title: string;
-  ladder: Ladder;
-  accent: string;
-  bg?: string;
-  ladderKey: 'shadow' | 'common';
-  onAdd: (ladder: 'shadow' | 'common', version: number, text: string) => void;
-  onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
-  onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
-}) {
-  const allVersions = sortVersions(ladder);
-  const versions = allVersions.filter(v => (ladder[v] ?? []).some(item => item.status !== 'built'));
+export default function DoPageClient({ initial }: { initial: Roadmap }) {
+  const [roadmap, setRoadmap] = useState<Roadmap>(initial);
+  const accent = '#c9a84c';
+
+  const allVersions = sortVersions(roadmap);
+  const versions = allVersions.filter(v => (roadmap[v] ?? []).some(item => item.status !== 'built'));
   const cumulativeIndex: Record<string, number> = {};
   let runningIdx = 1;
   for (const v of versions) {
     cumulativeIndex[v] = runningIdx;
-    runningIdx += (ladder[v]?.length ?? 0);
+    runningIdx += (roadmap[v]?.length ?? 0);
   }
   const firstVersion = versions[0] ?? 'v1';
   const placeholder = `${firstVersion} feature name…`;
-  return (
-    <div style={{ flex: 1, minWidth: 0, background: bg, borderRadius: bg ? 8 : 0, padding: bg ? '20px 20px 4px' : 0 }}>
-      <div
-        style={{
-          fontFamily: 'var(--font-garamond)',
-          fontSize: '1.5rem',
-          color: accent,
-          marginBottom: 12,
-        }}
-      >
-        {title}
-      </div>
-      <AddInput ladderKey={ladderKey} placeholder={placeholder} onAdd={onAdd} />
-      {versions.length === 0 ? (
-        <div style={{ color: '#5a4f46', fontStyle: 'italic' }}>
-          Nothing tagged yet.
-        </div>
-      ) : (
-        versions.map((v) => {
-          const idx = cumulativeIndex[v];
-          return (
-            <VersionCard
-              key={v}
-              version={v}
-              items={ladder[v]}
-              accent={accent}
-              ladderKey={ladderKey}
-              startIndex={idx}
-              onRemove={onRemove}
-              onToggle={onToggle}
-            />
-          );
-        })
-      )}
-    </div>
-  );
-}
 
-export default function DoPageClient({ initial }: { initial: Roadmap }) {
-  const [roadmap, setRoadmap] = useState<Roadmap>(initial);
-
-  async function handleAdd(ladder: 'shadow' | 'common', version: number, text: string) {
+  async function handleAdd(version: number, text: string) {
     const res = await fetch('/api/roadmap/add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ladder, version, text }),
+      body: JSON.stringify({ version, text }),
     });
     if (!res.ok) return;
     const { item } = await res.json();
 
     const vKey = `v${version}`;
     setRoadmap((prev) => {
-      const target = { ...prev[ladder] };
-      const items = target[vKey] ? [...target[vKey]] : [];
+      const next = { ...prev };
+      const items = next[vKey] ? [...next[vKey]] : [];
       items.push({ id: item.id, title: text, status: 'planned' });
-      target[vKey] = items;
-      return { ...prev, [ladder]: target };
+      next[vKey] = items;
+      return next;
     });
   }
 
-  async function handleRemove(_ladder: 'shadow' | 'common', version: string, _text: string, itemId: number) {
+  async function handleRemove(version: string, _text: string, itemId: number) {
     const res = await fetch('/api/roadmap/remove', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -401,19 +335,18 @@ export default function DoPageClient({ initial }: { initial: Roadmap }) {
     if (!res.ok) return;
 
     setRoadmap((prev) => {
-      const ladder = _ladder;
-      const target = { ...prev[ladder] };
-      const items = (target[version] ?? []).filter((item) => item.id !== itemId);
+      const next = { ...prev };
+      const items = (next[version] ?? []).filter((item) => item.id !== itemId);
       if (items.length > 0) {
-        target[version] = items;
+        next[version] = items;
       } else {
-        delete target[version];
+        delete next[version];
       }
-      return { ...prev, [ladder]: target };
+      return next;
     });
   }
 
-  async function handleToggle(_ladder: 'shadow' | 'common', version: string, _text: string, itemId: number) {
+  async function handleToggle(version: string, _text: string, itemId: number) {
     const res = await fetch('/api/roadmap/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -423,13 +356,12 @@ export default function DoPageClient({ initial }: { initial: Roadmap }) {
     const { status: newStatus } = await res.json();
 
     setRoadmap((prev) => {
-      const ladder = _ladder;
-      const target = { ...prev[ladder] };
-      const items = (target[version] ?? []).map((item) =>
+      const next = { ...prev };
+      const items = (next[version] ?? []).map((item) =>
         item.id === itemId ? { ...item, status: newStatus as Status } : item
       );
-      target[version] = items;
-      return { ...prev, [ladder]: target };
+      next[version] = items;
+      return next;
     });
   }
 
@@ -441,34 +373,44 @@ export default function DoPageClient({ initial }: { initial: Roadmap }) {
           50% { opacity: 0.4; }
         }
         .do-pulse { animation: do-pulse 2s ease-in-out infinite; }
-        @media (min-width: 768px) {
-          .do-columns { flex-direction: row !important; gap: 40px !important; }
-        }
       `}</style>
 
       <div
-        className="do-columns"
-        style={{ display: 'flex', flexDirection: 'column', gap: 24 }}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 24,
+          maxWidth: 480,
+        }}
       >
-        <LadderColumn
-          title="Shadow of the Wolf"
-          ladder={roadmap.shadow}
-          accent="#6b4f2a"
-          ladderKey="shadow"
-          onAdd={handleAdd}
-          onRemove={handleRemove}
-          onToggle={handleToggle}
-        />
-        <LadderColumn
-          title="Common World"
-          ladder={roadmap.common}
-          accent="#c9a84c"
-          bg="rgba(74,122,90,0.12)"
-          ladderKey="common"
-          onAdd={handleAdd}
-          onRemove={handleRemove}
-          onToggle={handleToggle}
-        />
+        <div
+          style={{
+            fontFamily: 'var(--font-garamond)',
+            fontSize: '1.5rem',
+            color: accent,
+            marginBottom: 0,
+          }}
+        >
+          Common World
+        </div>
+        <AddInput placeholder={placeholder} onAdd={handleAdd} />
+        {versions.length === 0 ? (
+          <div style={{ color: '#5a4f46', fontStyle: 'italic' }}>
+            Nothing tagged yet.
+          </div>
+        ) : (
+          versions.map((v) => (
+            <VersionCard
+              key={v}
+              version={v}
+              items={roadmap[v]}
+              accent={accent}
+              startIndex={cumulativeIndex[v]}
+              onRemove={handleRemove}
+              onToggle={handleToggle}
+            />
+          ))
+        )}
       </div>
     </>
   );

@@ -1,52 +1,42 @@
 # Roadmap
 
-The public roadmap for **Shadow of the Wolf** (the campaign site) and **Common World** (the platform). This file is parsed at build time and rendered at `/do`.
+The roadmap for **Common World** (the platform) and the campaigns running on it. Shadow of the Wolf is the flagship campaign. This file is parsed at build time and rendered at `/do`.
 
-Each item is a checkbox list entry with a version tag. Tags look like `<!-- shadow-v2 -->` or `<!-- v6 -->`. Untagged items are ignored. Shadow and Common share one version sequence: Shadow is v1–v3, Common starts at v4.
+Each item is a checkbox list entry with a version tag. Tags look like `<!-- common-v4 -->`. Untagged items are ignored. Versions run v3 (maps, in flight) through v18 (planning horizon).
 
 Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-progress -->` to mark partial work. Note: this file is a snapshot — the DB (`roadmap_items` table) is the ground truth.
 
 ---
 
-## Shadow of the Wolf
+### Shipped
 
-> The D&D campaign site Kevin uses at the table with his players. One campaign, one site. Pre-dates Common World.
-
-### Shipped — Shadow past releases
-
-Archived 2026-04-16. Item rows live in the `roadmap_items` table and still render collapsed under each version's "completed" pill on `/do`.
+Archived 2026-04-16. Item rows live in the `roadmap_items` table and still render collapsed under each version's "completed" pill on `/do` when any active work remains in the version.
 
 **Shadow one — the site itself.** Player sheets, inventory, HP, gold, DM journal, public journey log, NPC session management, Map Builder (world/local + canonical scale), inventory card builder, DM messages + whispers + boons, poison counter, initiative tracker, "Are You In?" availability page with quorum email, invitation system, nightly DB backup.
 
 **Shadow two — polish + the living world.** Three vertical banner circles (compass, sun/moon phase, wind), Ajax in DM nav, mobile marketplace redesign, Raven Post World AI hardening, player-side Sendings pane.
 
-### Shadow v3 — maps
+### v3 — maps
 
-- [ ] Merge feat/map-builder PR to main (editor, world map, local maps, canonical scale) <!-- shadow-v3 -->
-- [ ] Mappy N-direction detection on uploaded maps <!-- shadow-v3 -->
-- [ ] Mappy scale sanity check (flag grid vs AI discrepancy) <!-- shadow-v3 -->
-- [ ] Builder canvas image rendering at canonical scale <!-- shadow-v3 -->
-- [ ] Fog of war — player-facing world map with revealed hexes only <!-- shadow-v3 -->
-- [ ] Player-facing local map view (read-only, inherits fog state) <!-- shadow-v3 -->
-- [ ] DM game clock advance UI on world map (advance N hours/days, entity tick) <!-- shadow-v3 -->
-- [ ] Environment pill on local maps (weather + day/night from parent hex) <!-- shadow-v3 -->
-- [ ] Upload classification dialog — world addition vs local map <!-- shadow-v3 -->
-- [ ] World hex picker — place local maps on the world grid <!-- shadow-v3 -->
-- [ ] Local map session event publishing (asset placed, map opened, party marker) <!-- shadow-v3 -->
-- [ ] Seed world map refresh (the hand-painted canvas Common sits on) <!-- shadow-v3 -->
-- [ ] World map party marker visible to players <!-- shadow-v3 -->
-- [ ] Print mode for map builder <!-- shadow-v3 -->
-- [x] Hand-painted 2D hex terrain tiles (Baumgart Basic Terrain Set, replacing KayKit 3D renders) <!-- shadow-v3 -->
-- [x] Terrain painting mode on world map (paint mode, palette, Baumgart sprite rendering, cursor fix) <!-- shadow-v3 -->
-- [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- shadow-v3 -->
-- [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- shadow-v3 -->
-- [ ] Language overlay map <!-- shadow-v3 -->
-
----
-
-## Common World
-
-> The multi-tenant shared-canon platform that will host many campaigns. Designed 2026-04-10/11. Full plan docs in `docs/plans/`.
+- [ ] Merge feat/map-builder PR to main (editor, world map, local maps, canonical scale) <!-- common-v3 -->
+- [ ] Mappy N-direction detection on uploaded maps <!-- common-v3 -->
+- [ ] Mappy scale sanity check (flag grid vs AI discrepancy) <!-- common-v3 -->
+- [ ] Builder canvas image rendering at canonical scale <!-- common-v3 -->
+- [ ] Fog of war — player-facing world map with revealed hexes only <!-- common-v3 -->
+- [ ] Player-facing local map view (read-only, inherits fog state) <!-- common-v3 -->
+- [ ] DM game clock advance UI on world map (advance N hours/days, entity tick) <!-- common-v3 -->
+- [ ] Environment pill on local maps (weather + day/night from parent hex) <!-- common-v3 -->
+- [ ] Upload classification dialog — world addition vs local map <!-- common-v3 -->
+- [ ] World hex picker — place local maps on the world grid <!-- common-v3 -->
+- [ ] Local map session event publishing (asset placed, map opened, party marker) <!-- common-v3 -->
+- [ ] Seed world map refresh (the hand-painted canvas Common sits on) <!-- common-v3 -->
+- [ ] World map party marker visible to players <!-- common-v3 -->
+- [ ] Print mode for map builder <!-- common-v3 -->
+- [x] Hand-painted 2D hex terrain tiles (Baumgart Basic Terrain Set, replacing KayKit 3D renders) <!-- common-v3 -->
+- [x] Terrain painting mode on world map (paint mode, palette, Baumgart sprite rendering, cursor fix) <!-- common-v3 -->
+- [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- common-v3 -->
+- [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- common-v3 -->
+- [ ] Language overlay map <!-- common-v3 -->
 
 ### v4 — current
 

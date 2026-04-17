@@ -37,41 +37,31 @@ const pool = new pg.Pool({
 });
 
 const { rows: items } = await pool.query(
-  'SELECT ladder, version, title, status, sort_order FROM roadmap_items ORDER BY ladder, version, sort_order',
+  'SELECT version, title, status, sort_order FROM roadmap_items ORDER BY version, sort_order',
 );
 
 const raw = await readFile(ROADMAP_PATH, 'utf8').catch(() => '');
 const lines = raw.split('\n');
 
-const itemRe = /^-\s+\[[ x]\]\s+.+?<!--\s*(shadow|common)-v\d+\s*-->/;
+const itemRe = /^-\s+\[[ x]\]\s+.+?<!--\s*common-v\d+\s*-->/;
 const filtered = lines.filter(line => !itemRe.test(line));
 
-const byLadderVersion = new Map();
+const byVersion = new Map();
 for (const item of items) {
-  const key = `${item.ladder}-v${item.version}`;
-  const arr = byLadderVersion.get(key) ?? [];
+  const arr = byVersion.get(item.version) ?? [];
   arr.push(item);
-  byLadderVersion.set(key, arr);
+  byVersion.set(item.version, arr);
 }
 
+const sectionRe = /^###\s+v(\d+)\b/i;
 const result = [];
 for (const line of filtered) {
   result.push(line);
-  const sectionMatch = line.match(/^###\s+.*?(shadow|common).*?v(\d+)/i) ??
-                        line.match(/^###\s+v(\d+)/i);
+  const sectionMatch = line.match(sectionRe);
   if (!sectionMatch) continue;
 
-  let ladder;
-  let version;
-  if (sectionMatch[2]) {
-    ladder = sectionMatch[1].toLowerCase();
-    version = sectionMatch[2];
-  } else {
-    version = sectionMatch[1];
-    ladder = 'common';
-  }
-  const key = `${ladder}-v${version}`;
-  const sectionItems = byLadderVersion.get(key);
+  const version = parseInt(sectionMatch[1], 10);
+  const sectionItems = byVersion.get(version);
   if (!sectionItems) continue;
 
   const nextLineIdx = filtered.indexOf(line) + 1;
@@ -81,11 +71,11 @@ for (const line of filtered) {
 
   for (const item of sectionItems) {
     const check = item.status === 'built' ? '[x]' : '[ ]';
-    const tag = `<!-- ${item.ladder}-v${item.version} -->`;
+    const tag = `<!-- common-v${version} -->`;
     const extra = item.status === 'in_progress' ? ' <!-- in-progress -->' : '';
     result.push(`- ${check} ${item.title} ${tag}${extra}`);
   }
-  byLadderVersion.delete(key);
+  byVersion.delete(version);
 }
 
 const next = result
