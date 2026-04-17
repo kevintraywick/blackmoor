@@ -159,7 +159,10 @@ export async function exportToMarkdown(): Promise<string> {
     byLadderVersion.delete(key);
   }
 
-  return result.join('\n');
+  return result
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/\n+$/, '\n');
 }
 
 export async function syncMarkdownFile(): Promise<void> {

@@ -88,7 +88,10 @@ for (const line of filtered) {
   byLadderVersion.delete(key);
 }
 
-const next = result.join('\n');
+const next = result
+  .join('\n')
+  .replace(/\n{3,}/g, '\n\n')
+  .replace(/\n+$/, '\n');
 await writeFile(ROADMAP_PATH, next, 'utf8');
 await pool.end();
 
