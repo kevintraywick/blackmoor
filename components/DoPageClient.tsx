@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { titleForVersion } from '@/lib/roadmap-version-titles';
 
 type Status = 'built' | 'in_progress' | 'planned';
 
@@ -169,11 +170,15 @@ function VersionCard({
             fontSize: '1.3rem',
             color: accent,
             marginBottom: 10,
-            textTransform: 'lowercase',
             letterSpacing: '0.05em',
           }}
         >
-          {version}
+          <span style={{ textTransform: 'lowercase' }}>{version}</span>
+          {(() => {
+            const n = parseInt(version.slice(1), 10);
+            const title = titleForVersion(n);
+            return title ? <span style={{ color: '#c8bfb5', fontSize: '1rem', marginLeft: 8 }}>— {title}</span> : null;
+          })()}
         </div>
         {active.length > 0 && (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
