@@ -8,6 +8,8 @@ import type { SaveStatus } from '@/lib/useAutosave';
 import { autoFillWeapon, lookupWeapon } from '@/lib/srd-weapons';
 import HpRing from '@/components/HpRing';
 import SendingSparkle from '@/components/SendingSparkle';
+import LeafFall from '@/components/LeafFall';
+import ChalkStreak from '@/components/ChalkStreak';
 import { parseHp } from '@/lib/hp';
 
 // ── Boon list — clickable ☐/☑ lines parsed from stored text ─────────────────
@@ -342,7 +344,7 @@ function Stat({ label, value, onChange }: { label: string; value: string; onChan
 
 
 // ── Full player sheet form ────────────────────────────────────────────────────
-export function Sheet({ playerId, playerName, character, initial, img, data, unreadCount = 0, poisonCount = 0, boonCount = 0, boonUnseen = 0, sendingCount = 0 }: { playerId: string; playerName: string; character: string; initial: string; img?: string; data: PlayerSheetType; unreadCount?: number; poisonCount?: number; boonCount?: number; boonUnseen?: number; sendingCount?: number }) {
+export function Sheet({ playerId, playerName, character, initial, img, data, unreadCount = 0, poisonCount = 0, boonCount = 0, boonUnseen = 0, sendingCount = 0, druidSignCount = 0, cantCount = 0 }: { playerId: string; playerName: string; character: string; initial: string; img?: string; data: PlayerSheetType; unreadCount?: number; poisonCount?: number; boonCount?: number; boonUnseen?: number; sendingCount?: number; druidSignCount?: number; cantCount?: number }) {
   const [values, setValues] = useState<PlayerSheetType>(data);
   const charName = character;
   const [showMessages, setShowMessages] = useState(false);
@@ -358,6 +360,16 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
   const [unreadSendings, setUnreadSendings] = useState(sendingCount);
   const [loadingSendings, setLoadingSendings] = useState(false);
   const [sparkle, setSparkle] = useState<{ id: number; x: number; y: number } | null>(null);
+  const [showDruidSigns, setShowDruidSigns] = useState(false);
+  const [druidSigns, setDruidSigns] = useState<{ id: string; body: string; published_at: string }[]>([]);
+  const [unreadDruidSigns, setUnreadDruidSigns] = useState(druidSignCount);
+  const [loadingDruidSigns, setLoadingDruidSigns] = useState(false);
+  const [leafBurst, setLeafBurst] = useState<{ id: number; x: number; y: number } | null>(null);
+  const [showCants, setShowCants] = useState(false);
+  const [cants, setCants] = useState<{ id: string; body: string; published_at: string }[]>([]);
+  const [unreadCants, setUnreadCants] = useState(cantCount);
+  const [loadingCants, setLoadingCants] = useState(false);
+  const [chalk, setChalk] = useState<{ id: number; x: number; y: number } | null>(null);
   const [showPoisons, setShowPoisons] = useState(false);
   const [poisons, setPoisons] = useState<PoisonStatus[]>([]);
   const [loadingPoisons, setLoadingPoisons] = useState(false);
@@ -503,6 +515,50 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
     } finally { setLoadingSendings(false); }
   }
 
+  async function toggleDruidSigns(e?: React.MouseEvent) {
+    if (showDruidSigns) { setShowDruidSigns(false); return; }
+    if (e) setLeafBurst({ id: Date.now(), x: e.clientX, y: e.clientY });
+    setShowDruidSigns(true);
+    setLoadingDruidSigns(true);
+    try {
+      const res = await fetch(`/api/raven-post/sendings?playerId=${playerId}&medium=druid_sign`);
+      const items: { id: string; body: string; published_at: string }[] = await res.json();
+      setDruidSigns(items);
+      if (unreadDruidSigns > 0) {
+        setUnreadDruidSigns(0);
+        for (const s of items) {
+          fetch(`/api/raven-post/items/${s.id}/read`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ playerId }),
+          }).catch(() => {});
+        }
+      }
+    } finally { setLoadingDruidSigns(false); }
+  }
+
+  async function toggleCants(e?: React.MouseEvent) {
+    if (showCants) { setShowCants(false); return; }
+    if (e) setChalk({ id: Date.now(), x: e.clientX, y: e.clientY });
+    setShowCants(true);
+    setLoadingCants(true);
+    try {
+      const res = await fetch(`/api/raven-post/sendings?playerId=${playerId}&medium=cant`);
+      const items: { id: string; body: string; published_at: string }[] = await res.json();
+      setCants(items);
+      if (unreadCants > 0) {
+        setUnreadCants(0);
+        for (const s of items) {
+          fetch(`/api/raven-post/items/${s.id}/read`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ playerId }),
+          }).catch(() => {});
+        }
+      }
+    } finally { setLoadingCants(false); }
+  }
+
   const statusText  = { idle: '', saving: 'saving…', saved: 'saved', failed: 'save failed — check connection' }[saveStatus];
   const statusColor = saveStatus === 'saved' ? 'text-[#5a8a5a]' : saveStatus === 'failed' ? 'text-[#c0392b]' : 'text-[var(--color-text-muted)]';
 
@@ -520,6 +576,26 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
           x={sparkle.x}
           y={sparkle.y}
           onDone={() => setSparkle(null)}
+        />
+      )}
+
+      {/* Druid Sign leaf-fall — fires when 🌿 is clicked */}
+      {leafBurst && (
+        <LeafFall
+          key={leafBurst.id}
+          x={leafBurst.x}
+          y={leafBurst.y}
+          onDone={() => setLeafBurst(null)}
+        />
+      )}
+
+      {/* Thieves' Cant chalk streak — fires when 🗝️ is clicked */}
+      {chalk && (
+        <ChalkStreak
+          key={chalk.id}
+          x={chalk.x}
+          y={chalk.y}
+          onDone={() => setChalk(null)}
         />
       )}
 
@@ -594,11 +670,19 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
               ) : null}
               {/* Thieves' Cant — only for Rogues */}
               {values.class?.toLowerCase().includes('rogue') && (
-                <span className="select-none" title="Thieves' Cant" style={{ fontSize: 22, lineHeight: 1, opacity: 0.25, cursor: 'default' }}>🗝️</span>
+                unreadCants > 0 ? (
+                  <span onClick={toggleCants} className="animate-pulse cursor-pointer select-none" title={`${unreadCants} thieves' cant message${unreadCants > 1 ? 's' : ''}`} style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(220,200,120,0.7)) saturate(1.6) brightness(1.2)' }}>🗝️</span>
+                ) : (
+                  <span onClick={toggleCants} className="cursor-pointer hover:opacity-70 transition-opacity select-none" title="Thieves' Cant" style={{ fontSize: 22, lineHeight: 1, opacity: 0.35 }}>🗝️</span>
+                )
               )}
               {/* Druid Sign — only for Druids */}
               {values.class?.toLowerCase().includes('druid') && (
-                <span className="select-none" title="Druid Sign" style={{ fontSize: 22, lineHeight: 1, opacity: 0.35, cursor: 'default' }}>🌿</span>
+                unreadDruidSigns > 0 ? (
+                  <span onClick={toggleDruidSigns} className="animate-pulse cursor-pointer select-none" title={`${unreadDruidSigns} druid sign${unreadDruidSigns > 1 ? 's' : ''}`} style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(90,184,122,0.8)) saturate(1.4) brightness(1.1)' }}>🌿</span>
+                ) : (
+                  <span onClick={toggleDruidSigns} className="cursor-pointer hover:opacity-70 transition-opacity select-none" title="Druid Sign" style={{ fontSize: 22, lineHeight: 1, opacity: 0.45 }}>🌿</span>
+                )
               )}
             </div>
           </div>
@@ -659,10 +743,18 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
               <span onClick={toggleSendings} className="cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, opacity: 0.3 }}>👂</span>
             ) : null}
             {values.class?.toLowerCase().includes('rogue') && (
-              <span className="select-none" title="Thieves' Cant" style={{ fontSize: 20, lineHeight: 1, opacity: 0.25, cursor: 'default' }}>🗝️</span>
+              unreadCants > 0 ? (
+                <span onClick={toggleCants} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 20, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(220,200,120,0.7)) saturate(1.6) brightness(1.2)' }}>🗝️</span>
+              ) : (
+                <span onClick={toggleCants} className="cursor-pointer select-none" style={{ fontSize: 20, lineHeight: 1, opacity: 0.35 }}>🗝️</span>
+              )
             )}
             {values.class?.toLowerCase().includes('druid') && (
-              <span className="select-none" title="Druid Sign" style={{ fontSize: 20, lineHeight: 1, opacity: 0.35, cursor: 'default' }}>🌿</span>
+              unreadDruidSigns > 0 ? (
+                <span onClick={toggleDruidSigns} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 20, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(90,184,122,0.8)) saturate(1.4) brightness(1.1)' }}>🌿</span>
+              ) : (
+                <span onClick={toggleDruidSigns} className="cursor-pointer select-none" style={{ fontSize: 20, lineHeight: 1, opacity: 0.45 }}>🌿</span>
+              )
             )}
           </div>
         </div>
@@ -742,6 +834,86 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
                 <div key={m.id} className="mb-2 last:mb-0">
                   <p className="text-[var(--color-text-body)] text-[1.05rem] font-serif leading-relaxed">{m.message}</p>
                   <p className="text-[#5a4f46] text-[0.65rem] font-sans mt-0.5">{time}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Druid Signs pane */}
+      <div
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{
+          maxHeight: showDruidSigns ? '400px' : '0px',
+          opacity: showDruidSigns ? 1 : 0,
+        }}
+      >
+        <div
+          className="border-x border-[var(--color-border)] px-4 py-3"
+          style={{ background: '#141e16' }}
+        >
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[0.65rem] uppercase tracking-[0.15em] font-sans" style={{ color: '#5ab87a' }}>🌿 Druid Signs</span>
+              <button
+                onClick={() => setShowDruidSigns(false)}
+                className="text-[#5a4f46] hover:text-[var(--color-text)] text-sm bg-transparent border-none cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            {loadingDruidSigns && <p className="text-[#8a7d6e] text-sm font-serif">Loading...</p>}
+            {!loadingDruidSigns && druidSigns.length === 0 && <p className="text-[#6a8a72] text-sm font-serif italic">No druid signs</p>}
+            {druidSigns.map(s => {
+              const d = new Date(s.published_at);
+              const time = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+              return (
+                <div key={s.id} className="mb-3 last:mb-0">
+                  <p className="font-serif text-[1.05rem] leading-relaxed" style={{ color: '#a8d0b4', fontStyle: 'italic' }}>
+                    &ldquo;{s.body}&rdquo;
+                  </p>
+                  <p className="text-[#4f5a50] text-[0.65rem] font-sans mt-0.5">{time}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Thieves' Cant pane */}
+      <div
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{
+          maxHeight: showCants ? '400px' : '0px',
+          opacity: showCants ? 1 : 0,
+        }}
+      >
+        <div
+          className="border-x border-[var(--color-border)] px-4 py-3"
+          style={{ background: '#1a1a14' }}
+        >
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[0.65rem] uppercase tracking-[0.15em] font-sans" style={{ color: '#b8a858' }}>🗝️ Thieves&apos; Cant</span>
+              <button
+                onClick={() => setShowCants(false)}
+                className="text-[#5a4f46] hover:text-[var(--color-text)] text-sm bg-transparent border-none cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            {loadingCants && <p className="text-[#8a7d6e] text-sm font-serif">Loading...</p>}
+            {!loadingCants && cants.length === 0 && <p className="text-[#8a8a6a] text-sm font-serif italic">No coded messages</p>}
+            {cants.map(s => {
+              const d = new Date(s.published_at);
+              const time = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+              return (
+                <div key={s.id} className="mb-3 last:mb-0">
+                  <p className="font-serif text-[1.05rem] leading-relaxed" style={{ color: '#d4c890', fontStyle: 'italic' }}>
+                    &ldquo;{s.body}&rdquo;
+                  </p>
+                  <p className="text-[#5a5749] text-[0.65rem] font-sans mt-0.5">{time}</p>
                 </div>
               );
             })}

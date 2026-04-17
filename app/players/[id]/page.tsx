@@ -26,23 +26,29 @@ export default async function PlayerPage({ params }: Props) {
   const player = await getPlayerById(id);
   if (!player) notFound();
 
-  const [rows, unreadRows, poisonRows, boonRows, sendingRows] = await Promise.all([
+  const unreadByMedium = (medium: string) => query<{ count: number }>(
+    `SELECT COUNT(*)::int as count FROM raven_items ri
+     WHERE ri.medium = $1 AND ri.target_player = $2
+       AND NOT EXISTS (SELECT 1 FROM raven_reads rr WHERE rr.item_id = ri.id AND rr.player_id = $2)`,
+    [medium, id],
+  );
+
+  const [rows, unreadRows, poisonRows, boonRows, sendingRows, druidRows, cantRows] = await Promise.all([
     query<PlayerSheetType>('SELECT * FROM player_sheets WHERE id = $1', [id]),
     query<{ count: number }>('SELECT COUNT(*)::int as count FROM dm_messages WHERE player_id = $1 AND read = false', [id]),
     query<{ count: number }>('SELECT COUNT(*)::int as count FROM poison_status WHERE player_id = $1 AND active = true', [id]),
     query<{ count: number; unseen: number }>('SELECT COUNT(*)::int as count, COUNT(*) FILTER (WHERE seen = false)::int as unseen FROM player_boons WHERE player_id = $1 AND active = true', [id]),
-    query<{ count: number }>(
-      `SELECT COUNT(*)::int as count FROM raven_items ri
-       WHERE ri.medium = 'sending' AND ri.target_player = $1
-         AND NOT EXISTS (SELECT 1 FROM raven_reads rr WHERE rr.item_id = ri.id AND rr.player_id = $1)`,
-      [id],
-    ),
+    unreadByMedium('sending'),
+    unreadByMedium('druid_sign'),
+    unreadByMedium('cant'),
   ]);
   const unreadCount = unreadRows[0]?.count ?? 0;
   const poisonCount = poisonRows[0]?.count ?? 0;
   const boonCount = boonRows[0]?.count ?? 0;
   const boonUnseen = boonRows[0]?.unseen ?? 0;
   const sendingCount = sendingRows[0]?.count ?? 0;
+  const druidSignCount = druidRows[0]?.count ?? 0;
+  const cantCount = cantRows[0]?.count ?? 0;
 
   const empty: PlayerSheetType = {
     id, discord: '', sms_phone: '', sms_optin: false, species: '', class: '', level: '', hp: '', xp: '',
@@ -96,6 +102,8 @@ export default async function PlayerPage({ params }: Props) {
           boonCount={boonCount}
           boonUnseen={boonUnseen}
           sendingCount={sendingCount}
+          druidSignCount={druidSignCount}
+          cantCount={cantCount}
         />
         <PlayerMapPanel playerId={player.id} />
       </div>

@@ -123,6 +123,63 @@ body {
   will-change: transform, opacity;
 }
 
+/* ── Druid Sign: falling leaves on notification tap ─────────────────── */
+@keyframes leaf-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--leaf-dx), var(--leaf-dy)) rotate(var(--leaf-spin));
+    opacity: 0;
+  }
+}
+
+.leaf-fall-particle {
+  animation: leaf-fall linear forwards;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 0 3px rgba(90, 184, 122, 0.4));
+}
+
+/* ── Thieves' Cant: chalk streak drawn on notification tap ──────────── */
+@keyframes chalk-draw {
+  0% {
+    stroke-dasharray: var(--chalk-len);
+    stroke-dashoffset: var(--chalk-len);
+    opacity: 0.95;
+  }
+  40% {
+    stroke-dashoffset: 0;
+    opacity: 0.95;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+.chalk-streak-path {
+  stroke-dasharray: var(--chalk-len);
+  stroke-dashoffset: var(--chalk-len);
+  animation: chalk-draw 1.6s ease-out forwards;
+  will-change: stroke-dashoffset, opacity;
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.4));
+}
+
+.chalk-streak-path-offset {
+  animation-delay: 0.05s;
+}
+
+.chalk-streak-path-offset2 {
+  animation-delay: 0.1s;
+}
+
 .raven-link-pulse-fade {
   transition: color 30s ease, text-shadow 30s ease, opacity 30s ease;
   color: var(--color-text);
