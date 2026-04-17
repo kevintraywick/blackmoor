@@ -322,7 +322,8 @@ function LadderColumn({
   onRemove: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
   onToggle: (ladder: 'shadow' | 'common', version: string, text: string, itemId: number) => void;
 }) {
-  const versions = sortVersions(ladder);
+  const allVersions = sortVersions(ladder);
+  const versions = allVersions.filter(v => (ladder[v] ?? []).some(item => item.status !== 'built'));
   const cumulativeIndex: Record<string, number> = {};
   let runningIdx = 1;
   for (const v of versions) {
