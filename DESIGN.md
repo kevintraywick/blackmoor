@@ -164,7 +164,7 @@ The right half of the player sheet header is a row of notification glyphs. Order
 | Poison          | 🤢                                 | Pulses while active                              | Poison applied to player         | Opens poison panel                                                        |
 | Sending         | 👂                                 | Pink/magenta glow; pulses while unread           | Raven Post sending published     | **Fountain of sparkles** (`SendingSparkle.tsx`) erupts at click point; opens sendings list; marks read |
 | Thieves' Cant   | 🗝️                                 | Dim, no behavior (placeholder)                   | Class includes "rogue"           | —                                                                         |
-| Druid Sign      | 🌿 feather (SVG)                   | Dim, no behavior (placeholder)                   | Class includes "druid"           | —                                                                         |
+| Druid Sign      | 🌿 leaf sprig                      | Dim, no behavior (placeholder)                   | Class includes "druid"           | —                                                                         |
 
 **Sparkle fountain (sendings):** ~40 particles (✦/✧/·) in soft purple, gold, and warm white. Fountain shape — biased upward with horizontal spread, ~2.5s lifetime. Fires at the cursor position, not the icon's bounding box, so it follows the click. Disabled until the icon is clicked (no auto-fire on page load).
 
