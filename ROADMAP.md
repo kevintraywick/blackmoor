@@ -42,6 +42,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] World anchor: pick real lat/lng and H3 resolution for current Shadow world map <!-- common-v4 -->
 - [ ] Backfill: existing world-hex (col,row) coords → `h3_cell` at chosen resolution <!-- common-v4 -->
 - [ ] Dual-write: world-map writes populate `h3_cell` alongside legacy (col,row); reads remain on legacy path <!-- common-v4 -->
+- [ ] Mappy sanity-checks local-map scale against real-world dimensions at the H3 anchor cell <!-- common-v4 -->
 
 ### v5 — Housekeeping + ops
 
@@ -89,6 +90,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] Seeded wilds via AI generation <!-- common-v9 -->
 - [ ] Language overlay map <!-- common-v9 -->
 - [ ] Seed the twelve astral voids at pentagon cells (named cosmological placeholders) <!-- common-v9 -->
+- [ ] World-scale fog: unrevealed continents are "beyond known charts" until discovered <!-- common-v9 -->
 
 ### v10 — Claim + publish (contributor flow)
 
@@ -101,6 +103,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] Publish flow for towns, roads, NPCs, items <!-- common-v10 -->
 - [ ] k-ring(N) proximity rule — new DM claims must be adjacent to existing claims <!-- common-v10 -->
 - [ ] Chronicler override — undo or negotiate a contested canon mutation after-the-fact <!-- common-v10 -->
+- [ ] Resolution tiers by DM class — newbie claims at res-7, Cartographer at res-5, World AI at res-4+ <!-- common-v10 -->
 
 ### v11 — Content lifecycle + canon
 
@@ -123,6 +126,8 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] Faction agents with agendas + pairwise relationships <!-- common-v12 -->
 - [ ] Pentagon/void routing — entities route around the twelve voids <!-- common-v12 -->
 - [ ] Overheard-on-pass — Layer A NPC proximity triggers SMS/Discord snippet <!-- common-v12 -->
+- [ ] Research pass: D&D royalty terminology (Houses / Holds / Reaches / Marches / Dominions) — pick 3-5 defaults <!-- common-v12 -->
+- [ ] Agent cost budget + kill switch — per-campaign monthly cap on Haiku/Sonnet calls, DM-visible pause control <!-- common-v12 -->
 
 ### v13 — Economy — monetary
 
