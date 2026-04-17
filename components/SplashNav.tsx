@@ -75,7 +75,7 @@ export default function SplashNav({ players, onlinePlayers: initialOnline = [] }
       {/* Mobile layout — players in 2 rows, DM in bottom-right corner */}
       <div className="sm:hidden min-h-screen flex flex-col">
         {/* Player grid — 2 rows of 4, centered */}
-        <div className="flex flex-wrap justify-center gap-3 px-4 pt-4 pb-6" style={{ background: 'rgba(42,49,64,0.5)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+        <div className="flex flex-wrap justify-center gap-3 px-4 pt-4 pb-6" style={{ background: 'rgba(42,49,64,0.3)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
           {players.map(p => (
             <Link
               key={p.id}
