@@ -269,45 +269,65 @@ Two economies running in parallel, each with its own merchants, taxes, banks, an
 
 ## 18. Meta — sequencing into the roadmap
 
-Start with **plumbing** (v5–v7): DM identity, `campaigns` table, `campaign_id` on every scoped row, `/dm/[slug]/*` routes. Without this, the World AI has nowhere to write.
+**Ladder renumbered 2026-04-18.** H3 adoption is now **v4**; everything v4+ shifted up one. See `ROADMAP.md` for the authoritative list.
 
-Adopt H3 *before* v5 so spatial keys are baked into the identity refactor from day one.
+Start with **plumbing** (v6–v8): DM identity, `campaigns` table, `campaign_id` on every scoped row, `/dm/[slug]/*` routes. Without this, the World AI has nowhere to write.
 
-Rough mapping of new themes to roadmap versions:
+H3 adoption is **v4**, before DM identity — spatial keys baked in before the identity refactor. Retrofitting after would hurt.
 
-| Theme | Likely version(s) |
-|-------|-------------------|
-| H3 adoption | **pre-v5 or merged into v5** (spatial key infrastructure) |
-| DM identity | v5 (already planned) |
-| Multi-tenancy refactor | v6–v7 (already planned) |
-| Read-only Common canvas | v8 (already planned) |
-| Claim mechanic + proximity rule | v9 (already planned — add `k-ring(N)` constraint) |
-| Content lifecycle | v10 (already planned) |
-| NPC Layer A (ambient loops) | v11 (with world entities) |
-| Factions — data model | v11 (entities layer) |
-| Economy v1 — monetary | v11 (already planned as treasury/upkeep) |
-| **Economy v2 — MP as currency** | **v11 or new v11.5** (slots alongside treasury work) |
-| **Magic system — vessels, containment** | **v11 or new v11.5** (pairs with MP economy) |
-| **Ley-line hex state** | v11 (geographic MP supply) |
-| Raven Post propagation | v12 (already planned) |
-| Real-world data feeds (weather, moon, solar) | v12 (already partly planned) |
-| Earth-region remap | v12 (or dedicated version for cartography)
-| **Steampunk / airships** | **v13 or later** — requires MP economy + world trade routes |
-| Creative destruction | v13 (already planned) |
-| Moderated comments | v14 (already planned) |
-| Crossover sessions + simultaneity tools | v15 (already planned — add overlap-notification surface) |
-| NPC Layer B (mechanic NPCs) | v11–v13 spread |
-| NPC Layer C (hero NPCs) | v17+ (portfolio / long agents) |
+Rough mapping of themes to roadmap versions (post-renumber):
 
-Proposed new ladder items to insert:
-- **v11.5 — Magic economy + vessels.** MP on player sheet, vessels table, ley-line hex state, per-hex MP pricing.
-- **v13 (extend) — Airship trade infrastructure.** Airship yards as world entities, trade routes as lines on the map, passage-booking as a player flow.
-- **v11 (extend) — Cross-campaign overlap detection + notification.** When two campaigns' explored hexes intersect, surface it to both DMs.
+| Theme | Version(s) |
+|-------|------------|
+| **H3 adoption** | **v4** (new) |
+| DM identity | v6 |
+| Multi-tenancy refactor | v7 |
+| The flip (campaign_id NOT NULL, slug routes) | v8 |
+| Read-only Common canvas | v9 |
+| Claim mechanic + proximity rule | v10 (add `k-ring(N)` constraint) |
+| Content lifecycle | v11 |
+| NPC Layer A (ambient loops) | v12 (with world entities) |
+| Factions — data model | v12 (entities layer) |
+| Economy v1 — monetary | v12 (already planned as treasury/upkeep) |
+| **Economy v2 — MP as currency** | **v12 or new v12.5** (slots alongside treasury work) |
+| **Magic system — vessels, containment** | **v12 or new v12.5** (pairs with MP economy) |
+| **Ley-line hex state** | v12 (geographic MP supply) |
+| Raven Post propagation | v13 |
+| Real-world data feeds (weather, moon, solar) | v13 |
+| Earth-region remap | v13 (or dedicated version for cartography) |
+| **Steampunk / airships** | **v14 or later** — requires MP economy + world trade routes |
+| Creative destruction | v14 |
+| Moderated comments | v15 |
+| Crossover sessions + simultaneity tools | v16 (add overlap-notification surface) |
+| NPC Layer B (mechanic NPCs) | v12–v14 spread |
+| NPC Layer C (hero NPCs) | v18+ (portfolio / long agents) |
+
+Proposed new ladder items to insert later:
+- **v12.5 — Magic economy + vessels.** MP on player sheet, vessels table, ley-line hex state, per-hex MP pricing.
+- **v14 (extend) — Airship trade infrastructure.** Airship yards as world entities, trade routes as lines on the map, passage-booking as a player flow.
+- **v12 (extend) — Cross-campaign overlap detection + notification.** When two campaigns' explored hexes intersect, surface it to both DMs.
 
 ## 19. What to discuss next session
 
-1. Should the magic economy slot into v11 or merit its own v11.5? (Leaning v11.5 — it's big enough.)
-2. Order of operations for v5: does H3 adoption go in *before* DM identity or *alongside* it?
-3. Naming the twelve voids — do we seed them in v8 or leave them blank for DMs to name through canon-lock?
-4. Royalty terminology — research pass, then pick 3-5 default terms.
-5. Walk through the v5–v7 plan one more time with this richer context and see if anything in the data model needs to change.
+1. Should the magic economy slot into v12 or merit its own v12.5? (Leaning v12.5 — it's big enough.)
+2. Naming the twelve voids — do we seed them in v9 or leave them blank for DMs to name through canon-lock?
+3. Royalty terminology — research pass, then pick 3-5 default terms.
+4. Walk through the v6–v8 plan one more time with this richer context and see if anything in the data model needs to change (note: `docs/plans/2026-04-11-003-feat-common-v3-multitenancy-plan.md` predates the renumber — its "v3/v4" internal references mean the old Common-ladder numbers, i.e. current v7/v8).
+5. ~~Local map coordinates — hex vs square~~ **Decided 2026-04-18: square at the local level (see §20).**
+
+## 20. Local map coordinates — decision
+
+**Decided: local maps stay square. H3 lives at the world layer only.**
+
+Rationale:
+- 5e's entire combat math assumes squares (spell areas, weapon reach, flanking, AoE templates, diagonal movement). Forcing hex at the local level breaks 20 years of DM + player muscle memory.
+- The map-art ecosystem (Dyson Logos, Mike Schley, Patreon creators, Roll20/Foundry assets) ships on square grids. DM submissions would be a constant conversion friction.
+- No clean algorithmic path from a submitted square map to a playable hex map — each of the four approaches (overlay, 1:1 remap, image reprojection, fine hex substrate) has a deal-breaker.
+- The coordinate-consistency benefit of H3 is internal, not user-facing. Each local map records an **H3 anchor cell** at the world layer (which world hex this local map sits in) + its own internal grid. Inside, coords stay (x, y) cells at whatever grid type the DM chose.
+
+What this means for Mappy:
+- Mappy detects the submitted grid as it does today (Square / Hex / None).
+- Mappy does **not** attempt any square → hex conversion.
+- Mappy adds one new responsibility later: assign or confirm the H3 anchor cell when the DM places a local map on the world grid (that's already on the roadmap as "World hex picker — place local maps on the world grid").
+
+Hex local maps remain supported — old-school DMs who submit hex-gridded art keep the existing "Hex" option in the Grid Confirmation Panel, using axial/offset hex math internally (not H3 — H3 doesn't tile a finite rectangular map cleanly). Those DMs self-select; no forcing either way.
