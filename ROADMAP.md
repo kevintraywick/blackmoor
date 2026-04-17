@@ -41,7 +41,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 ### v4 — current
 
 - [ ] `/do` roadmap page reading ROADMAP.md <!-- common-v4 --> <!-- in-progress -->
-- [ ] Copyright footer site-wide (© Grey Assassins Guild, LLC) <!-- common-v4 -->
+- [x] Copyright footer site-wide (© Grey Assassins Guild, LLC) <!-- common-v4 -->
 - [ ] Backup cadence bumped to every 4 hours during refactor weeks <!-- common-v4 -->
 
 ### v5 — DM identity groundwork
