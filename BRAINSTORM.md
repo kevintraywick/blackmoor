@@ -269,40 +269,45 @@ Two economies running in parallel, each with its own merchants, taxes, banks, an
 
 ## 18. Meta — sequencing into the roadmap
 
-**Ladder renumbered 2026-04-18.** H3 adoption is now **v4**; everything v4+ shifted up one. See `ROADMAP.md` for the authoritative list.
+**Ladder restructured 2026-04-18.** H3 adoption is **v4**, Phase-1 reorganization moved three v3 items to their natural homes, and battle-testing gets its own pair of versions (v17 + v18) before public launch. See `ROADMAP.md` for the authoritative list.
 
 Start with **plumbing** (v6–v8): DM identity, `campaigns` table, `campaign_id` on every scoped row, `/dm/[slug]/*` routes. Without this, the World AI has nowhere to write.
 
 H3 adoption is **v4**, before DM identity — spatial keys baked in before the identity refactor. Retrofitting after would hurt.
 
-Rough mapping of themes to roadmap versions (post-renumber):
+Rough mapping of themes to roadmap versions (post-restructure):
 
 | Theme | Version(s) |
 |-------|------------|
 | **H3 adoption** | **v4** (new) |
 | DM identity | v6 |
-| Multi-tenancy refactor | v7 |
-| The flip (campaign_id NOT NULL, slug routes) | v8 |
+| Campaign scoping (multi-tenancy) | v7 |
+| Cutover — `campaign_id` NOT NULL | v8 |
 | Read-only Common canvas | v9 |
 | Claim mechanic + proximity rule | v10 (add `k-ring(N)` constraint) |
-| Content lifecycle | v11 |
+| Content lifecycle + canon | v11 |
 | NPC Layer A (ambient loops) | v12 (with world entities) |
 | Factions — data model | v12 (entities layer) |
-| Economy v1 — monetary | v12 (already planned as treasury/upkeep) |
+| Economy v1 — monetary (treasury/upkeep) | v12 |
 | **Economy v2 — MP as currency** | **v12 or new v12.5** (slots alongside treasury work) |
 | **Magic system — vessels, containment** | **v12 or new v12.5** (pairs with MP economy) |
 | **Ley-line hex state** | v12 (geographic MP supply) |
 | Raven Post propagation | v13 |
 | Real-world data feeds (weather, moon, solar) | v13 |
-| Earth-region remap | v13 (or dedicated version for cartography) |
+| Earth-region remap / laundering | v13 (or dedicated version for cartography) |
 | **Steampunk / airships** | **v14 or later** — requires MP economy + world trade routes |
 | Creative destruction | v14 |
 | Moderated comments | v15 |
 | Crossover sessions + simultaneity tools | v16 (add overlap-notification surface) |
+| **Internal battle-test (synthetic)** | **v17** (new) |
+| **Closed beta (real DMs)** | **v18** (new) |
+| Public launch | v19 |
+| Contributor portfolios | v20 |
 | NPC Layer B (mechanic NPCs) | v12–v14 spread |
-| NPC Layer C (hero NPCs) | v18+ (portfolio / long agents) |
+| NPC Layer C (hero NPCs) | v20+ (portfolio / long agents) |
+| ERC-20 token bridge (planning only) | v21 |
 
-Proposed new ladder items to insert later:
+Proposed new ladder items to insert later (Phase 2 — brainstorm integration):
 - **v12.5 — Magic economy + vessels.** MP on player sheet, vessels table, ley-line hex state, per-hex MP pricing.
 - **v14 (extend) — Airship trade infrastructure.** Airship yards as world entities, trade routes as lines on the map, passage-booking as a player flow.
 - **v12 (extend) — Cross-campaign overlap detection + notification.** When two campaigns' explored hexes intersect, surface it to both DMs.
