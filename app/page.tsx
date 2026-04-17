@@ -41,7 +41,8 @@ export default async function HomePage() {
             <img
               src={splashSrc}
               alt="Shadow of the Wolf"
-              className="sm:hidden absolute inset-0 w-full h-full object-contain object-bottom"
+              className="sm:hidden absolute inset-0 w-full h-full object-cover object-top"
+              style={{ transform: 'translateY(180px)' }}
             />
           </>
         ) : (
@@ -60,8 +61,9 @@ export default async function HomePage() {
               src={splashSrc}
               alt="Shadow of the Wolf"
               fill
-              className="sm:hidden object-contain object-bottom"
+              className="sm:hidden object-cover object-top"
               priority
+              style={{ transform: 'translateY(180px)' }}
             />
           </>
         )}
