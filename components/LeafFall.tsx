@@ -15,14 +15,10 @@ interface Leaf {
   color: string;
 }
 
-const CHARS = ['🍂', '🍃', '🍂', '🍃', '🍂'];
-const COLORS = [
-  '#7aa85a',
-  '#5ab87a',
-  '#8fc074',
-  '#b8a040',
-  '#9ab060',
-];
+// Simple, high-contrast shapes that read well while spinning.
+// Clover + pink petal + yellow blossom, with two mystical flourishes.
+const CHARS = ['🍀', '🌸', '🌼', '🍀', '🌸', '✨', '💫', '🌼'];
+const COLORS = ['#ffffff']; // unused for emoji; kept so typing stays intact
 
 function rand(min: number, max: number) {
   return Math.random() * (max - min) + min;
@@ -38,23 +34,23 @@ export default function LeafFall({
   onDone?: () => void;
 }) {
   const [leaves] = useState<Leaf[]>(() => {
-    const count = 18;
+    const count = 28;
     return Array.from({ length: count }, (_, i) => ({
       id: i,
-      startX: rand(-16, 16),
+      startX: rand(-30, 30),
       size: rand(14, 26),
-      fallDistance: rand(120, 260),
-      drift: rand(-80, 80),
-      spin: rand(-540, 540),
-      duration: rand(1.6, 2.8),
-      delay: rand(0, 0.5),
+      fallDistance: rand(180, 360),
+      drift: rand(-160, 160),
+      spin: rand(-720, 720),
+      duration: rand(2.2, 3.8),
+      delay: rand(0, 1.0),
       char: CHARS[i % CHARS.length],
       color: COLORS[i % COLORS.length],
     }));
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => onDone?.(), 3400);
+    const timer = setTimeout(() => onDone?.(), 5200);
     return () => clearTimeout(timer);
   }, [onDone]);
 
