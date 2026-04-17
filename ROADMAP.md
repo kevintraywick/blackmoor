@@ -26,20 +26,23 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [x] "Are You In?" availability page with quorum email <!-- shadow-v1 -->
 - [x] Invitation system for players <!-- shadow-v1 -->
 - [x] Nightly DB backup via GitHub Actions <!-- shadow-v1 -->
+- [x] Review Common v1/v2/v3 plan docs (top priority — unblocks Common work) <!-- shadow-v1 -->
+- [x] Archive legacy Realm Walker TODO <!-- shadow-v1 -->
+
+
 
 ### Shadow v1 — in flight
 
-- [ ] Review Common v1/v2/v3 plan docs (top priority — unblocks Common work) <!-- shadow-v1 --> <!-- in-progress -->
-- [x] Archive legacy Realm Walker TODO <!-- shadow-v1 -->
 
 ### Shadow v2 — planned
 
 - [x] 3 vertical circles on player banner (compass, sun/moon phase, wind dir) — also on sessions <!-- shadow-v2 -->
-- [ ] Add Ajax to DM nav pane next to DM circle <!-- shadow-v2 -->
+- [x] Add Ajax to DM nav pane next to DM circle <!-- shadow-v2 -->
 - [x] Mobile marketplace redesign <!-- shadow-v2 -->
-- [ ] Player-to-player trading <!-- shadow-v2 -->
-- [ ] Raven Post World AI hardening <!-- shadow-v2 -->
-- [ ] Sendings pane on player's own page <!-- shadow-v2 -->
+- [x] Raven Post World AI hardening <!-- shadow-v2 -->
+- [x] Sendings pane on player's own page <!-- shadow-v2 -->
+
+
 
 ### Shadow v3 — maps
 
@@ -59,8 +62,11 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] Print mode for map builder <!-- shadow-v3 -->
 - [x] Hand-painted 2D hex terrain tiles (Baumgart Basic Terrain Set, replacing KayKit 3D renders) <!-- shadow-v3 -->
 - [x] Terrain painting mode on world map (paint mode, palette, Baumgart sprite rendering, cursor fix) <!-- shadow-v3 -->
-- [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- shadow-v3 -->- [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- shadow-v3 -->- [ ] Language overlay map <!-- shadow-v3 -->
-- [ ] Comms archive page — full history for DM Message / Druid Sign / Thieves' Cant / Sending (DM-side boxes show only most recent) <!-- shadow-v3 -->
+- [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- shadow-v3 -->
+- [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- shadow-v3 -->
+- [ ] Language overlay map <!-- shadow-v3 -->
+
+
 ---
 
 ## Common World
@@ -73,6 +79,8 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] Copyright footer site-wide (© Grey Assassins Guild, LLC) <!-- common-v4 -->
 - [ ] Backup cadence bumped to every 4 hours during refactor weeks <!-- common-v4 -->
 
+
+
 ### v5 — DM identity groundwork
 
 - [ ] `dms` table with handle, email, chronicler_handle, tier <!-- common-v5 -->
@@ -80,6 +88,8 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] `/login` page <!-- common-v5 -->
 - [ ] `/dms/[handle]` stub (logged-in only) <!-- common-v5 -->
 - [ ] Signup allowlist gate (env-var) <!-- common-v5 -->
+
+
 
 ### v6 — multi-tenancy refactor
 
@@ -92,6 +102,8 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] `lib/world.ts` + `lib/raven-post.ts` + `lib/world-ai-*.ts` rescoped <!-- common-v6 -->
 - [ ] Shadow backfill — every existing row gets `shadow` campaign_id <!-- common-v6 -->
 
+
+
 ### v7 — the flip
 
 - [ ] `campaign_id` NOT NULL + foreign keys <!-- common-v7 -->
@@ -99,6 +111,8 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] `/dm` redirects to `/dm/[active-slug]` <!-- common-v7 -->
 - [ ] Old singleton `campaign` table dropped <!-- common-v7 -->
 - [ ] Full smoke test as @thewolf and as unauthenticated visitor <!-- common-v7 -->
+
+
 
 ### v8 — read-only Common World
 
@@ -111,6 +125,8 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] Seeded central region hand-painted via Map Builder <!-- common-v8 -->
 - [ ] Seeded wilds via AI generation <!-- common-v8 -->
 
+
+
 ### v9 — claim + publish
 
 - [ ] 1-hex claim mechanic for newbies <!-- common-v9 -->
@@ -121,6 +137,8 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] Author tracking: `author_dm_id` on content tables <!-- common-v9 -->
 - [ ] Publish flow for towns, roads, NPCs, items <!-- common-v9 -->
 
+
+
 ### v10 — content lifecycle
 
 - [ ] Lifecycle daemon: active → dormant 60d → ruin 90d → lost +30d <!-- common-v10 -->
@@ -128,6 +146,8 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] `common_entity_references` + canon-lock at count ≥ 2 <!-- common-v10 -->
 - [ ] Naming etiquette check with translation pass <!-- common-v10 -->
 - [ ] Watchlist for first-campaign DMs <!-- common-v10 -->
+
+
 
 ### v11 — world entities + economy
 
@@ -138,6 +158,8 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] Common item price sheet (`/common-world/prices`) <!-- common-v11 -->
 - [ ] `/dm/[slug]/treasury` page <!-- common-v11 -->
 
+
+
 ### v12 — news propagation + celestial
 
 - [ ] Raven Post Common Desk (inbox of nearby/tagged common-world headlines) <!-- common-v12 -->
@@ -145,6 +167,8 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] Trust-tier degradation by hex distance <!-- common-v12 -->
 - [ ] Real-world moon phase → global celestial events <!-- common-v12 -->
 - [ ] Local weather derived from common weather layer <!-- common-v12 -->
+
+
 
 ### v13 — creative destruction
 
@@ -154,17 +178,23 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] `destroyed` / `rebuilt` lifecycle states <!-- common-v13 -->
 - [ ] Research brief: 5e DMG object rules + siege warfare DCs <!-- common-v13 -->
 
+
+
 ### v14 — moderated comments
 
 - [ ] Comment surface on towns, bridges, hero NPCs, bespoke items, taverns/inns, landmarks <!-- common-v14 -->
 - [ ] In-fiction tone rules enforcement <!-- common-v14 -->
 - [ ] Three-strike moderation flow <!-- common-v14 -->
 
+
+
 ### v15 — crossover sessions
 
 - [ ] Bilateral crossover handshake <!-- common-v15 -->
 - [ ] Joint initiative order <!-- common-v15 -->
 - [ ] Dual-journal writes <!-- common-v15 -->
+
+
 
 ### v16 — public signup
 
@@ -174,13 +204,18 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [ ] `/common-world/chronicle` public activity log <!-- common-v16 -->
 - [ ] Research TODO: ethical content moderation best practices for D&D <!-- common-v16 -->
 
+
+
 ### v17 — contributor portfolios
 
 - [ ] `/dms/[handle]` full portfolio page (logged-in only) <!-- common-v17 -->
 - [ ] Cross-campaign DM history surface <!-- common-v17 -->
 - [ ] Reference graph visualization <!-- common-v17 -->
 
+
+
 ### v18 — ERC-20 token bridge (planning only)
 
 - [ ] Planning doc for common currency ERC-20 token <!-- common-v18 -->
 - [ ] Legal review (KYC, tax, real-money stakes) <!-- common-v18 -->
+

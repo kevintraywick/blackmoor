@@ -1,0 +1,41 @@
+name: Nightly ROADMAP Sync
+
+on:
+  schedule:
+    # 6:15 AM UTC = 15 min after nightly backup
+    - cron: '15 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pg
+        run: npm install pg --no-save --no-audit --no-fund
+
+      - name: Regenerate ROADMAP.md from DB
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_PUBLIC_URL }}
+        run: node scripts/sync-roadmap.mjs
+
+      - name: Commit if changed
+        run: |
+          if [[ -n "$(git status --porcelain ROADMAP.md)" ]]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add ROADMAP.md
+            git commit -m "chore: nightly ROADMAP.md sync from DB [skip ci]"
+            git push
+          else
+            echo "No changes — DB matches file."
+          fi
