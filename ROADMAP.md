@@ -60,6 +60,7 @@ Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-p
 - [x] Hand-painted 2D hex terrain tiles (Baumgart Basic Terrain Set, replacing KayKit 3D renders) <!-- shadow-v3 -->
 - [x] Terrain painting mode on world map (paint mode, palette, Baumgart sprite rendering, cursor fix) <!-- shadow-v3 -->
 - [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- shadow-v3 -->- [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- shadow-v3 -->- [ ] Language overlay map <!-- shadow-v3 -->
+- [ ] Comms archive page — full history for DM Message / Druid Sign / Thieves' Cant / Sending (DM-side boxes show only most recent) <!-- shadow-v3 -->
 ---
 
 ## Common World
