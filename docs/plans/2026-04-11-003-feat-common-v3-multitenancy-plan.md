@@ -231,6 +231,8 @@ v4 flips `campaign_id` to NOT NULL, restructures routes to `/dm/[slug]/*`, drops
 
 ## Open questions
 
-`Q1.` **Dev DB confirmation.** Kevin, please confirm you're OK spinning up the second Railway Postgres for this. If you're still on the fence, the strangler-fig fallback plan exists in git history and can be revived. But this is much simpler.
+Resolved 2026-04-16:
 
-`Q2.` **Dual-write timing.** The `lib/game-clock.ts` dual-write is the only place the old and new schemas need to stay in sync. Should the dual-write happen in v3 (so we can practice it against the dev DB) or only in v4 (when the write hits production)? I recommend v3 — gives us real test coverage before it matters.
+`Q1.` **Dev DB confirmation.** ✅ Confirmed — spin up the second Railway Postgres for this work.
+
+`Q2.` **Dual-write timing.** ✅ v3 — dual-write lands in v3 against the dev DB so it's exercised before the v4 prod cutover.
