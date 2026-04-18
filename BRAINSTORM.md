@@ -12,7 +12,7 @@ Sections are numbered for easy reference. New numbers go at the end; existing nu
 - **World layer.** Shared canon + living narrative, written by the World AI, read by all campaigns.
 - The world layer is really three things fused: a **map** (hexes, terrain), a **living population** (NPCs, armies, caravans, storms), and a **canon record** (what happened, when, with what trust).
 - A campaign is a *lens* onto the world. The world doesn't know about campaigns; campaigns subscribe.
-- **Pocket mode** is worth preserving as a flag: a DM can opt a campaign out of Common and run a private world. Same schema. Hedge against DMs who don't want their canon touched. **Low-priority hedge — not a primary focus.** **Shadow of the Wolf is CW canon from day one**, not pocket mode.
+- **No pocket mode.** Decided 2026-04-18. The product is for DMs to tell stories *in a shared world*, not to author a private one. DMs who want a private homebrew world are better served by existing tools (OneNote, Obsidian, World Anvil, etc.). Every campaign joins Common World or isn't a campaign here. Simpler product, clearer pitch, one fewer code path everywhere. **Shadow of the Wolf is CW canon from day one.**
 
 ## 2. The World AI as orchestrator, not singleton
 
@@ -107,6 +107,36 @@ H3's icosahedral projection leaves 12 cells as pentagons rather than hexes. Cell
 - **Mapping constraint satisfied.** "Don't claim a pentagon hex" becomes "you can't claim a void" in-fiction — DMs will want to write toward them, not live in them.
 - **Natural variety.** 12 pentagons fall where they fall on the sphere — some ocean, some land, some coast. Gives 12 genuinely different void-sites (maelstroms, drowned cities, desert tears in the sky) without authoring. Geometry writes for us.
 
+### Seed canon — the three anchor voids
+
+Decided 2026-04-18 (see §19 Q2). At v9 launch, Kevin seeds 3 of the 12 pentagons with full canon. The remaining 9 ship as *"The Unnamed Void of the [geographic descriptor]"* and lock at reference ≥ 2 per §4. Actual pentagon-to-anchor assignment happens when the H3 grid is stood up — pick the 3 pentagons whose geographies best match the archetypes below.
+
+**Anchor 1 — The Gyre** *(ocean maelstrom)*
+
+- A permanent spiral of black water in the middle ocean, three miles wide, with a column of cloud above it reaching into the stratosphere. Ships caught within two days' sail are pulled in; no vessel has returned. On still nights the Gyre can be heard a hundred miles away — a low arrhythmic drone sailors call *the breathing*.
+- **Cosmology.** **Velthys-Who-Drowned**, a god of the first seas, cast down in an elder war and still alive at the bottom. The Gyre is their prison; every tide is Velthys breathing.
+- **Artifact.** **The Hollow Anchor** — three-fluked, black iron. Salvageable only from the Gyre's calm eye, which exists briefly at equinox. Commands the obedience of one tempest per year. Held long enough, Velthys whispers.
+- **Faction interest.** Merchants' League wants it routed around; the **Order of the Drowned** wants it venerated; air-pirates use its updrafts to ambush merchant fleets.
+- **Rumor register.** *"The sea spoke the captain's name last night. He did not sleep."*
+
+**Anchor 2 — The Unmade** *(desert / tear in the sky)*
+
+- A circular waste of salt-white sand, eighty miles across, with no wind, no sound, and no shadow cast by the noon sun. A seam of sky runs east-to-west overhead — a crack through which stars are visible at midday. Anything crossing under the seam ages at a thousand-to-one ratio to anything beside it; a traveler who walks out returns as dust while their companions are still drinking at the rim.
+- **Cosmology.** **The Hour That Was Lost.** When the gods divided time among mortal races, one hour went missing. The Unmade is where it fell.
+- **Artifact.** **The Wristwound** — a brass horologe-bracelet. Lets the wearer step out of time for a single breath per day. Worn longer than a year leaves the wearer grey-eyed and unable to remember their own face.
+- **Faction interest.** **House of Clocks** (a chronological heresy inside one of the religious orders) seeks to widen the seam. Scholars offer fortunes for any page of *The Unwritten Calendar* said to lie at the void's center.
+- **Rumor register.** *"The caravan returned in the same dust they left in. None could name the year."*
+
+**Anchor 3 — Corros** *(coastal / drowned city)*
+
+- A sunken city of green-glass towers, half-drowned where the continental shelf breaks into deep water. At spring tide the sea recedes enough to expose courtyards and market squares; at neap only the tallest spires show. Corros was a living city within human memory — six generations ago, at most. Nobody remembers why it drowned.
+- **Cosmology.** **The Pact Unspoken.** Corros broke a covenant and the sea collected. No god claims it; the city was abandoned by whatever pantheon once kept it. Its silence *is* the cosmology.
+- **Artifact.** **The Archivist's Key** — rust-scaled iron. Opens any door closed for more than a century. Opens them with a sound that is remembered by everyone nearby for the rest of their lives.
+- **Faction interest.** Thieves' Guilds run salvage expeditions at low tide; religious orders forbid approach; two Houses claim descent from Corros's last ruling line and want the city formally reclaimed — *or* permanently forgotten.
+- **Rumor register.** *"The low tide is lower this year. Boys are diving where no boys dove before."*
+
+Coverage note: water / desert / coast. Mountain, forest, arctic, volcanic, sky, underground, swamp, and jungle remain open for the 9 emergent voids.
+
 ---
 
 ## 11. Factions & competition — the usual suspects plus one
@@ -117,7 +147,7 @@ The world has standing interest groups with their own agendas. Each is a candida
 - **Thieves' Guild(s)** — criminal, regional, fragmented. Multiple rival guilds per continent. Agenda: wealth, information, protection rackets. Canonical D&D trope, stays.
 - **Assassins' Orders** — more disciplined than thieves. Faction-spawned (a house retains an order), mercenary (coin takes the job), or zealot (religious). Rarer than thieves, scarier.
 - **Merchants' Leagues** — cross-border, interest-based. Trade routes, tariffs, lobbying, legal muscle. Arguably more powerful than any single crown.
-- **Royalty.** Avoid "Kings" as a default term — feels generic and gendered. Worth reviewing D&D royalty canon (Forgotten Realms, Eberron, Greyhawk) for better terminology: **Houses, Holds, Reaches, Thrones, Marches, Dominions, Principalities, Archons, Suzerains**. Pick 3-5 that feel right and let DMs choose.
+- **Royalty.** Decided 2026-04-18: the **House** is the base unit of power. A House rules a **Holding** (its territory). Within a Holding, the House may **award** lesser grants to vassals: a **March** (frontier grant), a **Hold** (fortified grant), or a **Keep** (a single fortified structure, smallest). Larger-scale titles (Dominion, Suzerain, empire-tier) deferred — add when the world has enough Houses to need arbitration between them. Avoids King/Queen entirely; gender-neutral by construction.
 - **Religious Orders** — pantheon-tied, hierarchical. Their agenda is pilgrimage routes, relic recovery, heresy-hunting, and doctrinal conflict with other orders.
 
 **New addition Kevin called for: Steampunk magic-engineering.** See §12.
@@ -189,10 +219,27 @@ Add **MP** to the player sheet as a counter alongside HP and gold. Show:
 
 MP has a **market price**. A filled scroll costs X gp. A wand with 20 MP costs more than an empty wand + 20 MP separately (artisan markup). This sets up §14.
 
+### Conservation model (decided 2026-04-18)
+
+**Hybrid: ambient generation + stored conservation.**
+
+- **Ambient MP is generated per tick** from cosmic sources (moon phase, sun, planetary hum). Rate varies by cell (ley-richness) and celestial state (full moon boosts, eclipses spike/drain).
+- **Stored MP is conserved.** Once deposited in a vessel, ley-line pool, person, or artifact, it doesn't evaporate — it moves, it doesn't vanish.
+- **Spent MP dissipates.** Casting drains the vessel; that MP leaves the world entirely, minus a 1–2% recoverable *residue* for scavengers and alchemists.
+
+Analogy: MP is **HP-like at the world level** (ambient regenerates) and **gold-like at the vessel level** (stored pools don't leak on their own).
+
+**Consequences this enables:**
+- A region *can* run out of stored MP temporarily (Campaign A's ritual war drains the valley). Recovers as ambient regenerates — weeks/months of narrative weight.
+- **Scar hex** — deliberate over-drawdown creates a zero-stored, zero-generation cell for months. Permanence for catastrophic rituals.
+- **Overflow hex** — fully-saturated ley-line is volatile; wild-magic surges.
+- MP price at a hex = f(stored pool, ambient rate, local demand) — drives airship trade, arbitrage, faction conflict.
+
+**Schema sketch deferred to v14 spin-up.**
+
 ### Open bits to think through later
 
 - Exchange rates between MP and gold (region-dependent — see §14).
-- Whether MP is *conserved* (fixed world supply) or *generated* (renewable per tick).
 - Wild magic — what happens when MP goes wrong. Reuse 5e surge tables as a starting point.
 - How artificers build engines (see §12).
 
@@ -257,12 +304,7 @@ Two economies running in parallel, each with its own merchants, taxes, banks, an
 ## 17. Flagged but not dived into
 
 Phase 2 integration (2026-04-17) moved most of these onto the ladder. Remaining:
-
-- **D&D royalty canon research.** Pick the right terminology for Houses/Holds/Reaches/Thrones/Marches/Dominions/etc. before v12 faction work starts.
-- **MP conservation vs generation.** Does the world have a fixed MP supply, or is it renewable per tick? Affects v14 schema.
-- **Void naming + cosmology.** Twelve voids seed in v9 as placeholders — who names them, and when do the names lock? Affects v9 content + v11 canon-lock rules.
 - **Airship ownership / operation as a player path.** v16 lands trade/infra; player-owned airships is a later extension.
-- **Agent cost budget.** Per-campaign/month ceiling for Haiku+Sonnet calls across all World AI loops. Needs a cap + kill switch before v12.
 
 ---
 
@@ -282,7 +324,7 @@ Final ladder after Phase 2 integration:
 | v4 | Spatial substrate (H3) | Pentagon-cell helper included |
 | v5 | Housekeeping + ops | |
 | v6 | DM identity | |
-| v7 | Campaign scoping (multi-tenancy) | + `pocket_mode` flag |
+| v7 | Campaign scoping (multi-tenancy) | every campaign is CW canon; no pocket mode |
 | v8 | Cutover — `campaign_id` NOT NULL | |
 | v9 | Read-only Common World | + twelve astral voids seeded |
 | v10 | Claim + publish (contributor flow) | + k-ring(N), chronicler override |
@@ -308,13 +350,13 @@ Resolved:
 - ~~Local map coordinates~~ → square (see §20).
 - ~~Cross-campaign collisions~~ → permissive + simultaneity is the feature (§4).
 - ~~Time reconciliation~~ → Common Year adopted (§5).
+- ~~Royalty terminology~~ → House rules Holding; awards March/Hold/Keep. Larger scales deferred. (§11, 2026-04-18)
+- ~~Void cosmology + names~~ → hybrid: 3 Kevin-seeded anchor voids (Gyre / Unmade / Corros) at v9 launch; remaining 9 lock at reference ≥ 2. (§10, 2026-04-18)
+- ~~MP conservation vs generation~~ → hybrid: ambient generation + stored conservation; spent MP dissipates. (§13, 2026-04-18)
+- ~~Agent cost budget~~ → $8 soft / $15 hard / $0.10 per-action cap on Anthropic; three-level kill switch; Twilio pulled. (§21, 2026-04-18)
 
 Still open:
-1. **Royalty terminology** — research D&D canon, pick 3-5 default terms before v12 factions.
-2. **Void cosmology + names** — who names them, when does the canon lock?
-3. **MP conservation vs generation** — fixed world supply, or renewable per tick? v14 schema depends.
-4. **Agent cost budget** — per-campaign/month ceiling + kill switch for World AI loops. Needs a number before v12.
-5. **Walk v6–v8 plan** against the richer context. Note: `docs/plans/2026-04-11-003-feat-common-v3-multitenancy-plan.md` predates every renumber — its "v3/v4" internal references mean old Common-ladder numbers, i.e. current v7/v8.
+1. **Walk v6–v8 plan** against the richer context. Note: `docs/plans/2026-04-11-003-feat-common-v3-multitenancy-plan.md` predates every renumber — its "v3/v4" internal references mean old Common-ladder numbers, i.e. current v7/v8.
 
 ## 20. Local map coordinates — decision
 
@@ -332,3 +374,62 @@ What this means for Mappy:
 - Mappy adds one new responsibility later: assign or confirm the H3 anchor cell when the DM places a local map on the world grid (that's already on the roadmap as "World hex picker — place local maps on the world grid").
 
 Hex local maps remain supported — old-school DMs who submit hex-gridded art keep the existing "Hex" option in the Grid Confirmation Panel, using axial/offset hex math internally (not H3 — H3 doesn't tile a finite rectangular map cleanly). Those DMs self-select; no forcing either way.
+
+## 21. Agent budget & kill switches — decision
+
+Decided 2026-04-18 (see §19 Q4). These caps gate the v12 World AI orchestrator (§2) before it ships.
+
+### Cost model per campaign/month (at normal load)
+
+| Line | $/mo |
+|---|---|
+| Anthropic — Haiku triage (~60/mo × 2K in / 200 out) | ~$0.15 |
+| Anthropic — Sonnet beats (~30/mo × 4K in / 500 out) | ~$0.60 |
+| Anthropic — web search (~20/mo) | ~$0.20 |
+| **Anthropic subtotal** | **~$1/mo realistic, ~$3/mo worst case** |
+| ElevenLabs TTS (newsie) | ~$1.50 |
+| Railway (amortized) | ~$5 |
+| **Total external per campaign** | **~$8/mo** |
+
+### Caps (Anthropic only)
+
+| Cap | Value | Behavior |
+|---|---|---|
+| **Soft cap** | **$8 / campaign / mo** | Banner on `/dm/campaign` + email warning; all loops still run. |
+| **Hard cap** | **$15 / campaign / mo** | Scheduled World AI loops pause; Manual Compose + DM "Generate now" still work. |
+| **Per-action ceiling** | **$0.10 / call** | Reject any single call whose estimated cost exceeds this. Prevents runaway context. |
+
+### Kill switches (priority order)
+
+1. **DM-facing pause toggle** on `/dm/campaign` — instant, campaign-scoped, live.
+2. **Auto-downgrade** — when spend crosses 50% of hard cap, scheduled Sonnet calls downgrade to Haiku for the remainder of the billing month. Quality dips; the world keeps moving.
+3. **Founder emergency kill** — admin-only endpoint pauses every campaign's World AI. Used when something is clearly broken.
+
+### Twilio status (pulled 2026-04-18)
+
+Twilio is out of the cost model. `lib/twilio.ts` stays in the tree as dormant code (no-ops cleanly when env vars are unset). The `/api/raven-post/overheard/trigger` path and `OverheardWatcher` remain compiled but silent. If push comes back, it'll come back via **Discord bot** (see COMMS.md) rather than SMS. The Overheard medium on the v12 roadmap is now Discord-only.
+
+A rented Twilio phone number continues to bill ~$1.15/mo until released at console.twilio.com — env vars are immaterial to that charge.
+
+### Deferred
+
+- **Tier-based caps** (newbie $5 / Cartographer $15 / Chronicler $30) — v21+ territory, after real DMs arrive and actual load is known.
+
+### v12 roadmap consequences
+
+Items added to v12 (see ROADMAP.md):
+- `hard_cap_usd` column on budget caps + auto-pause at hard cap.
+- Per-call Anthropic cost estimator (reject > $0.10).
+- Auto-downgrade Sonnet → Haiku at 50% of hard cap.
+- Campaign-scoped spend caps (keyed on `campaign_id` — depends on v7).
+- Founder kill-all admin endpoint.
+- DM-facing pause toggle on `/dm/campaign`.
+
+### Existing substrate (v1 already has it)
+
+- `raven_spend_ledger` table + `raven_budget_caps` table (`lib/spend.ts`, `lib/types.ts`).
+- `SpendService` enum already includes `'anthropic'`, `'elevenlabs'`, `'websearch'`, `'railway'`, `'openai_embeddings'`, `'twilio'`.
+- `record()` / `canSpend()` / `assertCanSpend()` / `isOverCap()` / `updateCap()` helpers.
+- `/dm/campaign` spend widget (`CampaignSpendTracker.tsx`) reads live.
+
+v12 adds the hard-cap layer + auto-downgrade on top; existing schema is already campaign-less ready to gain `campaign_id` via the v7 multi-tenancy cutover.

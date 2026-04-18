@@ -64,7 +64,6 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] API route migration pass (writes) <!-- common-v7 -->
 - [ ] `lib/world.ts` + `lib/raven-post.ts` + `lib/world-ai-*.ts` rescoped <!-- common-v7 -->
 - [ ] Shadow backfill — every existing row gets `shadow` campaign_id <!-- common-v7 -->
-- [ ] `pocket_mode` flag on campaigns (opt out of Common World integration) <!-- common-v7 -->
 
 ### v8 — Cutover — `campaign_id` NOT NULL
 
@@ -121,9 +120,14 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] Factions table (thieves, assassins, merchants, religious orders, royalty) <!-- common-v12 -->
 - [ ] Faction agents with agendas + pairwise relationships <!-- common-v12 -->
 - [ ] Pentagon/void routing — entities route around the twelve voids <!-- common-v12 -->
-- [ ] Overheard-on-pass — Layer A NPC proximity triggers SMS/Discord snippet <!-- common-v12 -->
-- [ ] Research pass: D&D royalty terminology (Houses / Holds / Reaches / Marches / Dominions) — pick 3-5 defaults <!-- common-v12 -->
+- [ ] Overheard-on-pass — Layer A NPC proximity triggers Discord snippet <!-- common-v12 -->
 - [ ] Agent cost budget + kill switch — per-campaign monthly cap on Haiku/Sonnet calls, DM-visible pause control <!-- common-v12 -->
+- [ ] Add `hard_cap_usd` to budget caps — auto-pause when MTD crosses hard cap <!-- common-v12 -->
+- [ ] Per-call Anthropic cost estimator — reject calls with estimated cost > $0.10 <!-- common-v12 -->
+- [ ] Auto-downgrade Sonnet → Haiku when MTD crosses 50% of hard cap <!-- common-v12 -->
+- [ ] Campaign-scoped spend caps — ledger + caps keyed on `campaign_id` <!-- common-v12 -->
+- [ ] Founder emergency kill-all — admin endpoint pauses every campaign's World AI <!-- common-v12 -->
+- [ ] World AI pause toggle on `/dm/campaign` — live, campaign-scoped, instant effect <!-- common-v12 -->
 
 ### v13 — Economy — monetary
 
