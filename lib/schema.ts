@@ -703,6 +703,19 @@ async function _initSchema() {
     `CREATE INDEX IF NOT EXISTS world_entities_position_idx ON world_entities (current_q, current_r)`
   ).catch(() => {});
 
+  // ─── H3 spatial substrate (v3 item #20) ──────────────────────────────────
+  // Nullable `h3_cell BIGINT` + `h3_res SMALLINT` on every spatial table.
+  // Reads still use (q,r) legacy coords; writes populate H3 alongside
+  // starting in v3 item #50 (dual-write). Backfill is item #40.
+  // See lib/h3.ts for cell ↔ bigint conversion helpers.
+  for (const table of ['world_map', 'world_hexes', 'map_builds', 'world_entities', 'npcs']) {
+    await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS h3_cell BIGINT`).catch(() => {});
+    await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS h3_res  SMALLINT`).catch(() => {});
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS ${table}_h3_cell_idx ON ${table} (h3_cell) WHERE h3_cell IS NOT NULL`,
+    ).catch(() => {});
+  }
+
   // Backfill hp_roll (and empty stat fields) for existing NPCs from SRD.
   // Idempotent — only updates rows with empty hp_roll.
   // Strips _N suffixes and uses partial matching so "Ettercap_4" → "8d8+8".
