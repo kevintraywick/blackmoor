@@ -1,6 +1,6 @@
 export const ROADMAP_VERSION_TITLES: Record<number, string> = {
-  3: 'Map Builder',
-  4: 'Spatial substrate (H3)',
+  3: 'Spatial substrate (H3)',
+  4: 'Map Builder',
   5: 'Housekeeping + ops',
   6: 'DM identity',
   7: 'Campaign scoping (multi-tenancy)',

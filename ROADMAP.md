@@ -2,7 +2,7 @@
 
 The roadmap for **Common World** (the platform) and the campaigns running on it. Shadow of the Wolf is the flagship campaign. This file is parsed at build time and rendered at `/do`.
 
-Each item is a checkbox list entry with a version tag. Tags look like `<!-- common-v4 -->`. Untagged items are ignored. Versions run v3 (maps, in flight) through v24 (planning horizon).
+Each item is a checkbox list entry with a version tag. Tags look like `<!-- common-v4 -->`. Untagged items are ignored. Versions run v3 (spatial substrate, in flight) through v24 (planning horizon).
 
 Status is read from the checkbox: `[x]` = built, `[ ]` = planned. Add `<!-- in-progress -->` to mark partial work. Note: this file is a snapshot — the DB (`roadmap_items` table) is the ground truth.
 
@@ -16,33 +16,33 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 
 **Shadow two — polish + the living world.** Three vertical banner circles (compass, sun/moon phase, wind), Ajax in DM nav, mobile marketplace redesign, Raven Post World AI hardening, player-side Sendings pane.
 
-### v3 — Map Builder
+### v3 — Spatial substrate (H3)
 
-- [ ] Merge feat/map-builder PR to main (editor, world map, local maps, canonical scale) <!-- common-v3 -->
-- [ ] Mappy N-direction detection on uploaded maps <!-- common-v3 -->
-- [ ] Mappy scale sanity check (flag grid vs AI discrepancy) <!-- common-v3 -->
-- [ ] Builder canvas image rendering at canonical scale <!-- common-v3 -->
-- [ ] Fog of war — player-facing world map with revealed hexes only <!-- common-v3 -->
-- [ ] Player-facing local map view (read-only, inherits fog state) <!-- common-v3 -->
-- [ ] Upload classification dialog — world addition vs local map <!-- common-v3 -->
-- [ ] World hex picker — place local maps on the world grid <!-- common-v3 -->
-- [ ] Local map session event publishing (asset placed, map opened, party marker) <!-- common-v3 -->
-- [ ] Seed world map refresh (the hand-painted canvas Common sits on) <!-- common-v3 -->
-- [ ] World map party marker visible to players <!-- common-v3 -->
-- [ ] Print mode for map builder <!-- common-v3 -->
-- [x] Hand-painted 2D hex terrain tiles (Baumgart Basic Terrain Set, replacing KayKit 3D renders) <!-- common-v3 -->
-- [x] Terrain painting mode on world map (paint mode, palette, Baumgart sprite rendering, cursor fix) <!-- common-v3 -->
-- [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- common-v3 -->
-- [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- common-v3 -->
+- [ ] Add `h3-js` dependency and `lib/h3.ts` helpers (cell ↔ lat/lng, k-ring, parent/child, pentagon-cell lookup) <!-- common-v3 -->
+- [ ] Schema: nullable `h3_cell bigint` + `h3_res smallint` columns on spatial tables (world hexes, local maps, NPCs, AR encounters) <!-- common-v3 -->
+- [ ] World anchor: pick real lat/lng and H3 resolution for current Shadow world map <!-- common-v3 -->
+- [ ] Backfill: existing world-hex (col,row) coords → `h3_cell` at chosen resolution <!-- common-v3 -->
+- [ ] Dual-write: world-map writes populate `h3_cell` alongside legacy (col,row); reads remain on legacy path <!-- common-v3 -->
+- [ ] Mappy sanity-checks local-map scale against real-world dimensions at the H3 anchor cell <!-- common-v3 -->
 
-### v4 — Spatial substrate (H3)
+### v4 — Map Builder
 
-- [ ] Add `h3-js` dependency and `lib/h3.ts` helpers (cell ↔ lat/lng, k-ring, parent/child, pentagon-cell lookup) <!-- common-v4 -->
-- [ ] Schema: nullable `h3_cell bigint` + `h3_res smallint` columns on spatial tables (world hexes, local maps, NPCs, AR encounters) <!-- common-v4 -->
-- [ ] World anchor: pick real lat/lng and H3 resolution for current Shadow world map <!-- common-v4 -->
-- [ ] Backfill: existing world-hex (col,row) coords → `h3_cell` at chosen resolution <!-- common-v4 -->
-- [ ] Dual-write: world-map writes populate `h3_cell` alongside legacy (col,row); reads remain on legacy path <!-- common-v4 -->
-- [ ] Mappy sanity-checks local-map scale against real-world dimensions at the H3 anchor cell <!-- common-v4 -->
+- [ ] Merge feat/map-builder PR to main (editor, world map, local maps, canonical scale) <!-- common-v4 -->
+- [ ] Mappy N-direction detection on uploaded maps <!-- common-v4 -->
+- [ ] Mappy scale sanity check (flag grid vs AI discrepancy) <!-- common-v4 -->
+- [ ] Builder canvas image rendering at canonical scale <!-- common-v4 -->
+- [ ] Fog of war — player-facing world map with revealed hexes only <!-- common-v4 -->
+- [ ] Player-facing local map view (read-only, inherits fog state) <!-- common-v4 -->
+- [ ] Upload classification dialog — world addition vs local map <!-- common-v4 -->
+- [ ] World hex picker — place local maps on the world grid <!-- common-v4 -->
+- [ ] Local map session event publishing (asset placed, map opened, party marker) <!-- common-v4 -->
+- [ ] Seed world map refresh (the hand-painted canvas Common sits on) <!-- common-v4 -->
+- [ ] World map party marker visible to players <!-- common-v4 -->
+- [ ] Print mode for map builder <!-- common-v4 -->
+- [x] Hand-painted 2D hex terrain tiles (Baumgart Basic Terrain Set, replacing KayKit 3D renders) <!-- common-v4 -->
+- [x] Terrain painting mode on world map (paint mode, palette, Baumgart sprite rendering, cursor fix) <!-- common-v4 -->
+- [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- common-v4 -->
+- [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- common-v4 -->
 
 ### v5 — Housekeeping + ops
 
