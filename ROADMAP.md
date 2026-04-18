@@ -18,7 +18,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 
 ### v3 — Spatial substrate (H3)
 
-- [ ] Add `h3-js` dependency and `lib/h3.ts` helpers (cell ↔ lat/lng, k-ring, parent/child, pentagon-cell lookup) <!-- common-v3 -->
+- [x] Add `h3-js` dependency and `lib/h3.ts` helpers (cell ↔ lat/lng, k-ring, parent/child, pentagon-cell lookup) <!-- common-v3 -->
 - [ ] Schema: nullable `h3_cell bigint` + `h3_res smallint` columns on spatial tables (world hexes, local maps, NPCs, AR encounters) <!-- common-v3 -->
 - [ ] World anchor: pick real lat/lng and H3 resolution for current Shadow world map <!-- common-v3 -->
 - [ ] Backfill: existing world-hex (col,row) coords → `h3_cell` at chosen resolution <!-- common-v3 -->
