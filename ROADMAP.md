@@ -43,6 +43,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [x] Terrain painting mode on world map (paint mode, palette, Baumgart sprite rendering, cursor fix) <!-- common-v4 -->
 - [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- common-v4 -->
 - [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- common-v4 -->
+- [x] H3 world-grid debug view — render real H3 polygons from `cellToBoundary()` over a lat/lng projection (DM diagnostic) <!-- common-v4 -->
 
 ### v5 — Housekeeping + ops
 
