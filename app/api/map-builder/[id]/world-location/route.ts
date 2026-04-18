@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import { setHexLocalMap, clearHexLocalMap } from '@/lib/world';
+import { H3_RES } from '@/lib/h3';
+import { qrToH3BigInt } from '@/lib/world-hex-mapping';
 
 // POST /api/map-builder/[id]/world-location
 // Body: { q: number, r: number } — anchor this build to a world hex.
@@ -38,9 +40,11 @@ export async function POST(
       if (build.world_hex_q != null && build.world_hex_r != null) {
         await clearHexLocalMap(build.world_hex_q, build.world_hex_r);
       }
+      // H3 dual-write (v3 item #50): clear the H3 anchor alongside legacy coords.
       await query(
         `UPDATE map_builds
          SET world_hex_q = NULL, world_hex_r = NULL,
+             h3_cell = NULL, h3_res = NULL,
              updated_at = EXTRACT(EPOCH FROM now())::bigint
          WHERE id = $1`,
         [id]
@@ -55,12 +59,14 @@ export async function POST(
 
     const hex = await setHexLocalMap(q, r, id);
 
+    // H3 dual-write (v3 item #50): anchor the local map to an H3 cell too.
     await query(
       `UPDATE map_builds
        SET world_hex_q = $1, world_hex_r = $2,
+           h3_cell = $3, h3_res = $4,
            updated_at = EXTRACT(EPOCH FROM now())::bigint
-       WHERE id = $3`,
-      [q, r, id]
+       WHERE id = $5`,
+      [q, r, qrToH3BigInt(q, r).toString(), H3_RES.DM_HEX, id]
     );
 
     return NextResponse.json({ ok: true, hex, world_hex_q: q, world_hex_r: r });

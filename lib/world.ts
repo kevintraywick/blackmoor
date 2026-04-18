@@ -11,6 +11,8 @@
 // if we ever want cube/axial math in storage.
 
 import { query } from './db';
+import { H3_RES } from './h3';
+import { qrToH3BigInt } from './world-hex-mapping';
 
 export type RevealState = 'unrevealed' | 'revealed' | 'mapped';
 
@@ -108,9 +110,11 @@ export async function setHexReveal(
 ): Promise<WorldHex> {
   // 'mapped' is set only by setHexLocalMap — do not allow the reveal toggle
   // to accidentally stomp a mapped anchor.
+  // H3 dual-write (v3 item #50): h3_cell is deterministic from (q,r) so we
+  // populate on INSERT and leave untouched on UPDATE.
   const rows = await query<WorldHex>(
-    `INSERT INTO world_hexes (q, r, reveal_state, updated_at)
-     VALUES ($1, $2, $3, EXTRACT(EPOCH FROM now())::bigint)
+    `INSERT INTO world_hexes (q, r, reveal_state, h3_cell, h3_res, updated_at)
+     VALUES ($1, $2, $3, $4, $5, EXTRACT(EPOCH FROM now())::bigint)
      ON CONFLICT (q, r) DO UPDATE
        SET reveal_state = CASE
              WHEN world_hexes.reveal_state = 'mapped' THEN world_hexes.reveal_state
@@ -118,7 +122,7 @@ export async function setHexReveal(
            END,
            updated_at = EXCLUDED.updated_at
      RETURNING q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at`,
-    [q, r, state]
+    [q, r, state, qrToH3BigInt(q, r).toString(), H3_RES.DM_HEX]
   );
   return rows[0];
 }
@@ -129,13 +133,13 @@ export async function setHexTerrainNote(
   note: string
 ): Promise<WorldHex> {
   const rows = await query<WorldHex>(
-    `INSERT INTO world_hexes (q, r, terrain_note, reveal_state, updated_at)
-     VALUES ($1, $2, $3, 'revealed', EXTRACT(EPOCH FROM now())::bigint)
+    `INSERT INTO world_hexes (q, r, terrain_note, reveal_state, h3_cell, h3_res, updated_at)
+     VALUES ($1, $2, $3, 'revealed', $4, $5, EXTRACT(EPOCH FROM now())::bigint)
      ON CONFLICT (q, r) DO UPDATE
        SET terrain_note = EXCLUDED.terrain_note,
            updated_at   = EXCLUDED.updated_at
      RETURNING q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at`,
-    [q, r, note]
+    [q, r, note, qrToH3BigInt(q, r).toString(), H3_RES.DM_HEX]
   );
   return rows[0];
 }
@@ -147,8 +151,8 @@ export async function setHexTerrain(
   rotation: number
 ): Promise<WorldHex> {
   const rows = await query<WorldHex>(
-    `INSERT INTO world_hexes (q, r, terrain_type, terrain_rotation, reveal_state, updated_at)
-     VALUES ($1, $2, $3, $4, 'revealed', EXTRACT(EPOCH FROM now())::bigint)
+    `INSERT INTO world_hexes (q, r, terrain_type, terrain_rotation, reveal_state, h3_cell, h3_res, updated_at)
+     VALUES ($1, $2, $3, $4, 'revealed', $5, $6, EXTRACT(EPOCH FROM now())::bigint)
      ON CONFLICT (q, r) DO UPDATE
        SET terrain_type     = EXCLUDED.terrain_type,
            terrain_rotation = EXCLUDED.terrain_rotation,
@@ -158,7 +162,7 @@ export async function setHexTerrain(
            END,
            updated_at       = EXCLUDED.updated_at
      RETURNING q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at`,
-    [q, r, terrainType, rotation]
+    [q, r, terrainType, rotation, qrToH3BigInt(q, r).toString(), H3_RES.DM_HEX]
   );
   return rows[0];
 }
@@ -182,14 +186,14 @@ export async function setHexLocalMap(
   );
 
   const rows = await query<WorldHex>(
-    `INSERT INTO world_hexes (q, r, reveal_state, local_map_id, updated_at)
-     VALUES ($1, $2, 'mapped', $3, EXTRACT(EPOCH FROM now())::bigint)
+    `INSERT INTO world_hexes (q, r, reveal_state, local_map_id, h3_cell, h3_res, updated_at)
+     VALUES ($1, $2, 'mapped', $3, $4, $5, EXTRACT(EPOCH FROM now())::bigint)
      ON CONFLICT (q, r) DO UPDATE
        SET reveal_state = 'mapped',
            local_map_id = EXCLUDED.local_map_id,
            updated_at   = EXCLUDED.updated_at
      RETURNING q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at`,
-    [q, r, localMapId]
+    [q, r, localMapId, qrToH3BigInt(q, r).toString(), H3_RES.DM_HEX]
   );
   return rows[0];
 }
@@ -241,10 +245,11 @@ export interface CreateEntityInput {
 }
 
 export async function createEntity(input: CreateEntityInput): Promise<WorldEntity> {
+  // H3 dual-write (v3 item #50): entity position also carries an H3 cell.
   const rows = await query<WorldEntity>(
     `INSERT INTO world_entities
-       (id, kind, label, current_q, current_r, waypoints, seconds_per_step)
-     VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5::jsonb, $6)
+       (id, kind, label, current_q, current_r, h3_cell, h3_res, waypoints, seconds_per_step)
+     VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7::jsonb, $8)
      RETURNING id, kind, label, current_q, current_r, waypoints, waypoint_index,
                seconds_per_step, created_at, updated_at`,
     [
@@ -252,6 +257,8 @@ export async function createEntity(input: CreateEntityInput): Promise<WorldEntit
       input.label ?? '',
       input.q,
       input.r,
+      qrToH3BigInt(input.q, input.r).toString(),
+      H3_RES.DM_HEX,
       JSON.stringify(input.waypoints ?? []),
       input.secondsPerStep ?? 21600,
     ]

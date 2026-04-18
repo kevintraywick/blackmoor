@@ -22,7 +22,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [x] Schema: nullable `h3_cell bigint` + `h3_res smallint` columns on spatial tables (world hexes, local maps, NPCs, AR encounters) <!-- common-v3 -->
 - [x] World anchor: pick real lat/lng and H3 resolution for current Shadow world map <!-- common-v3 -->
 - [x] Backfill: existing world-hex (col,row) coords → `h3_cell` at chosen resolution <!-- common-v3 -->
-- [ ] Dual-write: world-map writes populate `h3_cell` alongside legacy (col,row); reads remain on legacy path <!-- common-v3 -->
+- [x] Dual-write: world-map writes populate `h3_cell` alongside legacy (col,row); reads remain on legacy path <!-- common-v3 -->
 - [ ] Mappy sanity-checks local-map scale against real-world dimensions at the H3 anchor cell <!-- common-v3 -->
 
 ### v4 — Map Builder

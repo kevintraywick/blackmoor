@@ -9,6 +9,8 @@
 // that into an in-fiction date/time with formatGameTime().
 
 import { query, withTransaction } from './db';
+import { H3_RES } from './h3';
+import { qrToH3BigInt } from './world-hex-mapping';
 
 export interface GameClock {
   game_time_seconds: number;
@@ -103,14 +105,18 @@ export async function advanceGameTime(seconds: number): Promise<GameClock> {
       if (newIndex === ent.waypoint_index) continue;
       const target = waypoints[newIndex];
       if (!target || typeof target.q !== 'number' || typeof target.r !== 'number') continue;
+      // H3 dual-write (v3 item #50): step-advance updates both legacy
+      // (current_q, current_r) and the derived H3 cell.
       await client.query(
         `UPDATE world_entities
          SET waypoint_index = $1,
              current_q      = $2,
              current_r      = $3,
+             h3_cell        = $4,
+             h3_res         = $5,
              updated_at     = EXTRACT(EPOCH FROM now())::bigint
-         WHERE id = $4`,
-        [newIndex, target.q, target.r, ent.id]
+         WHERE id = $6`,
+        [newIndex, target.q, target.r, qrToH3BigInt(target.q, target.r).toString(), H3_RES.DM_HEX, ent.id]
       );
     }
 
