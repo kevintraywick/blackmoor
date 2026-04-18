@@ -40,6 +40,9 @@ export interface WorldHex {
   local_map_id: string | null;
   weather_override: string | null;
   updated_at: number;
+  /** H3 cell in hex-string form (15 chars). null for legacy rows that
+   *  haven't been backfilled. Populated on every write since v3 #50. */
+  h3_cell: string | null;
 }
 
 export interface WorldEntity {
@@ -81,10 +84,20 @@ export async function getHex(q: number, r: number): Promise<WorldHex | null> {
 }
 
 export async function listHexes(): Promise<WorldHex[]> {
-  return query<WorldHex>(
-    `SELECT q, r, reveal_state, terrain_note, terrain_type, terrain_rotation, local_map_id, weather_override, updated_at
+  // Cast h3_cell to text so pg returns it as a decimal string (which we can
+  // convert to a 15-char hex string client-side via lib/h3.parseDbCell).
+  // Then expose the hex form directly so callers don't need to know about
+  // the BIGINT storage.
+  const rows = await query<WorldHex & { h3_cell: string | null }>(
+    `SELECT q, r, reveal_state, terrain_note, terrain_type, terrain_rotation,
+            local_map_id, weather_override, updated_at,
+            h3_cell::text AS h3_cell
      FROM world_hexes`
   );
+  return rows.map(r => ({
+    ...r,
+    h3_cell: r.h3_cell !== null ? BigInt(r.h3_cell).toString(16) : null,
+  }));
 }
 
 export async function listHexesInRect(

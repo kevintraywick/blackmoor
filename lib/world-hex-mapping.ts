@@ -1,5 +1,7 @@
 import { H3_RES, type H3Cell, latLngToCell, cellToBigInt } from './h3';
-import { SHADOW_WORLD_ANCHOR } from './world-anchor';
+// Import the constant from the client-safe module so this helper can be
+// pulled into client bundles without dragging `pg` along.
+import { SHADOW_WORLD_ANCHOR } from './world-anchor-constants';
 
 /**
  * Translate Shadow's legacy even-q offset `(q, r)` hex coordinates into

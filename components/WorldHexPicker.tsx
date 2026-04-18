@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { hexCenter, hexPath } from '@/lib/hex-math';
 import type { WorldHex } from '@/lib/world';
+import { qrToH3Cell } from '@/lib/world-hex-mapping';
+import { h3AnchorFitCheckByCell, type AnchorFitCheck } from '@/lib/map-scale';
 
 const HEX_SIZE = 28;
 const CANVAS_W = 880;
@@ -45,15 +47,24 @@ function pixelToHexUnbounded(px: number, py: number, hexSize: number): [number, 
   return [col, row];
 }
 
+interface ScaleData {
+  imageNaturalWidth: number;
+  imageNaturalHeight: number;
+  cellSizePx: number;
+  scaleValueFt: number;
+}
+
 interface Props {
   buildId: string;
   buildName: string;
   currentAnchor: { q: number; r: number } | null;
+  /** Build's image + grid metadata for the Mappy H3 fit-check. null skips the check. */
+  scaleData: ScaleData | null;
   onCancel: () => void;
   onPlaced: (q: number, r: number) => void;
 }
 
-export default function WorldHexPicker({ buildId, buildName, currentAnchor, onCancel, onPlaced }: Props) {
+export default function WorldHexPicker({ buildId, buildName, currentAnchor, scaleData, onCancel, onPlaced }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [hexes, setHexes] = useState<WorldHex[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +74,9 @@ export default function WorldHexPicker({ buildId, buildName, currentAnchor, onCa
   );
   const [placing, setPlacing] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
+  // Mappy H3 fit-check (v3 #60) surfaced whenever a hex is selected. Purely
+  // informational — a warn/error doesn't block the DM from placing.
+  const [fit, setFit] = useState<AnchorFitCheck | null>(null);
 
   // Load hexes on mount
   useEffect(() => {
@@ -218,8 +232,23 @@ export default function WorldHexPicker({ buildId, buildName, currentAnchor, onCa
         setWarning(null);
       }
       setSelected([q, r]);
+
+      // Mappy H3 fit-check — prefer the stored h3_cell (set by v3 dual-write)
+      // but fall back to computing it from (q, r) for unrevealed hexes.
+      if (scaleData) {
+        const anchorCell = existing?.h3_cell ?? qrToH3Cell(q, r);
+        setFit(h3AnchorFitCheckByCell({
+          imageNaturalWidth: scaleData.imageNaturalWidth,
+          imageNaturalHeight: scaleData.imageNaturalHeight,
+          cellSizePx: scaleData.cellSizePx,
+          scaleValueFt: scaleData.scaleValueFt,
+          anchorCell,
+        }));
+      } else {
+        setFit(null);
+      }
     },
-    [screenToHex, hexMap, buildId]
+    [screenToHex, hexMap, buildId, scaleData]
   );
 
   const place = useCallback(async () => {
@@ -294,6 +323,19 @@ export default function WorldHexPicker({ buildId, buildName, currentAnchor, onCa
             )}
             {warning && (
               <div className="text-[#c07a8a] text-[0.7rem] mt-1 not-italic">{warning}</div>
+            )}
+            {fit && fit.severity !== 'ok' && (
+              <div
+                className="text-[0.7rem] mt-1 not-italic"
+                style={{ color: fit.severity === 'error' ? '#c07a8a' : '#d8b060' }}
+              >
+                {fit.severity === 'error' ? '✗' : '⚠'} {fit.message}
+              </div>
+            )}
+            {fit && fit.severity === 'ok' && (
+              <div className="text-[#7ac28a] text-[0.65rem] mt-1 not-italic opacity-80">
+                ✓ {fit.message}
+              </div>
             )}
           </div>
           <div className="flex gap-2">

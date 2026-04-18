@@ -27,14 +27,14 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 
 ### v4 — Map Builder
 
-- [ ] Merge feat/map-builder PR to main (editor, world map, local maps, canonical scale) <!-- common-v4 -->
+- [x] Merge feat/map-builder PR to main (editor, world map, local maps, canonical scale) <!-- common-v4 -->
 - [ ] Mappy N-direction detection on uploaded maps <!-- common-v4 -->
 - [ ] Mappy scale sanity check (flag grid vs AI discrepancy) <!-- common-v4 -->
 - [ ] Builder canvas image rendering at canonical scale <!-- common-v4 -->
 - [ ] Fog of war — player-facing world map with revealed hexes only <!-- common-v4 -->
 - [ ] Player-facing local map view (read-only, inherits fog state) <!-- common-v4 -->
 - [ ] Upload classification dialog — world addition vs local map <!-- common-v4 -->
-- [ ] World hex picker — place local maps on the world grid <!-- common-v4 -->
+- [x] World hex picker — place local maps on the world grid <!-- common-v4 -->
 - [ ] Local map session event publishing (asset placed, map opened, party marker) <!-- common-v4 -->
 - [ ] Seed world map refresh (the hand-painted canvas Common sits on) <!-- common-v4 -->
 - [ ] World map party marker visible to players <!-- common-v4 -->

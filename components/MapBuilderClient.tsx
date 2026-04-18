@@ -1699,11 +1699,26 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
           activeBuild.world_hex_q != null && activeBuild.world_hex_r != null
             ? { q: activeBuild.world_hex_q, r: activeBuild.world_hex_r }
             : null;
+        // Pull the scale data the picker needs to run the Mappy H3 fit-check
+        // on any candidate hex. Any field being null just skips the check.
+        const scaleData =
+          activeBuild.image_width_px != null &&
+          activeBuild.image_height_px != null &&
+          activeBuild.cell_size_px != null &&
+          activeBuild.scale_value_ft != null
+            ? {
+                imageNaturalWidth: activeBuild.image_width_px,
+                imageNaturalHeight: activeBuild.image_height_px,
+                cellSizePx: activeBuild.cell_size_px,
+                scaleValueFt: activeBuild.scale_value_ft,
+              }
+            : null;
         return (
           <WorldHexPicker
             buildId={activeBuild.id}
             buildName={activeBuild.name}
             currentAnchor={currentAnchor}
+            scaleData={scaleData}
             onCancel={() => setShowWorldPicker(false)}
             onPlaced={(q, r) => {
               setBuilds((prev) =>
