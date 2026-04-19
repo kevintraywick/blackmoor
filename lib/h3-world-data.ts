@@ -1,7 +1,7 @@
 import { cellToBoundary, cellToLatLng, cellToParent, cellToChildren, getRes0Cells, isPentagon } from 'h3-js';
 
 /**
- * Shared pre-computation helpers for the /dm/globe and /dm/globe-3d views.
+ * Pre-computation helpers for the /dm/globe view.
  * Server-only conceptually (no client imports), but pure JS — just kept out
  * of client bundles by convention because the output payload is large.
  */
