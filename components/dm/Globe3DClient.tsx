@@ -23,7 +23,6 @@ const COLOR_CELL = new THREE.Color('#2b3e67');
 const COLOR_ANCHOR_FILL = new THREE.Color('#f06282');
 const COLOR_ANCHOR_ANCESTOR_FILL = new THREE.Color('#d94668');
 const COLOR_PENTAGON_FILL = new THREE.Color('#6e7480');
-const COLOR_SHADOW_LOW = new THREE.Color('rgb(200,130,56)');   // r=200 g=130 b=56
 const COLOR_SHADOW_HIGH = new THREE.Color('rgb(255,208,96)');  // r=255 g=208 b=96
 
 const GLOBE_RADIUS = 1;
@@ -60,13 +59,26 @@ function latLngToVec3(lat: number, lng: number, radius = GLOBE_RADIUS): THREE.Ve
   return new THREE.Vector3(x, y, z);
 }
 
-function colorForCell(c: PreparedCell, isAnchorCell: boolean, tmp: THREE.Color): THREE.Color {
+/**
+ * Fill-ratio shading: cells blend from the base slate-blue toward warm amber
+ * by how much of the cell is actually covered by Shadow. `maxShadowCount` is
+ * the highest descendant count seen in the current resolution — the cell
+ * with the densest Shadow presence reads as solid amber, everything else
+ * grades down. `sqrt` eases the curve so a few-hex cell still shows a faint
+ * warm tint rather than vanishing into the base.
+ */
+function colorForCell(
+  c: PreparedCell,
+  isAnchorCell: boolean,
+  maxShadowCount: number,
+  tmp: THREE.Color,
+): THREE.Color {
   if (isAnchorCell) return tmp.copy(COLOR_ANCHOR_FILL);
   if (c.isAnchorAncestor) return tmp.copy(COLOR_ANCHOR_ANCESTOR_FILL);
   if (c.isPentagon) return tmp.copy(COLOR_PENTAGON_FILL);
-  if (c.shadowDescendantCount > 0) {
-    const t = Math.min(1, c.shadowDescendantCount / 7);
-    return tmp.copy(COLOR_SHADOW_LOW).lerp(COLOR_SHADOW_HIGH, t);
+  if (c.shadowDescendantCount > 0 && maxShadowCount > 0) {
+    const t = Math.sqrt(c.shadowDescendantCount / maxShadowCount);
+    return tmp.copy(COLOR_CELL).lerp(COLOR_SHADOW_HIGH, t);
   }
   return tmp.copy(COLOR_CELL);
 }
@@ -77,8 +89,15 @@ function buildCellsGeometry(cells: PreparedCell[], anchorCell: string): THREE.Bu
   const indices: number[] = [];
   const tmp = new THREE.Color();
 
+  // Peak Shadow density in the current resolution — every lighter-than-peak
+  // ancestor grades toward amber proportionally.
+  let maxShadowCount = 0;
   for (const c of cells) {
-    const color = colorForCell(c, c.cell === anchorCell, tmp);
+    if (c.shadowDescendantCount > maxShadowCount) maxShadowCount = c.shadowDescendantCount;
+  }
+
+  for (const c of cells) {
+    const color = colorForCell(c, c.cell === anchorCell, maxShadowCount, tmp);
     const cr = color.r, cg = color.g, cb = color.b;
 
     const [cLat, cLng] = c.center;
