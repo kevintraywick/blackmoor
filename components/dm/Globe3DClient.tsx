@@ -30,22 +30,35 @@ const RES1_OUTLINE_RADIUS = 1.002; // just above the fills
 const RES0_OUTLINE_RADIUS = 1.004; // above res-1 so colors don't blend where edges overlap
 
 // Opacity crossfade anchors — as camera distance drops from FAR to NEAR,
-// res-0 fades out while res-1 fades in.
-const FADE_FAR = 3.5;
-const FADE_NEAR = 1.5;
-const RES0_OPACITY_FAR = 1.0;
-const RES0_OPACITY_NEAR = 0.05;
-const RES1_OPACITY_FAR = 0.2;
-const RES1_OPACITY_NEAR = 0.95;
+// the "outer" layer fades out while the "inner" layer fades in. We use two
+// bands: one for outlines (res-0 ↔ res-1) and a tighter one for fills
+// (res-1 ↔ res-2), since fills need to transition faster to keep cells
+// from looking washed out at mid-zoom.
+const OUTLINE_FADE_FAR = 3.5;
+const OUTLINE_FADE_NEAR = 1.5;
+const RES0_OUTLINE_OPACITY_FAR = 1.0;
+const RES0_OUTLINE_OPACITY_NEAR = 0.05;
+const RES1_OUTLINE_OPACITY_FAR = 0.2;
+const RES1_OUTLINE_OPACITY_NEAR = 0.95;
 
-function fadeAmount(distance: number): number {
+const FILL_FADE_FAR = 2.5;
+const FILL_FADE_NEAR = 1.5;
+
+// Radii for the cell-fill layers. Res-2 sits slightly below res-1 so that
+// when both are partially transparent in the crossfade band, there's no
+// z-fight on shared vertices.
+const RES1_FILL_RADIUS = 1.000;
+const RES2_FILL_RADIUS = 0.9995;
+
+function fadeAmount(distance: number, farEnd: number, nearEnd: number): number {
   // 0 when at/beyond FAR, 1 when at/below NEAR, linear in between.
-  return Math.max(0, Math.min(1, (FADE_FAR - distance) / (FADE_FAR - FADE_NEAR)));
+  return Math.max(0, Math.min(1, (farEnd - distance) / (farEnd - nearEnd)));
 }
 
 // Thresholds on camera distance: smaller = closer = more zoomed in.
 // Orbit controls' minDistance/maxDistance bound this.
-const RES_SWITCH_DISTANCE = 1.9; // zoom in past this → res 2
+// RES_SWITCH_DISTANCE removed — the res-1/res-2 swap is now a continuous
+// crossfade governed by FILL_FADE_FAR/NEAR below, not a binary threshold.
 
 const RAD = Math.PI / 180;
 
@@ -83,7 +96,7 @@ function colorForCell(
   return tmp.copy(COLOR_CELL);
 }
 
-function buildCellsGeometry(cells: PreparedCell[], anchorCell: string): THREE.BufferGeometry {
+function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: number): THREE.BufferGeometry {
   const positions: number[] = [];
   const colors: number[] = [];
   const indices: number[] = [];
@@ -101,14 +114,14 @@ function buildCellsGeometry(cells: PreparedCell[], anchorCell: string): THREE.Bu
     const cr = color.r, cg = color.g, cb = color.b;
 
     const [cLat, cLng] = c.center;
-    const centerPos = latLngToVec3(cLat, cLng, GLOBE_RADIUS);
+    const centerPos = latLngToVec3(cLat, cLng, radius);
     const centerIdx = positions.length / 3;
     positions.push(centerPos.x, centerPos.y, centerPos.z);
     colors.push(cr, cg, cb);
 
     const vertIdx: number[] = [];
     for (const [lat, lng] of c.boundary) {
-      const v = latLngToVec3(lat, lng, GLOBE_RADIUS);
+      const v = latLngToVec3(lat, lng, radius);
       vertIdx.push(positions.length / 3);
       positions.push(v.x, v.y, v.z);
       colors.push(cr, cg, cb);
@@ -148,11 +161,22 @@ function buildOutlineSegments(cells: PreparedCell[], radius: number): THREE.Buff
   return geom;
 }
 
-function CellLayer({ cells, anchorCell, visible }: { cells: PreparedCell[]; anchorCell: string; visible: boolean }) {
-  const geom = useMemo(() => buildCellsGeometry(cells, anchorCell), [cells, anchorCell]);
+function CellLayer({
+  cells,
+  anchorCell,
+  radius,
+  opacity,
+}: {
+  cells: PreparedCell[];
+  anchorCell: string;
+  radius: number;
+  opacity: number;
+}) {
+  const geom = useMemo(() => buildCellsGeometry(cells, anchorCell, radius), [cells, anchorCell, radius]);
+  if (opacity <= 0.001) return null; // skip entirely when fully faded — saves a draw call at extremes
   return (
-    <mesh geometry={geom} visible={visible}>
-      <meshBasicMaterial vertexColors side={THREE.FrontSide} />
+    <mesh geometry={geom}>
+      <meshBasicMaterial vertexColors side={THREE.FrontSide} transparent opacity={opacity} depthWrite={opacity > 0.95} />
     </mesh>
   );
 }
@@ -235,9 +259,11 @@ const CameraController = forwardRef<
 
 export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorCell, anchorLat, anchorLng }: Props) {
   const [cameraDistance, setCameraDistance] = useState(2.5);
-  const useRes2 = cameraDistance < RES_SWITCH_DISTANCE;
-  const activeRes = useRes2 ? 2 : 1;
-  const activeCellCount = useRes2 ? res2Cells.length : res1Cells.length;
+  const fillFade = fadeAmount(cameraDistance, FILL_FADE_FAR, FILL_FADE_NEAR);
+  const res1FillOpacity = 1 - fillFade; // pure res-1 when far
+  const res2FillOpacity = fillFade;     // pure res-2 when near
+  const dominantRes = fillFade >= 0.5 ? 2 : 1;
+  const dominantCellCount = dominantRes === 2 ? res2Cells.length : res1Cells.length;
 
   const initialCameraPos = useMemo(() => {
     const v = latLngToVec3(anchorLat, anchorLng, 2.5);
@@ -275,8 +301,8 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
         <div className="flex flex-col gap-1.5">
           <div>
             <span className="opacity-60">Active: </span>
-            <strong style={{ color: '#d0e0ff' }}>res {activeRes}</strong>
-            <span className="opacity-60"> · {activeCellCount.toLocaleString()} cells</span>
+            <strong style={{ color: '#d0e0ff' }}>res {dominantRes}</strong>
+            <span className="opacity-60"> · {dominantCellCount.toLocaleString()} cells</span>
           </div>
           <div>
             <span className="opacity-60">Distance: </span>
@@ -302,19 +328,19 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
         >
           <ambientLight intensity={1} />
           <OceanSphere />
-          <CellLayer cells={res1Cells} anchorCell={anchorCell} visible={!useRes2} />
-          <CellLayer cells={res2Cells} anchorCell={anchorCell} visible={useRes2} />
+          <CellLayer cells={res1Cells} anchorCell={anchorCell} radius={RES1_FILL_RADIUS} opacity={res1FillOpacity} />
+          <CellLayer cells={res2Cells} anchorCell={anchorCell} radius={RES2_FILL_RADIUS} opacity={res2FillOpacity} />
           <OutlineLayer
             cells={res1Cells}
             radius={RES1_OUTLINE_RADIUS}
             color="#ffffff"
-            opacity={RES1_OPACITY_FAR + (RES1_OPACITY_NEAR - RES1_OPACITY_FAR) * fadeAmount(cameraDistance)}
+            opacity={RES1_OUTLINE_OPACITY_FAR + (RES1_OUTLINE_OPACITY_NEAR - RES1_OUTLINE_OPACITY_FAR) * fadeAmount(cameraDistance, OUTLINE_FADE_FAR, OUTLINE_FADE_NEAR)}
           />
           <OutlineLayer
             cells={res0Cells}
             radius={RES0_OUTLINE_RADIUS}
             color="#ffd060"
-            opacity={RES0_OPACITY_FAR + (RES0_OPACITY_NEAR - RES0_OPACITY_FAR) * fadeAmount(cameraDistance)}
+            opacity={RES0_OUTLINE_OPACITY_FAR + (RES0_OUTLINE_OPACITY_NEAR - RES0_OUTLINE_OPACITY_FAR) * fadeAmount(cameraDistance, OUTLINE_FADE_FAR, OUTLINE_FADE_NEAR)}
           />
           <AnchorMarker lat={anchorLat} lng={anchorLng} />
           <OrbitControls
