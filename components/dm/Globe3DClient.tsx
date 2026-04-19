@@ -1,9 +1,9 @@
 'use client';
 
-import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, Suspense, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, useGLTF } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { PreparedCell } from '@/lib/h3-world-data';
 
@@ -258,6 +258,27 @@ function HexPin({
   );
 }
 
+/**
+ * Loads `/tokens/wolf.glb` and renders Shadow's campaign token. Idle rotation
+ * gives it a bit of life so the wolf reads as a character, not a statue.
+ */
+function WolfToken() {
+  const { scene } = useGLTF('/tokens/wolf.glb');
+  const cloned = useMemo(() => scene.clone(true), [scene]);
+  const ref = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.rotation.y = state.clock.elapsedTime * 0.25;
+    }
+  });
+  return (
+    <group ref={ref}>
+      <primitive object={cloned} scale={0.04} />
+    </group>
+  );
+}
+useGLTF.preload('/tokens/wolf.glb');
+
 function AnchorMarker({ lat, lng }: { lat: number; lng: number }) {
   const pos = useMemo(() => latLngToVec3(lat, lng, GLOBE_RADIUS * 1.01), [lat, lng]);
   const markerRef = useRef<THREE.Mesh>(null);
@@ -411,13 +432,12 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
           />
           <AnchorMarker lat={anchorLat} lng={anchorLng} />
 
-          {/* Demo pin — gold cone at the north pole. */}
-          <HexPin lat={90} lng={0} radiusScale={1.002}>
-            <mesh position={[0, 0.04, 0]}>
-              <coneGeometry args={[0.025, 0.08, 16]} />
-              <meshBasicMaterial color="#ffd060" />
-            </mesh>
-          </HexPin>
+          {/* Shadow's campaign token — wolf pinned at Blaen Hafren. */}
+          <Suspense fallback={null}>
+            <HexPin lat={anchorLat} lng={anchorLng} radiusScale={1.003}>
+              <WolfToken />
+            </HexPin>
+          </Suspense>
           <OrbitControls
             ref={controlsRef}
             enablePan={false}
