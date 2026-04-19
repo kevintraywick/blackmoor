@@ -30,6 +30,20 @@ const GLOBE_RADIUS = 1;
 const RES1_OUTLINE_RADIUS = 1.002; // just above the fills
 const RES0_OUTLINE_RADIUS = 1.004; // above res-1 so colors don't blend where edges overlap
 
+// Opacity crossfade anchors — as camera distance drops from FAR to NEAR,
+// res-0 fades out while res-1 fades in.
+const FADE_FAR = 3.5;
+const FADE_NEAR = 1.5;
+const RES0_OPACITY_FAR = 1.0;
+const RES0_OPACITY_NEAR = 0.05;
+const RES1_OPACITY_FAR = 0.2;
+const RES1_OPACITY_NEAR = 0.95;
+
+function fadeAmount(distance: number): number {
+  // 0 when at/beyond FAR, 1 when at/below NEAR, linear in between.
+  return Math.max(0, Math.min(1, (FADE_FAR - distance) / (FADE_FAR - FADE_NEAR)));
+}
+
 // Thresholds on camera distance: smaller = closer = more zoomed in.
 // Orbit controls' minDistance/maxDistance bound this.
 const RES_SWITCH_DISTANCE = 1.9; // zoom in past this → res 2
@@ -271,8 +285,18 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
           <OceanSphere />
           <CellLayer cells={res1Cells} anchorCell={anchorCell} visible={!useRes2} />
           <CellLayer cells={res2Cells} anchorCell={anchorCell} visible={useRes2} />
-          <OutlineLayer cells={res1Cells} radius={RES1_OUTLINE_RADIUS} color="#ffffff" opacity={0.92} />
-          <OutlineLayer cells={res0Cells} radius={RES0_OUTLINE_RADIUS} color="#ffd060" opacity={1} />
+          <OutlineLayer
+            cells={res1Cells}
+            radius={RES1_OUTLINE_RADIUS}
+            color="#ffffff"
+            opacity={RES1_OPACITY_FAR + (RES1_OPACITY_NEAR - RES1_OPACITY_FAR) * fadeAmount(cameraDistance)}
+          />
+          <OutlineLayer
+            cells={res0Cells}
+            radius={RES0_OUTLINE_RADIUS}
+            color="#ffd060"
+            opacity={RES0_OPACITY_FAR + (RES0_OPACITY_NEAR - RES0_OPACITY_FAR) * fadeAmount(cameraDistance)}
+          />
           <AnchorMarker lat={anchorLat} lng={anchorLng} />
           <OrbitControls
             ref={controlsRef}
