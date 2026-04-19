@@ -51,19 +51,36 @@ function project(
   return { x: cx + x * R, y: cy - y * R, visible: cosC > 0 };
 }
 
+// Common World palette — cosmic-navy base with warm/violet accents.
+// Explicitly not Shadow's firelit-brown: CW is a planetary, shared space,
+// not a hearth-room. Saturated soft blues + warm pops for agency cues.
+const COLOR_SPACE = '#0a0f20';         // cosmic navy (behind globe)
+const COLOR_OCEAN = '#172540';         // globe disk (slight lift vs space)
+const COLOR_RIM = '#3e5683';           // horizon stroke
+const COLOR_CELL_FILL = '#2b3e67';     // default cell fill — slate-blue
+const COLOR_CELL_STROKE = '#5880b4';   // default cell stroke — periwinkle
+const COLOR_ANCHOR_FILL = '#f06282';   // containing cell — coral rose
+const COLOR_ANCHOR_STROKE = '#ffb5c5';
+const COLOR_ANCHOR_ANCESTOR_FILL = '#d94668';
+const COLOR_ANCHOR_ANCESTOR_STROKE = '#ff8fa0';
+const COLOR_PENTAGON_FILL = '#5c3cbf'; // astral void — violet
+const COLOR_PENTAGON_STROKE = '#a080f5';
+const COLOR_SHADOW_STROKE = '#ffd060'; // Shadow presence stroke
+const COLOR_ANCHOR_LABEL = '#ffb5c5';
+
 function colorForCell(c: PreparedCell, isAnchorCell: boolean): { fill: string; stroke: string } {
-  if (isAnchorCell) return { fill: '#8a4444', stroke: '#d98a8a' };
-  if (c.isAnchorAncestor) return { fill: '#5a3a2a', stroke: '#c27a5a' };
-  if (c.isPentagon) return { fill: '#2e3a6a', stroke: '#8aa0e0' };
+  if (isAnchorCell) return { fill: COLOR_ANCHOR_FILL, stroke: COLOR_ANCHOR_STROKE };
+  if (c.isAnchorAncestor) return { fill: COLOR_ANCHOR_ANCESTOR_FILL, stroke: COLOR_ANCHOR_ANCESTOR_STROKE };
+  if (c.isPentagon) return { fill: COLOR_PENTAGON_FILL, stroke: COLOR_PENTAGON_STROKE };
   if (c.shadowDescendantCount > 0) {
-    // Ramp brown → gold with descendant density (caps at 7 for aesthetic ceiling)
+    // Warm amber ramp — bronze → bright gold with density (caps at 7).
     const t = Math.min(1, c.shadowDescendantCount / 7);
-    const r = Math.round(58 + t * 140);
-    const g = Math.round(52 + t * 110);
-    const b = Math.round(43 + t * 30);
-    return { fill: `rgb(${r},${g},${b})`, stroke: '#c9a84c' };
+    const r = Math.round(200 + t * 55);
+    const g = Math.round(130 + t * 78);
+    const b = Math.round(56 + t * 40);
+    return { fill: `rgb(${r},${g},${b})`, stroke: COLOR_SHADOW_STROKE };
   }
-  return { fill: '#1a1815', stroke: '#2c2822' };
+  return { fill: COLOR_CELL_FILL, stroke: COLOR_CELL_STROKE };
 }
 
 export default function GlobeClient({ res1Cells, res2Cells, anchorCell, anchorLat, anchorLng, anchorName }: Props) {
@@ -105,14 +122,14 @@ export default function GlobeClient({ res1Cells, res2Cells, anchorCell, anchorLa
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Background
-    ctx.fillStyle = '#0a0908';
+    // Background — cosmic navy
+    ctx.fillStyle = COLOR_SPACE;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Ocean disk (globe silhouette)
+    // Ocean disk (globe silhouette) — slight lift vs space for depth
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.fillStyle = '#13110e';
+    ctx.fillStyle = COLOR_OCEAN;
     ctx.fill();
 
     // Cells
@@ -151,21 +168,21 @@ export default function GlobeClient({ res1Cells, res2Cells, anchorCell, anchorLa
     if (anchorProj.visible) {
       ctx.beginPath();
       ctx.arc(anchorProj.x, anchorProj.y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = '#d98a8a';
-      ctx.strokeStyle = '#0a0908';
+      ctx.fillStyle = COLOR_ANCHOR_LABEL;
+      ctx.strokeStyle = COLOR_SPACE;
       ctx.lineWidth = 1;
       ctx.fill();
       ctx.stroke();
 
       ctx.font = `500 12px "Geist", sans-serif`;
-      ctx.fillStyle = '#d98a8a';
+      ctx.fillStyle = COLOR_ANCHOR_LABEL;
       ctx.fillText(anchorName, anchorProj.x + 8, anchorProj.y + 4);
     }
 
-    // Globe rim
+    // Globe rim — periwinkle halo
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.strokeStyle = '#3a342b';
+    ctx.strokeStyle = COLOR_RIM;
     ctx.lineWidth = 1;
     ctx.stroke();
   }, [activeCells, centerLat, centerLng, R, cx, cy, anchorCell, anchorLat, anchorLng, anchorName]);
@@ -246,14 +263,16 @@ export default function GlobeClient({ res1Cells, res2Cells, anchorCell, anchorLa
           Active: <strong>res {activeRes}</strong> ({activeCells.length.toLocaleString()} cells) ·
           Zoom: <strong>{zoom.toFixed(2)}×</strong>
         </span>
-        <LegendChip fill="#5a3a2a" stroke="#c27a5a" label="Shadow's home cell" />
-        <LegendChip fill="#a88a50" stroke="#c9a84c" label="Shadow presence (res-6 density)" />
-        <LegendChip fill="#2e3a6a" stroke="#8aa0e0" label="Pentagon (astral void)" />
+        <LegendChip fill={COLOR_ANCHOR_ANCESTOR_FILL} stroke={COLOR_ANCHOR_ANCESTOR_STROKE} label="Shadow's home cell" />
+        <LegendChip fill="#e89a48" stroke={COLOR_SHADOW_STROKE} label="Shadow presence (res-6 density)" />
+        <LegendChip fill={COLOR_PENTAGON_FILL} stroke={COLOR_PENTAGON_STROKE} label="Pentagon (astral void)" />
         <button
           type="button"
           onClick={() => { setCenterLat(anchorLat); setCenterLng(anchorLng); setZoom(1); }}
-          className="ml-auto text-[0.7rem] uppercase tracking-[0.15em] text-[#8a7a4c] hover:text-[#c9a84c] font-sans"
-          style={{ background: 'transparent', border: '1px solid #5a4632', cursor: 'pointer', padding: '4px 10px' }}
+          className="ml-auto text-[0.7rem] uppercase tracking-[0.15em] font-sans transition-colors"
+          style={{ background: 'transparent', border: `1px solid ${COLOR_RIM}`, color: '#8aa0c8', cursor: 'pointer', padding: '4px 10px' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#d0e0ff'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#8aa0c8'; }}
         >
           Recenter
         </button>
@@ -261,7 +280,7 @@ export default function GlobeClient({ res1Cells, res2Cells, anchorCell, anchorLa
 
       <div
         className="relative rounded-sm overflow-hidden"
-        style={{ background: '#0a0908', border: '1px solid #3d3530', width: CANVAS_W, maxWidth: '100%' }}
+        style={{ background: COLOR_SPACE, border: `1px solid ${COLOR_RIM}`, width: CANVAS_W, maxWidth: '100%' }}
       >
         <canvas
           ref={canvasRef}
@@ -276,7 +295,7 @@ export default function GlobeClient({ res1Cells, res2Cells, anchorCell, anchorLa
         {hovered && (
           <div
             className="absolute bottom-2 left-2 px-3 py-2 text-xs font-mono rounded-sm"
-            style={{ background: 'rgba(10, 9, 8, 0.94)', border: '1px solid #3d3530', color: 'var(--color-text)', maxWidth: 420, pointerEvents: 'none' }}
+            style={{ background: 'rgba(10, 15, 32, 0.94)', border: `1px solid ${COLOR_RIM}`, color: '#d0e0ff', maxWidth: 420, pointerEvents: 'none' }}
           >
             <div>
               cell: {hovered.cell} · res {hovered.resolution}
@@ -286,12 +305,12 @@ export default function GlobeClient({ res1Cells, res2Cells, anchorCell, anchorLa
               center: {hovered.center[0].toFixed(3)}, {hovered.center[1].toFixed(3)}
             </div>
             {hovered.shadowDescendantCount > 0 && (
-              <div className="opacity-80" style={{ color: '#c9a84c' }}>
+              <div className="opacity-90" style={{ color: COLOR_SHADOW_STROKE }}>
                 Shadow: {hovered.shadowDescendantCount} res-6 hex{hovered.shadowDescendantCount === 1 ? '' : 'es'} inside
               </div>
             )}
             {hovered.isAnchorAncestor && (
-              <div className="opacity-80" style={{ color: '#d98a8a' }}>
+              <div className="opacity-90" style={{ color: COLOR_ANCHOR_LABEL }}>
                 Contains Blaen Hafren
               </div>
             )}
