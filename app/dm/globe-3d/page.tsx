@@ -3,12 +3,12 @@ export const dynamic = 'force-dynamic';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import DmNav from '@/components/DmNav';
-import GlobeClient from '@/components/dm/GlobeClient';
+import Globe3DClient from '@/components/dm/Globe3DClient';
 import { getWorldAnchor } from '@/lib/world-anchor';
 import { cellToLatLng } from 'h3-js';
 import { prepareResolution } from '@/lib/h3-world-data';
 
-export default async function GlobePage() {
+export default async function Globe3DPage() {
   await ensureSchema();
 
   const rows = await query<{ h3_cell: string | null }>(
@@ -24,21 +24,18 @@ export default async function GlobePage() {
   const res1Cells = prepareResolution(1, shadowRes6Cells, anchor.cell);
   const res2Cells = prepareResolution(2, shadowRes6Cells, anchor.cell);
 
-  const shadowRes1Count = res1Cells.filter(c => c.shadowDescendantCount > 0).length;
-  const shadowRes2Count = res2Cells.filter(c => c.shadowDescendantCount > 0).length;
-
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       <DmNav current="world" />
       <div className="px-6 py-6 max-w-[1400px] mx-auto">
-        <h1 className="text-2xl font-serif mb-2">World — orthographic view</h1>
+        <h1 className="text-2xl font-serif mb-2">World — 3D globe</h1>
         <p className="text-sm opacity-70 mb-4">
-          The Common World at planetary scale. Drag to rotate. Scroll to zoom in —
-          past a threshold the grid swaps from res 1 (842 cells, ≈150 km) down to
-          res 2 (5,882 cells, ≈60 km). Shadow&apos;s {shadowRes6Cells.length} touched
-          res-6 hexes roll up to {shadowRes1Count} res-1 ancestors ({shadowRes2Count} at res 2).
+          A real sphere this time. Drag to spin. Scroll to zoom — past a
+          threshold the fill swaps from res 1 to res 2. The res-1 lattice
+          stays overlaid in white at every distance so the parent structure
+          is always legible.
         </p>
-        <GlobeClient
+        <Globe3DClient
           res1Cells={res1Cells}
           res2Cells={res2Cells}
           anchorCell={anchor.cell}

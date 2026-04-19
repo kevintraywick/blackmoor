@@ -1,16 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { PreparedCell } from '@/lib/h3-world-data';
 
-export interface PreparedCell {
-  cell: string;
-  resolution: number;
-  boundary: Array<[number, number]>; // [lat, lng] vertex pairs
-  center: [number, number]; // [lat, lng]
-  isPentagon: boolean;
-  shadowDescendantCount: number;
-  isAnchorAncestor: boolean;
-}
+export type { PreparedCell };
 
 interface Props {
   res1Cells: PreparedCell[];
