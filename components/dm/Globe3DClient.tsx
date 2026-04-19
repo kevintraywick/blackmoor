@@ -273,7 +273,7 @@ function WolfToken() {
   });
   return (
     <group ref={ref}>
-      <primitive object={cloned} scale={0.04} />
+      <primitive object={cloned} scale={0.008} />
     </group>
   );
 }
