@@ -83,14 +83,17 @@ async function _initSchema() {
     ADD COLUMN IF NOT EXISTS in_marketplace BOOLEAN NOT NULL DEFAULT false
   `);
 
-  // Migrate stat_type constraint to include 'damage'
+  // Migrate stat_type constraint to include 'damage'.
+  // ADD is .catch-guarded — the DROP+ADD is not atomic under HMR re-runs and
+  // Postgres will error 42710 "already exists" if another concurrent init
+  // slipped between the two statements.
   await pool.query(`
     ALTER TABLE items DROP CONSTRAINT IF EXISTS items_stat_type_check
-  `);
+  `).catch(() => {});
   await pool.query(`
     ALTER TABLE items ADD CONSTRAINT items_stat_type_check
     CHECK (stat_type IN ('heal', 'magic', 'attack', 'damage'))
-  `);
+  `).catch(() => {});
 
   // Switch from boolean in_marketplace to integer marketplace_qty
   await pool.query(`
