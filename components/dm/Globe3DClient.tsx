@@ -22,7 +22,7 @@ const COLOR_OCEAN = '#172540';
 const COLOR_CELL = new THREE.Color('#2b3e67');
 const COLOR_ANCHOR_FILL = new THREE.Color('#f06282');
 const COLOR_ANCHOR_ANCESTOR_FILL = new THREE.Color('#d94668');
-const COLOR_PENTAGON_FILL = new THREE.Color('#000000');
+const COLOR_PENTAGON_FILL = new THREE.Color('#a0a8b5');
 const COLOR_SHADOW_LOW = new THREE.Color('rgb(200,130,56)');   // r=200 g=130 b=56
 const COLOR_SHADOW_HIGH = new THREE.Color('rgb(255,208,96)');  // r=255 g=208 b=96
 
@@ -268,7 +268,7 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
         <div className="flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid #2a3a5e' }}>
           <LegendChip fill="#d94668" label="Shadow's home cell" />
           <LegendChip fill="#e89a48" label="Shadow presence" />
-          <LegendChip fill="#000000" label="Astral void" />
+          <LegendChip fill="#a0a8b5" label="Astral void" />
           <LegendChip fill="#ffd060" label="Res-0 outline (continents)" />
           <LegendChip fill="#ffffff" label="Res-1 outline" />
         </div>
