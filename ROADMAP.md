@@ -117,6 +117,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] World AI movement loop on common-clock tick <!-- common-v12 -->
 - [ ] DM game clock advance UI on world map (advance N hours/days, entity tick) <!-- common-v12 -->
 - [ ] NPC Layer A — ambient/loop NPCs (hex-schedule data model, baker pattern) <!-- common-v12 -->
+- [ ] Weather → NPC schedule consequence — professions react to hex weather (smith closes on storm, caravan delays, dockers double-rate in rain) <!-- common-v12 -->
 - [ ] NPC Layer B scaffold — mechanic NPCs (merchants, criers, innkeepers) <!-- common-v12 -->
 - [ ] Factions table (thieves, assassins, merchants, religious orders, royalty) <!-- common-v12 -->
 - [ ] Faction agents with agendas + pairwise relationships <!-- common-v12 -->
@@ -150,6 +151,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 
 ### v15 — News, weather, celestial
 
+- [ ] Biome-keyed hex substrate — Köppen zone + elevation + coastal flag per hex (foundation for all weather, magic zones, NPC schedules) <!-- common-v15 -->
 - [ ] Raven Post Common Desk (inbox of nearby/tagged common-world headlines) <!-- common-v15 -->
 - [ ] Distance-based arrival delay by item kind <!-- common-v15 -->
 - [ ] Trust-tier degradation by hex distance <!-- common-v15 -->
@@ -157,6 +159,8 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] Local weather derived from common weather layer <!-- common-v15 -->
 - [ ] Environment pill on local maps (weather + day/night from parent hex) <!-- common-v15 -->
 - [ ] NOAA GFS weather subscription → in-fiction storms (identity-laundered) <!-- common-v15 -->
+- [ ] Weather MVP (Ambience v1) — session-start GFS forecast for party hex + prose presentation + banner/SCB/broadsheet surfaces (docs/brainstorms/2026-04-19-ambience-v1-requirements.md) <!-- common-v15 -->
+- [ ] Continent-coherent storm translation — project live GFS onto CW continents with rotation + EMA smoothing (lets live weather scale beyond the party hex) <!-- common-v15 -->
 - [ ] NOAA SWPC aurora/solar-flare feed → sky-danced events <!-- common-v15 -->
 - [ ] Trust tiers on items (Official / Whispered / Rumored / Prophesied) <!-- common-v15 -->
 - [ ] Earth-region remap engine — per-world rotation/mirror/shuffle of real geography <!-- common-v15 -->
