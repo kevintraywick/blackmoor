@@ -316,6 +316,7 @@ function ZoomWatcher({ onChange }: { onChange: (distance: number) => void }) {
 // Blaen Hafren" button can reset view from outside the Canvas tree.
 interface CameraControllerHandle {
   goToAnchor: () => void;
+  setDistance: (d: number) => void;
 }
 const CameraController = forwardRef<
   CameraControllerHandle,
@@ -327,6 +328,15 @@ const CameraController = forwardRef<
       const v = latLngToVec3(anchorLat, anchorLng, 2.5);
       camera.position.set(v.x, v.y, v.z);
       camera.lookAt(0, 0, 0);
+      if (controlsRef.current) {
+        controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.update();
+      }
+    },
+    setDistance(d: number) {
+      // Keep current orbit direction; just change how far away the camera sits.
+      const dir = camera.position.clone().normalize();
+      camera.position.copy(dir.multiplyScalar(d));
       if (controlsRef.current) {
         controlsRef.current.target.set(0, 0, 0);
         controlsRef.current.update();
@@ -383,9 +393,29 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
             <strong style={{ color: '#d0e0ff' }}>res {dominantRes}</strong>
             <span className="opacity-60"> · {dominantCellCount.toLocaleString()} cells</span>
           </div>
-          <div>
-            <span className="opacity-60">Cam: </span>
-            <strong style={{ color: '#d0e0ff' }}>{cameraDistance.toFixed(2)}</strong>
+          <div className="flex items-center gap-2">
+            <span>
+              <span className="opacity-60">Cam: </span>
+              <strong style={{ color: '#d0e0ff' }}>{cameraDistance.toFixed(2)}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => controllerRef.current?.setDistance(5)}
+              title="Reset camera distance to 5"
+              className="text-[0.65rem] uppercase tracking-[0.15em] font-sans transition-colors"
+              style={{
+                background: 'transparent',
+                border: '1px solid #3e5683',
+                color: '#8aa0c8',
+                cursor: 'pointer',
+                padding: '2px 6px',
+                borderRadius: 2,
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#d0e0ff'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#8aa0c8'; }}
+            >
+              Reset
+            </button>
           </div>
         </div>
 
