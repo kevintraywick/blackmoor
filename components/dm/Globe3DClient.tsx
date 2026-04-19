@@ -8,6 +8,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { PreparedCell } from '@/lib/h3-world-data';
 
 interface Props {
+  res0Cells: PreparedCell[];
   res1Cells: PreparedCell[];
   res2Cells: PreparedCell[];
   anchorCell: string;
@@ -26,7 +27,8 @@ const COLOR_SHADOW_LOW = new THREE.Color('rgb(200,130,56)');   // r=200 g=130 b=
 const COLOR_SHADOW_HIGH = new THREE.Color('rgb(255,208,96)');  // r=255 g=208 b=96
 
 const GLOBE_RADIUS = 1;
-const OUTLINE_RADIUS = 1.002; // nudge res-1 outlines outward to avoid z-fight
+const RES1_OUTLINE_RADIUS = 1.002; // just above the fills
+const RES0_OUTLINE_RADIUS = 1.004; // above res-1 so colors don't blend where edges overlap
 
 // Thresholds on camera distance: smaller = closer = more zoomed in.
 // Orbit controls' minDistance/maxDistance bound this.
@@ -94,17 +96,17 @@ function buildCellsGeometry(cells: PreparedCell[], anchorCell: string): THREE.Bu
   return geom;
 }
 
-function buildOutlineSegments(cells: PreparedCell[]): THREE.BufferGeometry {
-  // One LineSegments pair per edge of every cell. Extruded very slightly so
-  // the stroke floats above the fill and doesn't z-fight.
+function buildOutlineSegments(cells: PreparedCell[], radius: number): THREE.BufferGeometry {
+  // One LineSegments pair per edge of every cell, projected to the given
+  // extrusion radius so the stroke floats above lower layers without z-fight.
   const positions: number[] = [];
   for (const c of cells) {
     const n = c.boundary.length;
     for (let i = 0; i < n; i++) {
       const [aLat, aLng] = c.boundary[i];
       const [bLat, bLng] = c.boundary[(i + 1) % n];
-      const a = latLngToVec3(aLat, aLng, OUTLINE_RADIUS);
-      const b = latLngToVec3(bLat, bLng, OUTLINE_RADIUS);
+      const a = latLngToVec3(aLat, aLng, radius);
+      const b = latLngToVec3(bLat, bLng, radius);
       positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
     }
   }
@@ -122,11 +124,16 @@ function CellLayer({ cells, anchorCell, visible }: { cells: PreparedCell[]; anch
   );
 }
 
-function Res1Outline({ cells }: { cells: PreparedCell[] }) {
-  const geom = useMemo(() => buildOutlineSegments(cells), [cells]);
+function OutlineLayer({ cells, radius, color, opacity }: {
+  cells: PreparedCell[];
+  radius: number;
+  color: string;
+  opacity: number;
+}) {
+  const geom = useMemo(() => buildOutlineSegments(cells, radius), [cells, radius]);
   return (
     <lineSegments geometry={geom}>
-      <lineBasicMaterial color="#ffffff" transparent opacity={0.92} />
+      <lineBasicMaterial color={color} transparent opacity={opacity} />
     </lineSegments>
   );
 }
@@ -193,7 +200,7 @@ const CameraController = forwardRef<
   return null;
 });
 
-export default function Globe3DClient({ res1Cells, res2Cells, anchorCell, anchorLat, anchorLng }: Props) {
+export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorCell, anchorLat, anchorLng }: Props) {
   const [cameraDistance, setCameraDistance] = useState(2.5);
   const useRes2 = cameraDistance < RES_SWITCH_DISTANCE;
   const activeRes = useRes2 ? 2 : 1;
@@ -248,6 +255,8 @@ export default function Globe3DClient({ res1Cells, res2Cells, anchorCell, anchor
           <LegendChip fill="#d94668" label="Shadow's home cell" />
           <LegendChip fill="#e89a48" label="Shadow presence" />
           <LegendChip fill="#000000" label="Astral void" />
+          <LegendChip fill="#ffd060" label="Res-0 outline (continents)" />
+          <LegendChip fill="#ffffff" label="Res-1 outline" />
         </div>
       </aside>
 
@@ -262,7 +271,8 @@ export default function Globe3DClient({ res1Cells, res2Cells, anchorCell, anchor
           <OceanSphere />
           <CellLayer cells={res1Cells} anchorCell={anchorCell} visible={!useRes2} />
           <CellLayer cells={res2Cells} anchorCell={anchorCell} visible={useRes2} />
-          <Res1Outline cells={res1Cells} />
+          <OutlineLayer cells={res1Cells} radius={RES1_OUTLINE_RADIUS} color="#ffffff" opacity={0.92} />
+          <OutlineLayer cells={res0Cells} radius={RES0_OUTLINE_RADIUS} color="#ffd060" opacity={1} />
           <AnchorMarker lat={anchorLat} lng={anchorLng} />
           <OrbitControls
             ref={controlsRef}

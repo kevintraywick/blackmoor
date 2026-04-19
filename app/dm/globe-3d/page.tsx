@@ -21,6 +21,7 @@ export default async function Globe3DPage() {
   const anchor = await getWorldAnchor();
   const [anchorLat, anchorLng] = cellToLatLng(anchor.cell);
 
+  const res0Cells = prepareResolution(0, shadowRes6Cells, anchor.cell);
   const res1Cells = prepareResolution(1, shadowRes6Cells, anchor.cell);
   const res2Cells = prepareResolution(2, shadowRes6Cells, anchor.cell);
 
@@ -28,6 +29,7 @@ export default async function Globe3DPage() {
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       <DmNav current="world" />
       <Globe3DClient
+        res0Cells={res0Cells}
         res1Cells={res1Cells}
         res2Cells={res2Cells}
         anchorCell={anchor.cell}
