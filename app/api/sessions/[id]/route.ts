@@ -3,6 +3,9 @@ import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import { pauseClock, resumeClock } from '@/lib/game-clock';
 import { seedSessionWeather } from '@/lib/weather-seed';
+import { seedSessionAmbience } from '@/lib/ambience-weather';
+import { qrToH3Cell } from '@/lib/world-hex-mapping';
+import { SHADOW_ANCHOR_CELL } from '@/lib/world-anchor-constants';
 import { broadcast } from '@/lib/events';
 
 // Static mapping prevents user-supplied strings from ever touching the query template
@@ -99,7 +102,19 @@ export async function POST(
       );
       // Resume the campaign-wide game clock so weather/horde ticks can advance
       await resumeClock().catch(() => {});
+      // Legacy single-row weather seed — kept until the three surfaces cut
+      // over. Still drives the existing PlayerBannerWeather atmosphere.
       await seedSessionWeather().catch(() => {});
+      // New ambience cache (Unit 3). Party hex resolves from
+      // world_map.party_q/party_r if set, otherwise falls back to the
+      // world anchor (Blaen Hafren). Multi-party v19 supersedes this.
+      const [worldMap] = await query<{ party_q: number | null; party_r: number | null }>(
+        `SELECT party_q, party_r FROM world_map WHERE id = 'default'`,
+      );
+      const partyCell = worldMap?.party_q != null && worldMap?.party_r != null
+        ? qrToH3Cell(worldMap.party_q, worldMap.party_r)
+        : SHADOW_ANCHOR_CELL;
+      await seedSessionAmbience(id, partyCell).catch(() => {});
       broadcast('game_clock', 'default', 'patch');
     } else if (action === 'end') {
       await query('UPDATE sessions SET ended_at = $1 WHERE id = $2', [now, id]);
