@@ -39,8 +39,14 @@ const OUTLINE_FADE_FAR = 3.5;
 const OUTLINE_FADE_NEAR = 1.5;
 const RES0_OUTLINE_OPACITY_FAR = 1.0;
 const RES0_OUTLINE_OPACITY_NEAR = 0.05;
-const RES1_OUTLINE_OPACITY_FAR = 0.2;
-const RES1_OUTLINE_OPACITY_NEAR = 0.95;
+
+// Res-1 outline uses a triangular envelope: fades in from planetary zoom,
+// peaks around the region-scale zoom, then fades OUT faster than res-0 did
+// as we drill into res-2 territory.
+const RES1_OUTLINE_PEAK_DISTANCE = 2.2;    // where res-1 is most legible
+const RES1_OUTLINE_NEAR_END = 1.3;         // by here, res-1 is ~invisible
+const RES1_OUTLINE_FLOOR = 0.1;
+const RES1_OUTLINE_PEAK = 0.95;
 
 const FILL_FADE_FAR = 2.5;
 const FILL_FADE_NEAR = 1.5;
@@ -54,6 +60,19 @@ const RES2_FILL_RADIUS = 0.9995;
 function fadeAmount(distance: number, farEnd: number, nearEnd: number): number {
   // 0 when at/beyond FAR, 1 when at/below NEAR, linear in between.
   return Math.max(0, Math.min(1, (farEnd - distance) / (farEnd - nearEnd)));
+}
+
+/**
+ * Triangular envelope — returns 0 at `far` and `near`, peaks at 1 at `peak`.
+ * Used for the res-1 outline which needs to fade IN from planetary zoom,
+ * hit its peak around the region-scale zoom, then fade OUT as the user
+ * drills deeper into res-2 territory.
+ */
+function triangleFade(distance: number, far: number, peak: number, near: number): number {
+  if (distance >= far) return 0;
+  if (distance >= peak) return (far - distance) / (far - peak);
+  if (distance >= near) return (distance - near) / (peak - near);
+  return 0;
 }
 
 // Thresholds on camera distance: smaller = closer = more zoomed in.
@@ -335,7 +354,7 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
             cells={res1Cells}
             radius={RES1_OUTLINE_RADIUS}
             color="#ffffff"
-            opacity={RES1_OUTLINE_OPACITY_FAR + (RES1_OUTLINE_OPACITY_NEAR - RES1_OUTLINE_OPACITY_FAR) * fadeAmount(cameraDistance, OUTLINE_FADE_FAR, OUTLINE_FADE_NEAR)}
+            opacity={RES1_OUTLINE_FLOOR + (RES1_OUTLINE_PEAK - RES1_OUTLINE_FLOOR) * triangleFade(cameraDistance, OUTLINE_FADE_FAR, RES1_OUTLINE_PEAK_DISTANCE, RES1_OUTLINE_NEAR_END)}
           />
           {/* Res-2 outlines — fade in alongside the res-2 fill crossfade so
               individual 60-km cells become distinguishable when zoomed in. */}
