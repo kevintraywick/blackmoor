@@ -17,7 +17,8 @@ interface Props {
 }
 
 // CW palette — must match GlobeClient 2D exactly. Documented in that file.
-const COLOR_SPACE = '#0a0f20';
+const COLOR_SPACE = '#0a0f20';            // sidebar / wrapper (dark)
+const COLOR_CANVAS_BG = '#f0e0c8';        // behind the globe — warm cream complement to the sky-blue sphere
 const COLOR_OCEAN = '#172540';
 const COLOR_CELL = new THREE.Color('#2b3e67');
 const COLOR_ANCHOR_FILL = new THREE.Color('#f06282');
@@ -437,7 +438,7 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
         <Canvas
           camera={{ position: initialCameraPos, fov: 35, near: 0.1, far: 100 }}
           gl={{ antialias: true }}
-          style={{ background: COLOR_SPACE }}
+          style={{ background: COLOR_CANVAS_BG }}
         >
           <ambientLight intensity={1} />
           <OceanSphere />
