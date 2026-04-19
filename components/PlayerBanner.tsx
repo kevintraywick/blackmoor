@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import PlayerBannerWeather from './PlayerBannerWeather';
 import AmbientCirclesData from './AmbientCirclesData';
+import AmbienceProseLine from './AmbienceProseLine';
 
 const ROTATE_MS = 3 * 60 * 1000; // rotate every 3 minutes
 
@@ -67,6 +68,7 @@ export default function PlayerBanner({ playerId }: { playerId: string }) {
       <div className="relative w-full h-48 sm:h-72 overflow-hidden flex-shrink-0">
         <PlayerBannerWeather playerId={playerId} />
         {circles}
+        <AmbienceProseLine />
       </div>
     );
   }
@@ -82,6 +84,7 @@ export default function PlayerBanner({ playerId }: { playerId: string }) {
       />
       <PlayerBannerWeather playerId={playerId} />
       {circles}
+      <AmbienceProseLine />
     </div>
   );
 }
