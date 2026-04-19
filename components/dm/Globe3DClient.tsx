@@ -223,6 +223,41 @@ function OutlineLayer({ cells, radius, color, opacity }: {
   );
 }
 
+/**
+ * Position + orient 3D children on the globe surface.
+ *
+ * Children are placed at lat/lng on a sphere of GLOBE_RADIUS * radiusScale,
+ * and rotated so their native +Y axis points radially outward — "up" on the
+ * sphere. A cone with its default Y-up axis will stand upright wherever
+ * you pin it.
+ *
+ * To pin by H3 cell, pre-resolve the cell's lat/lng server-side and pass
+ * those values through (keeps h3-js out of the client bundle).
+ */
+function HexPin({
+  lat,
+  lng,
+  radiusScale = 1,
+  children,
+}: {
+  lat: number;
+  lng: number;
+  radiusScale?: number;
+  children: React.ReactNode;
+}) {
+  const { position, quaternion } = useMemo(() => {
+    const pos = latLngToVec3(lat, lng, GLOBE_RADIUS * radiusScale);
+    const radial = pos.clone().normalize();
+    const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), radial);
+    return { position: pos, quaternion: quat };
+  }, [lat, lng, radiusScale]);
+  return (
+    <group position={position} quaternion={quaternion}>
+      {children}
+    </group>
+  );
+}
+
 function AnchorMarker({ lat, lng }: { lat: number; lng: number }) {
   const pos = useMemo(() => latLngToVec3(lat, lng, GLOBE_RADIUS * 1.01), [lat, lng]);
   const markerRef = useRef<THREE.Mesh>(null);
@@ -375,6 +410,14 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
             opacity={RES0_OUTLINE_OPACITY_FAR + (RES0_OUTLINE_OPACITY_NEAR - RES0_OUTLINE_OPACITY_FAR) * fadeAmount(cameraDistance, OUTLINE_FADE_FAR, OUTLINE_FADE_NEAR)}
           />
           <AnchorMarker lat={anchorLat} lng={anchorLng} />
+
+          {/* Demo pin — gold cone at the north pole. */}
+          <HexPin lat={90} lng={0} radiusScale={1.002}>
+            <mesh position={[0, 0.04, 0]}>
+              <coneGeometry args={[0.025, 0.08, 16]} />
+              <meshBasicMaterial color="#ffd060" />
+            </mesh>
+          </HexPin>
           <OrbitControls
             ref={controlsRef}
             enablePan={false}
