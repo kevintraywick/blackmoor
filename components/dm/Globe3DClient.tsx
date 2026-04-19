@@ -26,7 +26,8 @@ const COLOR_PENTAGON_FILL = new THREE.Color('#6e7480');
 const COLOR_SHADOW_HIGH = new THREE.Color('rgb(255,208,96)');  // r=255 g=208 b=96
 
 const GLOBE_RADIUS = 1;
-const RES1_OUTLINE_RADIUS = 1.002; // just above the fills
+const RES2_OUTLINE_RADIUS = 1.001; // finest outlines, beneath res-1
+const RES1_OUTLINE_RADIUS = 1.002; // just above res-2 outlines + the fills
 const RES0_OUTLINE_RADIUS = 1.004; // above res-1 so colors don't blend where edges overlap
 
 // Opacity crossfade anchors — as camera distance drops from FAR to NEAR,
@@ -335,6 +336,14 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
             radius={RES1_OUTLINE_RADIUS}
             color="#ffffff"
             opacity={RES1_OUTLINE_OPACITY_FAR + (RES1_OUTLINE_OPACITY_NEAR - RES1_OUTLINE_OPACITY_FAR) * fadeAmount(cameraDistance, OUTLINE_FADE_FAR, OUTLINE_FADE_NEAR)}
+          />
+          {/* Res-2 outlines — fade in alongside the res-2 fill crossfade so
+              individual 60-km cells become distinguishable when zoomed in. */}
+          <OutlineLayer
+            cells={res2Cells}
+            radius={RES2_OUTLINE_RADIUS}
+            color="#7a9ed0"
+            opacity={0.55 * fillFade}
           />
           <OutlineLayer
             cells={res0Cells}
