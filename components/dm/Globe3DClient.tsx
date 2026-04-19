@@ -31,7 +31,7 @@ const OUTLINE_RADIUS = 1.002; // nudge res-1 outlines outward to avoid z-fight
 
 // Thresholds on camera distance: smaller = closer = more zoomed in.
 // Orbit controls' minDistance/maxDistance bound this.
-const RES_SWITCH_DISTANCE = 1.9; // zoom in past this → res 2
+const RES_SWITCH_DISTANCE = 2.2; // zoom in past this → res 2 (initial is 2.5, so a single scroll-in triggers the swap)
 
 const RAD = Math.PI / 180;
 
@@ -225,7 +225,7 @@ export default function Globe3DClient({ res1Cells, res2Cells, anchorCell, anchor
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
 
   return (
-    <div style={{ display: 'flex', width: '100%', height: 'calc(100vh - 120px)', background: COLOR_SPACE }}>
+    <div style={{ display: 'flex', width: '100%', height: '100%', background: COLOR_SPACE }}>
       {/* Left panel — button + live state */}
       <aside
         className="flex flex-col gap-4 text-xs font-sans"

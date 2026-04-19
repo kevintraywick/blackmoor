@@ -25,16 +25,21 @@ export default async function Globe3DPage() {
   const res2Cells = prepareResolution(2, shadowRes6Cells, anchor.cell);
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
+    <div
+      className="bg-[var(--color-bg)] text-[var(--color-text)]"
+      style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}
+    >
       <DmNav current="world" />
-      <Globe3DClient
-        res1Cells={res1Cells}
-        res2Cells={res2Cells}
-        anchorCell={anchor.cell}
-        anchorLat={anchorLat}
-        anchorLng={anchorLng}
-        anchorName="Blaen Hafren"
-      />
+      <div style={{ flex: '1 1 auto', minHeight: 0 }}>
+        <Globe3DClient
+          res1Cells={res1Cells}
+          res2Cells={res2Cells}
+          anchorCell={anchor.cell}
+          anchorLat={anchorLat}
+          anchorLng={anchorLng}
+          anchorName="Blaen Hafren"
+        />
+      </div>
     </div>
   );
 }
