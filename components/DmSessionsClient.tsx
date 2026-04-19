@@ -7,6 +7,7 @@ import { useAutosave } from '@/lib/useAutosave';
 import { resolveImageUrl } from '@/lib/imageUrl';
 import { rollDice, diceRange } from '@/lib/dice';
 import HpRing from '@/components/HpRing';
+import DmWeatherChip from '@/components/DmWeatherChip';
 
 // Fields to render in the detail panel — npcs replaced by NPC checkboxes
 const FIELDS = [
@@ -409,6 +410,12 @@ function SessionControlBar({
               <span className="text-white text-[0.45rem] uppercase tracking-[0.1em] font-sans leading-tight text-center whitespace-pre-line">{'LONG\nREST'}</span>
             </button>
           </div>
+
+          {/* Divider */}
+          <div style={{ width: 1, height: 36, background: 'rgba(201,168,76,0.2)', flexShrink: 0 }} />
+
+          {/* Column 4: Weather chip (DM-only, Ambience v1 Unit 7) */}
+          <DmWeatherChip />
 
           {/* Divider */}
           <div style={{ width: 1, height: 36, background: 'rgba(201,168,76,0.2)', flexShrink: 0 }} />
