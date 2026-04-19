@@ -264,18 +264,17 @@ function HexPin({
  */
 function WolfToken() {
   const { scene } = useGLTF('/tokens/wolf.glb');
-  const cloned = useMemo(() => scene.clone(true), [scene]);
-  const ref = useRef<THREE.Group>(null);
-  useFrame((state) => {
-    if (ref.current) {
-      ref.current.rotation.y = state.clock.elapsedTime * 0.25;
-    }
-  });
-  return (
-    <group ref={ref}>
-      <primitive object={cloned} scale={0.008} />
-    </group>
-  );
+  const cloned = useMemo(() => {
+    const c = scene.clone(true);
+    c.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.isMesh) {
+        mesh.material = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+      }
+    });
+    return c;
+  }, [scene]);
+  return <primitive object={cloned} scale={0.0016} />;
 }
 useGLTF.preload('/tokens/wolf.glb');
 
