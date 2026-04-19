@@ -3,6 +3,7 @@ import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import { pauseClock, resumeClock } from '@/lib/game-clock';
 import { seedSessionWeather } from '@/lib/weather-seed';
+import { broadcast } from '@/lib/events';
 
 // Static mapping prevents user-supplied strings from ever touching the query template
 const SESSION_COLUMNS: Record<string, string> = {
@@ -99,6 +100,7 @@ export async function POST(
       // Resume the campaign-wide game clock so weather/horde ticks can advance
       await resumeClock().catch(() => {});
       await seedSessionWeather().catch(() => {});
+      broadcast('game_clock', 'default', 'patch');
     } else if (action === 'end') {
       await query('UPDATE sessions SET ended_at = $1 WHERE id = $2', [now, id]);
       await query(
@@ -108,6 +110,7 @@ export async function POST(
       );
       // Pause the campaign-wide game clock alongside the session
       await pauseClock().catch(() => {});
+      broadcast('game_clock', 'default', 'patch');
     } else {
       return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
