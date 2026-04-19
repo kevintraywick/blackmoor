@@ -6,7 +6,7 @@ import Image from 'next/image';
 
 export type NavSection =
   | 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative'
-  | 'world' | 'maps' | 'map-builder'
+  | 'world' | 'map-builder'
   | 'magic' | 'marketplace' | 'poisons' | 'inventory'
   | 'boons' | 'journey' | 'journal' | 'ar' | 'raven-post';
 
@@ -45,7 +45,6 @@ const LINKS: { key: NavSection; label: string; href: string; kind: 'session' | '
   { key: 'npcs',        label: 'NPCs',            href: '/dm/npcs',        kind: 'build' },
   { key: 'initiative',  label: 'Initiative',      href: '/dm/initiative',  kind: 'session' },
   { key: 'world',       label: 'World',           href: '/dm/world',       kind: 'build' },
-  { key: 'maps',        label: 'Maps',            href: '/dm/maps',        kind: 'session' },
   { key: 'map-builder', label: 'Map Builder',     href: '/dm/map-builder', kind: 'build' },
   { key: 'magic',       label: 'Magic',           href: '/dm/magic',       kind: 'build' },
   { key: 'marketplace', label: 'Marketplace',     href: '/dm/marketplace', kind: 'build' },
@@ -175,7 +174,7 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
           {/* Row 2: Session / at-the-table links (green) */}
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 16 }}>
             {LINKS.filter(l => l.kind === 'session').map(link => {
-              const href = link.key === 'maps' && sessionId ? `/dm/maps?session=${sessionId}` : link.href;
+              const href = link.href;
               const isPoisonGlow = link.key === 'poisons' && poisonCount > 0 && current !== 'poisons';
               const isBoonGlow = link.key === 'boons' && unseenBoonCount > 0 && current !== 'boons';
               const isGlowing = isPoisonGlow || isBoonGlow;

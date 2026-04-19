@@ -42,8 +42,6 @@ export default async function SessionPage({ params }: Props) {
         <span className="text-[var(--color-border)] select-none">·</span>
         <Link href="/players" className="text-[var(--color-text)] hover:text-[var(--color-gold)] transition-colors no-underline">Players</Link>
         <span className="text-[var(--color-border)] select-none">·</span>
-        <Link href={`/dm/maps?session=${id}`} className="text-[var(--color-text)] hover:text-[var(--color-gold)] transition-colors no-underline">Maps</Link>
-        <span className="text-[var(--color-border)] select-none">·</span>
         <Link href="/dm/magic" className="text-[var(--color-text)] hover:text-[var(--color-gold)] transition-colors no-underline">Magic</Link>
         <span className="text-[var(--color-border)] select-none">·</span>
         <Link href="/dm/marketplace" className="text-[var(--color-text)] hover:text-[var(--color-gold)] transition-colors no-underline">Marketplace</Link>

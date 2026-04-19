@@ -118,37 +118,8 @@ export interface Session {
 export type GridType = 'square' | 'hex';
 export type HexOrientation = 'flat' | 'pointy';
 
-export interface DmNote {
-  col: number;
-  row: number;
-  text: string;
-}
-
-export interface MapRow {
-  id: string;
-  session_id: string;
-  name: string;
-  image_path: string;
-  grid_type: GridType;
-  cols: number;
-  rows: number;
-  offset_x: number;
-  offset_y: number;
-  tile_px: number;
-  hex_orientation: HexOrientation;
-  revealed_tiles: [number, number][];
-  dm_notes: DmNote[];
-  sort_order: number;
-  created_at: number;
-  // Real-world scale (nullable for legacy maps without grid metadata)
-  cell_size_px: number | null;
-  scale_value_ft: number | null;
-  image_width_px: number | null;
-  image_height_px: number | null;
-}
-
-// Player version — dm_notes omitted (never sent to client)
-export type PlayerMapRow = Omit<MapRow, 'dm_notes'>;
+// Legacy `maps` subsystem types (DmNote / MapRow / PlayerMapRow) removed
+// 2026-04-19. Map Builder (`map_builds`) is the single image-map path now.
 
 export interface Campaign {
   id: string;

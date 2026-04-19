@@ -8,7 +8,6 @@ import { ensureSchema } from '@/lib/schema';
 import { getPlayerById } from '@/lib/getPlayers';
 import type { PlayerSheet as PlayerSheetType } from '@/lib/types';
 import { Sheet } from '@/components/PlayerSheet';
-import PlayerMapPanel from '@/components/PlayerMapPanel';
 import PlayerBanner from '@/components/PlayerBanner';
 import WolfHowl from '@/components/WolfHowl';
 import NewsieCallout from '@/components/NewsieCallout';
@@ -105,7 +104,6 @@ export default async function PlayerPage({ params }: Props) {
           druidSignCount={druidSignCount}
           cantCount={cantCount}
         />
-        <PlayerMapPanel playerId={player.id} />
       </div>
     </div>
   );

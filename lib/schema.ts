@@ -60,42 +60,9 @@ async function _initSchema() {
     ADD COLUMN IF NOT EXISTS spells JSONB NOT NULL DEFAULT '[]'
   `);
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS maps (
-      id              TEXT PRIMARY KEY,
-      session_id      TEXT NOT NULL,
-      name            TEXT NOT NULL DEFAULT '',
-      image_path      TEXT NOT NULL DEFAULT '',
-      grid_type       TEXT NOT NULL DEFAULT 'square',
-      cols            INTEGER NOT NULL DEFAULT 20,
-      rows            INTEGER NOT NULL DEFAULT 15,
-      offset_x        DOUBLE PRECISION NOT NULL DEFAULT 0,
-      offset_y        DOUBLE PRECISION NOT NULL DEFAULT 0,
-      tile_px         DOUBLE PRECISION NOT NULL DEFAULT 40,
-      -- ignored when grid_type = 'square'
-      hex_orientation TEXT NOT NULL DEFAULT 'flat',
-      revealed_tiles  JSONB NOT NULL DEFAULT '[]',
-      dm_notes        JSONB NOT NULL DEFAULT '[]',
-      sort_order      INTEGER NOT NULL DEFAULT 0,
-      created_at      BIGINT NOT NULL DEFAULT 0
-    )
-  `);
-
-  await pool.query(`ALTER TABLE maps ALTER COLUMN offset_x TYPE DOUBLE PRECISION`).catch(() => {});
-  await pool.query(`ALTER TABLE maps ALTER COLUMN offset_y TYPE DOUBLE PRECISION`).catch(() => {});
-  await pool.query(`ALTER TABLE maps ALTER COLUMN tile_px TYPE DOUBLE PRECISION`).catch(() => {});
-
-  // Real-world scale propagated from map_builds when a build is linked to a session.
-  // All nullable for back-compat with legacy maps that have no scale data.
-  await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS cell_size_px INTEGER`).catch(() => {});
-  await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS scale_value_ft REAL`).catch(() => {});
-  await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS image_width_px INTEGER`).catch(() => {});
-  await pool.query(`ALTER TABLE maps ADD COLUMN IF NOT EXISTS image_height_px INTEGER`).catch(() => {});
-
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS maps_session_id_idx
-    ON maps (session_id, sort_order)
-  `);
+  // Legacy `maps` subsystem removed 2026-04-19. Map Builder (`map_builds`)
+  // is the only image-map path going forward. Production table was empty at
+  // removal time; prod DROP is handled by scripts/drop-legacy-maps.mjs.
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS items (
