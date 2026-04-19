@@ -274,7 +274,7 @@ function WolfToken() {
     });
     return c;
   }, [scene]);
-  return <primitive object={cloned} scale={0.00032} />;
+  return <primitive object={cloned} scale={0.00064} />;
 }
 useGLTF.preload('/tokens/wolf.glb');
 
@@ -467,6 +467,14 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
               <WolfToken />
             </HexPin>
           </Suspense>
+
+          {/* N-pole reference cone. */}
+          <HexPin lat={90} lng={0} radiusScale={1.002}>
+            <mesh position={[0, 0.04, 0]}>
+              <coneGeometry args={[0.025, 0.08, 16]} />
+              <meshBasicMaterial color="#ffd060" />
+            </mesh>
+          </HexPin>
           <OrbitControls
             ref={controlsRef}
             enablePan={false}
