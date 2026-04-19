@@ -104,19 +104,22 @@ function colorForCell(
   c: PreparedCell,
   isAnchorCell: boolean,
   maxShadowCount: number,
+  showShadow: boolean,
   tmp: THREE.Color,
 ): THREE.Color {
-  if (isAnchorCell) return tmp.copy(COLOR_ANCHOR_FILL);
-  if (c.isAnchorAncestor) return tmp.copy(COLOR_ANCHOR_ANCESTOR_FILL);
+  if (showShadow) {
+    if (isAnchorCell) return tmp.copy(COLOR_ANCHOR_FILL);
+    if (c.isAnchorAncestor) return tmp.copy(COLOR_ANCHOR_ANCESTOR_FILL);
+  }
   if (c.isPentagon) return tmp.copy(COLOR_PENTAGON_FILL);
-  if (c.shadowDescendantCount > 0 && maxShadowCount > 0) {
+  if (showShadow && c.shadowDescendantCount > 0 && maxShadowCount > 0) {
     const t = Math.sqrt(c.shadowDescendantCount / maxShadowCount);
     return tmp.copy(COLOR_CELL).lerp(COLOR_SHADOW_HIGH, t);
   }
   return tmp.copy(COLOR_CELL);
 }
 
-function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: number): THREE.BufferGeometry {
+function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: number, showShadow: boolean): THREE.BufferGeometry {
   const positions: number[] = [];
   const colors: number[] = [];
   const indices: number[] = [];
@@ -130,7 +133,7 @@ function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: n
   }
 
   for (const c of cells) {
-    const color = colorForCell(c, c.cell === anchorCell, maxShadowCount, tmp);
+    const color = colorForCell(c, c.cell === anchorCell, maxShadowCount, showShadow, tmp);
     const cr = color.r, cg = color.g, cb = color.b;
 
     const [cLat, cLng] = c.center;
@@ -186,13 +189,18 @@ function CellLayer({
   anchorCell,
   radius,
   opacity,
+  showShadow,
 }: {
   cells: PreparedCell[];
   anchorCell: string;
   radius: number;
   opacity: number;
+  showShadow: boolean;
 }) {
-  const geom = useMemo(() => buildCellsGeometry(cells, anchorCell, radius), [cells, anchorCell, radius]);
+  const geom = useMemo(
+    () => buildCellsGeometry(cells, anchorCell, radius, showShadow),
+    [cells, anchorCell, radius, showShadow],
+  );
   if (opacity <= 0.001) return null; // skip entirely when fully faded — saves a draw call at extremes
   return (
     <mesh geometry={geom}>
@@ -327,8 +335,8 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
         </div>
 
         <div className="flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid #2a3a5e' }}>
-          <LegendChip fill="#d94668" label="Shadow's home cell" />
-          <LegendChip fill="#e89a48" label="Shadow presence" />
+          <LegendChip fill="#d94668" label="Shadow home" />
+          <LegendChip fill="#e89a48" label="Shadow" />
           <LegendChip fill="#6e7480" label="Astral void" />
           <LegendChip fill="#ffd060" label="Res-0 outline (continents)" />
           <LegendChip fill="#ffffff" label="Res-1 outline" />
@@ -344,8 +352,8 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
         >
           <ambientLight intensity={1} />
           <OceanSphere />
-          <CellLayer cells={res1Cells} anchorCell={anchorCell} radius={RES1_FILL_RADIUS} opacity={res1FillOpacity} />
-          <CellLayer cells={res2Cells} anchorCell={anchorCell} radius={RES2_FILL_RADIUS} opacity={res2FillOpacity} />
+          <CellLayer cells={res1Cells} anchorCell={anchorCell} radius={RES1_FILL_RADIUS} opacity={res1FillOpacity} showShadow={false} />
+          <CellLayer cells={res2Cells} anchorCell={anchorCell} radius={RES2_FILL_RADIUS} opacity={res2FillOpacity} showShadow={true} />
           <OutlineLayer
             cells={res1Cells}
             radius={RES1_OUTLINE_RADIUS}
