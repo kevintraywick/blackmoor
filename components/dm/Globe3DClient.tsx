@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { PreparedCell } from '@/lib/h3-world-data';
 
 interface Props {
@@ -185,38 +186,90 @@ function ZoomWatcher({ onChange }: { onChange: (distance: number) => void }) {
   return null;
 }
 
+// Exposes a camera-reset imperative handle up to the parent so the "Go to
+// Blaen Hafren" button can reset view from outside the Canvas tree.
+interface CameraControllerHandle {
+  goToAnchor: () => void;
+}
+const CameraController = forwardRef<
+  CameraControllerHandle,
+  { anchorLat: number; anchorLng: number; controlsRef: React.MutableRefObject<OrbitControlsImpl | null> }
+>(function CameraController({ anchorLat, anchorLng, controlsRef }, ref) {
+  const { camera } = useThree();
+  useImperativeHandle(ref, () => ({
+    goToAnchor() {
+      const v = latLngToVec3(anchorLat, anchorLng, 2.5);
+      camera.position.set(v.x, v.y, v.z);
+      camera.lookAt(0, 0, 0);
+      if (controlsRef.current) {
+        controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.update();
+      }
+    },
+  }));
+  return null;
+});
+
 export default function Globe3DClient({ res1Cells, res2Cells, anchorCell, anchorLat, anchorLng, anchorName }: Props) {
   const [cameraDistance, setCameraDistance] = useState(2.5);
   const useRes2 = cameraDistance < RES_SWITCH_DISTANCE;
   const activeRes = useRes2 ? 2 : 1;
   const activeCellCount = useRes2 ? res2Cells.length : res1Cells.length;
 
-  // Compute initial camera position to aim at Blaen Hafren.
   const initialCameraPos = useMemo(() => {
     const v = latLngToVec3(anchorLat, anchorLng, 2.5);
     return [v.x, v.y, v.z] as [number, number, number];
   }, [anchorLat, anchorLng]);
 
-  return (
-    <div>
-      <div
-        className="mb-3 flex items-center gap-4 text-xs font-sans flex-wrap"
-        style={{ color: 'var(--color-text-muted)' }}
-      >
-        <span>
-          Active: <strong>res {activeRes}</strong> ({activeCellCount.toLocaleString()} cells) ·
-          Distance: <strong>{cameraDistance.toFixed(2)}</strong>
-        </span>
-        <LegendChip fill="#d94668" label="Shadow's home cell" />
-        <LegendChip fill="#e89a48" label="Shadow presence (res-6 density)" />
-        <LegendChip fill="#000000" label="Astral void (pentagon)" />
-        <span className="opacity-70">Drag to spin · scroll to zoom</span>
-      </div>
+  const controllerRef = useRef<CameraControllerHandle>(null);
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
 
-      <div
-        className="relative rounded-sm overflow-hidden"
-        style={{ background: COLOR_SPACE, border: `1px solid #3e5683`, width: '100%', aspectRatio: '1 / 1', maxWidth: 900 }}
+  return (
+    <div style={{ display: 'flex', width: '100%', height: 'calc(100vh - 120px)', background: COLOR_SPACE }}>
+      {/* Left panel — button + live state */}
+      <aside
+        className="flex flex-col gap-4 text-xs font-sans"
+        style={{ width: 240, padding: 20, borderRight: `1px solid #2a3a5e`, color: '#b8c8ea' }}
       >
+        <button
+          type="button"
+          onClick={() => controllerRef.current?.goToAnchor()}
+          className="text-[0.7rem] uppercase tracking-[0.15em] font-sans transition-colors"
+          style={{
+            background: 'transparent',
+            border: `1px solid #3e5683`,
+            color: '#ffb5c5',
+            cursor: 'pointer',
+            padding: '10px 12px',
+            borderRadius: 2,
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(62,86,131,0.25)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+        >
+          Go to Blaen Hafren
+        </button>
+
+        <div className="flex flex-col gap-1.5">
+          <div>
+            <span className="opacity-60">Active: </span>
+            <strong style={{ color: '#d0e0ff' }}>res {activeRes}</strong>
+            <span className="opacity-60"> · {activeCellCount.toLocaleString()} cells</span>
+          </div>
+          <div>
+            <span className="opacity-60">Distance: </span>
+            <strong style={{ color: '#d0e0ff' }}>{cameraDistance.toFixed(2)}</strong>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid #2a3a5e' }}>
+          <LegendChip fill="#d94668" label="Shadow's home cell" />
+          <LegendChip fill="#e89a48" label="Shadow presence" />
+          <LegendChip fill="#000000" label="Astral void" />
+        </div>
+      </aside>
+
+      {/* Canvas fills the rest */}
+      <div style={{ flex: 1, position: 'relative' }}>
         <Canvas
           camera={{ position: initialCameraPos, fov: 35, near: 0.1, far: 100 }}
           gl={{ antialias: true }}
@@ -229,6 +282,7 @@ export default function Globe3DClient({ res1Cells, res2Cells, anchorCell, anchor
           <Res1Outline cells={res1Cells} />
           <AnchorMarker lat={anchorLat} lng={anchorLng} name={anchorName} />
           <OrbitControls
+            ref={controlsRef}
             enablePan={false}
             enableDamping
             dampingFactor={0.08}
@@ -238,11 +292,13 @@ export default function Globe3DClient({ res1Cells, res2Cells, anchorCell, anchor
             maxDistance={5}
           />
           <ZoomWatcher onChange={setCameraDistance} />
+          <CameraController
+            ref={controllerRef}
+            anchorLat={anchorLat}
+            anchorLng={anchorLng}
+            controlsRef={controlsRef}
+          />
         </Canvas>
-      </div>
-
-      <div className="mt-3 text-xs font-sans opacity-60">
-        Swaps to res 2 at distance &lt; {RES_SWITCH_DISTANCE.toFixed(2)} · res-1 lattice always overlays in white
       </div>
     </div>
   );
@@ -253,12 +309,9 @@ function LegendChip({ fill, label }: { fill: string; label: string }) {
     <span className="inline-flex items-center gap-1.5">
       <span
         className="inline-block"
-        style={{ width: 14, height: 14, background: fill, border: '1px solid #5880b4', borderRadius: 2 }}
+        style={{ width: 12, height: 12, background: fill, border: '1px solid #5880b4', borderRadius: 2 }}
       />
       <span>{label}</span>
     </span>
   );
 }
-
-// Stop TS from flagging unused import in some Next.js bundler paths.
-export type { ThreeEvent };
