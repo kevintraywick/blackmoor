@@ -163,27 +163,34 @@ export default function GlobeClient({ res1Cells, res2Cells, anchorCell, anchorLa
       ctx.stroke();
     }
 
-    // Res-1 overlay — when viewing res 2, draw the res-1 lattice on top in
-    // white so the coarser parent structure is visible through the fine grid.
-    if (activeRes === 2) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
-      ctx.lineWidth = 1.5;
-      for (const c of res1Cells) {
-        const pts: { x: number; y: number; visible: boolean }[] = [];
-        let anyVisible = false;
-        for (const [lat, lng] of c.boundary) {
-          const p = project(lat, lng, centerLat, centerLng, R, cx, cy);
-          pts.push(p);
-          if (p.visible) anyVisible = true;
-        }
-        if (!anyVisible) continue;
-        if (pts.some(p => !p.visible)) continue;
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-        ctx.closePath();
-        ctx.stroke();
+    // Res-1 overlay — always draw. At res-1 base this emphasizes the active
+    // cells; at res-2 base it surfaces the country-scale parent lattice
+    // through the region-scale grid. Dark stroke underneath then white on
+    // top gives the lines readable contrast against both warm and blue fills.
+    for (const c of res1Cells) {
+      const pts: { x: number; y: number; visible: boolean }[] = [];
+      let anyVisible = false;
+      for (const [lat, lng] of c.boundary) {
+        const p = project(lat, lng, centerLat, centerLng, R, cx, cy);
+        pts.push(p);
+        if (p.visible) anyVisible = true;
       }
+      if (!anyVisible) continue;
+      if (pts.some(p => !p.visible)) continue;
+
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.closePath();
+
+      // dark halo
+      ctx.strokeStyle = 'rgba(10, 15, 32, 0.75)';
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+      // white rim
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.lineWidth = 1.75;
+      ctx.stroke();
     }
 
     // Anchor marker — always draw on top with a label
@@ -208,7 +215,7 @@ export default function GlobeClient({ res1Cells, res2Cells, anchorCell, anchorLa
     ctx.strokeStyle = COLOR_RIM;
     ctx.lineWidth = 1;
     ctx.stroke();
-  }, [activeCells, activeRes, res1Cells, centerLat, centerLng, R, cx, cy, anchorCell, anchorLat, anchorLng, anchorName]);
+  }, [activeCells, res1Cells, centerLat, centerLng, R, cx, cy, anchorCell, anchorLat, anchorLng, anchorName]);
 
   useEffect(() => { draw(); }, [draw]);
 
