@@ -63,8 +63,8 @@ const COLOR_ANCHOR_FILL = '#f06282';   // containing cell — coral rose
 const COLOR_ANCHOR_STROKE = '#ffb5c5';
 const COLOR_ANCHOR_ANCESTOR_FILL = '#d94668';
 const COLOR_ANCHOR_ANCESTOR_STROKE = '#ff8fa0';
-const COLOR_PENTAGON_FILL = '#5c3cbf'; // astral void — violet
-const COLOR_PENTAGON_STROKE = '#a080f5';
+const COLOR_PENTAGON_FILL = '#000000'; // astral void — black (absence)
+const COLOR_PENTAGON_STROKE = '#a080f5'; // violet rim keeps the shape readable
 const COLOR_SHADOW_STROKE = '#ffd060'; // Shadow presence stroke
 const COLOR_ANCHOR_LABEL = '#ffb5c5';
 
@@ -159,7 +159,7 @@ export default function GlobeClient({ res1Cells, res2Cells, anchorCell, anchorLa
       ctx.fillStyle = fill;
       ctx.fill();
       ctx.strokeStyle = stroke;
-      ctx.lineWidth = isAnchorCell || c.isAnchorAncestor ? 1.5 : 0.6;
+      ctx.lineWidth = isAnchorCell || c.isAnchorAncestor ? 1.5 : c.isPentagon ? 1.25 : 0.6;
       ctx.stroke();
     }
 
@@ -265,7 +265,7 @@ export default function GlobeClient({ res1Cells, res2Cells, anchorCell, anchorLa
         </span>
         <LegendChip fill={COLOR_ANCHOR_ANCESTOR_FILL} stroke={COLOR_ANCHOR_ANCESTOR_STROKE} label="Shadow's home cell" />
         <LegendChip fill="#e89a48" stroke={COLOR_SHADOW_STROKE} label="Shadow presence (res-6 density)" />
-        <LegendChip fill={COLOR_PENTAGON_FILL} stroke={COLOR_PENTAGON_STROKE} label="Pentagon (astral void)" />
+        <LegendChip fill={COLOR_PENTAGON_FILL} stroke={COLOR_PENTAGON_STROKE} label="Astral void (pentagon)" />
         <button
           type="button"
           onClick={() => { setCenterLat(anchorLat); setCenterLng(anchorLng); setZoom(1); }}
