@@ -196,7 +196,7 @@ function CellLayer({
   if (opacity <= 0.001) return null; // skip entirely when fully faded — saves a draw call at extremes
   return (
     <mesh geometry={geom}>
-      <meshBasicMaterial vertexColors side={THREE.FrontSide} transparent opacity={opacity} depthWrite={opacity > 0.95} />
+      <meshBasicMaterial vertexColors side={THREE.DoubleSide} transparent opacity={opacity} depthWrite={false} />
     </mesh>
   );
 }
@@ -236,13 +236,9 @@ function AnchorMarker({ lat, lng }: { lat: number; lng: number }) {
   );
 }
 
+// Ocean removed — the globe is a translucent lattice in space.
 function OceanSphere() {
-  return (
-    <mesh>
-      <sphereGeometry args={[GLOBE_RADIUS * 0.999, 96, 64]} />
-      <meshBasicMaterial color={COLOR_OCEAN} transparent opacity={0.2} depthWrite={false} />
-    </mesh>
-  );
+  return null;
 }
 
 // Track OrbitControls distance to auto-switch resolution.
