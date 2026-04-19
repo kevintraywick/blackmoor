@@ -299,9 +299,13 @@ function AnchorMarker({ lat, lng }: { lat: number; lng: number }) {
   );
 }
 
-// Ocean removed — the globe is a translucent lattice in space.
 function OceanSphere() {
-  return null;
+  return (
+    <mesh>
+      <sphereGeometry args={[GLOBE_RADIUS * 0.999, 96, 64]} />
+      <meshBasicMaterial color="#a8c8e8" transparent opacity={0.6} depthWrite={false} />
+    </mesh>
+  );
 }
 
 // Track OrbitControls distance to auto-switch resolution.
