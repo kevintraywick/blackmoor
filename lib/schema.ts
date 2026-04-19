@@ -752,7 +752,8 @@ async function _initSchema() {
       ('twilio',     3.00),
       ('websearch',  3.00),
       ('railway',    0.00),
-      ('openai_embeddings', 1.00)
+      ('openai_embeddings', 1.00),
+      ('noaa_gfs',   1.00)
     ON CONFLICT (service) DO NOTHING
   `).catch(() => {});
 

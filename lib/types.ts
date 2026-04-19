@@ -343,7 +343,71 @@ export interface Npc {
 
 // ── Raven Post: budget tracker ─────────────────────────────────────────────
 
-export type SpendService = 'elevenlabs' | 'anthropic' | 'twilio' | 'websearch' | 'railway' | 'openai_embeddings';
+export type SpendService = 'elevenlabs' | 'anthropic' | 'twilio' | 'websearch' | 'railway' | 'openai_embeddings' | 'noaa_gfs';
+
+// ── Ambience v1 (see docs/plans/2026-04-19-001-feat-ambience-v1-plan.md) ──
+
+/** One hour of a GFS forecast response. */
+export interface ForecastHour {
+  /** Offset from forecast start, in hours (0..167). */
+  offset_hours: number;
+  temp_c: number;
+  humidity_pct: number;
+  precip_mm: number;
+  wind_mph: number;
+  wind_deg: number;
+  pressure_hpa: number;
+  cloud_pct: number;
+}
+
+/**
+ * A snapshot of current weather resolved for some (cell, game_time_hour).
+ * Derived either from a live forecast (party hex) or a biome-stats distribution
+ * (everywhere else).
+ */
+export interface WeatherState {
+  condition: WeatherCondition;
+  temp_c: number;
+  wind_mph: number;
+  wind_deg: number;
+  precip_mm: number;
+  pressure_hpa: number;
+  pressure_trend: 'rising' | 'falling' | 'steady';
+  cloud_pct: number;
+}
+
+/** Köppen-Geiger climate zone codes (subset in active use; extend as needed). */
+export type KoppenZone =
+  // A = tropical
+  | 'Af' | 'Am' | 'Aw'
+  // B = arid
+  | 'BWh' | 'BWk' | 'BSh' | 'BSk'
+  // C = temperate
+  | 'Cfa' | 'Cfb' | 'Cfc' | 'Csa' | 'Csb' | 'Csc' | 'Cwa' | 'Cwb' | 'Cwc'
+  // D = continental
+  | 'Dfa' | 'Dfb' | 'Dfc' | 'Dfd' | 'Dsa' | 'Dsb' | 'Dsc' | 'Dsd' | 'Dwa' | 'Dwb' | 'Dwc' | 'Dwd'
+  // E = polar
+  | 'ET' | 'EF';
+
+/** Biome substrate — immutable per-hex climate metadata (R1). */
+export interface BiomeSubstrate {
+  h3_cell: string;
+  h3_res: number;
+  koppen: KoppenZone;
+  elevation_m: number;
+  coastal: boolean;
+  cw_latitude: number;
+}
+
+/** Session-scoped forecast cache (R3). */
+export interface AmbienceSessionCache {
+  session_id: string;
+  party_h3_cell: string;
+  fetched_at_real: string;         // ISO timestamp
+  session_game_start: number;      // game_time_seconds at fetch time
+  forecast: ForecastHour[];        // 168 hours
+}
+
 
 export interface BudgetCap {
   service: SpendService;
