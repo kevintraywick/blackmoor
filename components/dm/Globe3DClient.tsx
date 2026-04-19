@@ -3,7 +3,7 @@
 import { forwardRef, Suspense, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, useGLTF } from '@react-three/drei';
+import { OrbitControls, useGLTF, useTexture } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { PreparedCell } from '@/lib/h3-world-data';
 
@@ -301,10 +301,15 @@ function AnchorMarker({ lat, lng }: { lat: number; lng: number }) {
 }
 
 function OceanSphere() {
+  // NASA Blue Marble (public domain). Equirectangular, 2048×1024.
+  // Sphere UVs in three.js map the texture's horizontal center (u=0.5) to
+  // +X world axis. Our latLngToVec3 uses λ = -lng, which places Greenwich
+  // (lng=0) along +X as expected — so no extra rotation/flip is needed.
+  const map = useTexture('/textures/earth_2048.jpg');
   return (
     <mesh>
       <sphereGeometry args={[GLOBE_RADIUS * 0.999, 96, 64]} />
-      <meshBasicMaterial color="#a8c8e8" transparent opacity={0.6} depthWrite={false} />
+      <meshBasicMaterial map={map} transparent opacity={0.85} depthWrite={false} />
     </mesh>
   );
 }
@@ -441,7 +446,9 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
           style={{ background: COLOR_CANVAS_BG }}
         >
           <ambientLight intensity={1} />
-          <OceanSphere />
+          <Suspense fallback={null}>
+            <OceanSphere />
+          </Suspense>
           <CellLayer cells={res1Cells} anchorCell={anchorCell} radius={RES1_FILL_RADIUS} opacity={res1FillOpacity} showShadow={false} />
           <CellLayer cells={res2Cells} anchorCell={anchorCell} radius={RES2_FILL_RADIUS} opacity={res2FillOpacity} showShadow={true} />
           <OutlineLayer
