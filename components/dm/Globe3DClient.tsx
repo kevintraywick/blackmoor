@@ -240,7 +240,7 @@ function OceanSphere() {
   return (
     <mesh>
       <sphereGeometry args={[GLOBE_RADIUS * 0.999, 96, 64]} />
-      <meshBasicMaterial color={COLOR_OCEAN} />
+      <meshBasicMaterial color={COLOR_OCEAN} transparent opacity={0.2} depthWrite={false} />
     </mesh>
   );
 }
