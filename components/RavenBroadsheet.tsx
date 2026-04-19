@@ -31,6 +31,7 @@
 import type { RavenItem, RavenSectionId, RavenWeatherRow } from '@/lib/types';
 import Masthead from './raven/Masthead';
 import SpotPrices from './raven/SpotPrices';
+import RavenForecastColumn from './RavenForecastColumn';
 
 // Non-prose assembly for one issue — what raven_issues stores.
 export interface IssueAssembly {
@@ -94,7 +95,7 @@ const LAYOUT_CSS = `
   grid-template-areas:
     "lead hero  crimson"
     "ad   blood opinion"
-    "qotd spot  .";
+    "qotd spot  forecast";
   grid-template-rows: auto auto 1fr;
 }
 .raven-bs__lead        { grid-area: lead; }
@@ -105,6 +106,7 @@ const LAYOUT_CSS = `
 .raven-bs__opinion     { grid-area: opinion; }
 .raven-bs__qotd        { grid-area: qotd; align-self: end; }
 .raven-bs__spotprices  { grid-area: spot; align-self: end; }
+.raven-bs__forecast    { grid-area: forecast; align-self: end; }
 
 @media (max-width: 640px) {
   .raven-bs__root {
@@ -126,7 +128,8 @@ const LAYOUT_CSS = `
     margin-bottom: 14px !important;
   }
   .raven-bs__lead, .raven-bs__hero, .raven-bs__crimsonmoon, .raven-bs__ad,
-  .raven-bs__bloodmoon, .raven-bs__opinion, .raven-bs__qotd, .raven-bs__spotprices {
+  .raven-bs__bloodmoon, .raven-bs__opinion, .raven-bs__qotd, .raven-bs__spotprices,
+  .raven-bs__forecast {
     grid-area: auto !important;
     align-self: auto !important;
   }
@@ -429,6 +432,9 @@ export default function RavenBroadsheet({ items, volume, issue, inFictionDate, a
 
         {/* Section (9) — Spot Prices */}
         <SpotPrices className="raven-bs__spotprices" />
+
+        {/* Section (12) — Weather forecast (Ambience v1 Unit 8) */}
+        <RavenForecastColumn />
 
         {/* Section (8) — ad */}
         {a.ad && (
