@@ -3,7 +3,7 @@
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Html } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { PreparedCell } from '@/lib/h3-world-data';
 
@@ -13,7 +13,6 @@ interface Props {
   anchorCell: string;
   anchorLat: number;
   anchorLng: number;
-  anchorName: string;
 }
 
 // CW palette — must match GlobeClient 2D exactly. Documented in that file.
@@ -132,7 +131,7 @@ function Res1Outline({ cells }: { cells: PreparedCell[] }) {
   );
 }
 
-function AnchorMarker({ lat, lng, name }: { lat: number; lng: number; name: string }) {
+function AnchorMarker({ lat, lng }: { lat: number; lng: number }) {
   const pos = useMemo(() => latLngToVec3(lat, lng, GLOBE_RADIUS * 1.01), [lat, lng]);
   const markerRef = useRef<THREE.Mesh>(null);
   // Gentle pulse on the marker so it reads as "here."
@@ -149,22 +148,6 @@ function AnchorMarker({ lat, lng, name }: { lat: number; lng: number; name: stri
         <sphereGeometry args={[0.012, 16, 16]} />
         <meshBasicMaterial color="#ffb5c5" />
       </mesh>
-      <Html position={[0, 0.015, 0]} center distanceFactor={6}>
-        <span
-          style={{
-            color: '#ffb5c5',
-            fontFamily: "'Geist', sans-serif",
-            fontSize: 12,
-            fontWeight: 500,
-            whiteSpace: 'nowrap',
-            textShadow: '0 0 4px #0a0f20',
-            pointerEvents: 'none',
-            userSelect: 'none',
-          }}
-        >
-          {name}
-        </span>
-      </Html>
     </group>
   );
 }
@@ -210,7 +193,7 @@ const CameraController = forwardRef<
   return null;
 });
 
-export default function Globe3DClient({ res1Cells, res2Cells, anchorCell, anchorLat, anchorLng, anchorName }: Props) {
+export default function Globe3DClient({ res1Cells, res2Cells, anchorCell, anchorLat, anchorLng }: Props) {
   const [cameraDistance, setCameraDistance] = useState(2.5);
   const useRes2 = cameraDistance < RES_SWITCH_DISTANCE;
   const activeRes = useRes2 ? 2 : 1;
@@ -280,7 +263,7 @@ export default function Globe3DClient({ res1Cells, res2Cells, anchorCell, anchor
           <CellLayer cells={res1Cells} anchorCell={anchorCell} visible={!useRes2} />
           <CellLayer cells={res2Cells} anchorCell={anchorCell} visible={useRes2} />
           <Res1Outline cells={res1Cells} />
-          <AnchorMarker lat={anchorLat} lng={anchorLng} name={anchorName} />
+          <AnchorMarker lat={anchorLat} lng={anchorLng} />
           <OrbitControls
             ref={controlsRef}
             enablePan={false}

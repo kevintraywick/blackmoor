@@ -33,7 +33,6 @@ export default async function Globe3DPage() {
         anchorCell={anchor.cell}
         anchorLat={anchorLat}
         anchorLng={anchorLng}
-        anchorName="Blaen Hafren"
       />
     </div>
   );
