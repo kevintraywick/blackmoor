@@ -274,7 +274,7 @@ function WolfToken() {
     });
     return c;
   }, [scene]);
-  return <primitive object={cloned} scale={0.0016} />;
+  return <primitive object={cloned} scale={0.00032} />;
 }
 useGLTF.preload('/tokens/wolf.glb');
 
