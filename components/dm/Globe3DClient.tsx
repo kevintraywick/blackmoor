@@ -325,7 +325,7 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
             <span className="opacity-60"> · {dominantCellCount.toLocaleString()} cells</span>
           </div>
           <div>
-            <span className="opacity-60">Distance: </span>
+            <span className="opacity-60">Cam: </span>
             <strong style={{ color: '#d0e0ff' }}>{cameraDistance.toFixed(2)}</strong>
           </div>
         </div>
