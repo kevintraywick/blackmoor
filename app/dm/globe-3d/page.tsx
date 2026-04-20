@@ -6,7 +6,7 @@ import DmNav from '@/components/DmNav';
 import Globe3DClient from '@/components/dm/Globe3DClient';
 import { getWorldAnchor } from '@/lib/world-anchor';
 import { cellToLatLng, cellToParent } from 'h3-js';
-import { prepareCells, prepareResolution, shadowHaloCells } from '@/lib/h3-world-data';
+import { campaignCells, eligibleOriginCellsInContainingParent, prepareCells, prepareResolution } from '@/lib/h3-world-data';
 
 export default async function Globe3DPage() {
   await ensureSchema();
@@ -26,13 +26,18 @@ export default async function Globe3DPage() {
   const res2Cells = prepareResolution(2, shadowRes6Cells, anchor.cell);
   const res3Cells = prepareResolution(3, shadowRes6Cells, anchor.cell);
 
-  // Shadow's origin hex — the res-4 parent of the anchor cell.
+  // Shadow's campaign = origin (anchor's res-4 parent) + 6 adjacent hexes.
   const originCell = cellToParent(anchor.cell, 4);
-  const res4StartingCells = prepareCells([originCell], 4, shadowRes6Cells, anchor.cell);
+  const res4CampaignCells = prepareCells(campaignCells(originCell), 4, shadowRes6Cells, anchor.cell);
 
-  // Wider res-4 halo (origin + 6 neighbors) — for white outlines only.
-  const haloIds = shadowHaloCells(shadowRes6Cells, 4, 1);
-  const res4HaloCells = prepareCells(haloIds, 4, shadowRes6Cells, anchor.cell);
+  // Eligible origins: all 49 res-4 descendants of the res-2 hex containing
+  // Shadow's origin, minus any overlap with Shadow's 7-hex campaign.
+  const res4EligibleCells = prepareCells(
+    eligibleOriginCellsInContainingParent(originCell, 2),
+    4,
+    shadowRes6Cells,
+    anchor.cell,
+  );
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
@@ -42,8 +47,8 @@ export default async function Globe3DPage() {
         res1Cells={res1Cells}
         res2Cells={res2Cells}
         res3Cells={res3Cells}
-        res4StartingCells={res4StartingCells}
-        res4HaloCells={res4HaloCells}
+        res4CampaignCells={res4CampaignCells}
+        res4EligibleCells={res4EligibleCells}
         anchorCell={anchor.cell}
         anchorLat={anchorLat}
         anchorLng={anchorLng}

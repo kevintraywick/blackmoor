@@ -109,6 +109,35 @@ export function shadowStartingCells(
   return scored.slice(0, count).map(s => s.c);
 }
 
+/** Origin + 6 immediate neighbors — the 7-hex starting footprint of a campaign. */
+export function campaignCells(originCell: string): string[] {
+  return gridDisk(originCell, 1);
+}
+
+/**
+ * Cells at which a new campaign may anchor its origin: within `outerRadius`
+ * rings of the origin, excluding the campaign's own 7-hex footprint.
+ */
+export function eligibleOriginCells(originCell: string, outerRadius: number): string[] {
+  const campaign = new Set(campaignCells(originCell));
+  return gridDisk(originCell, outerRadius).filter(c => !campaign.has(c));
+}
+
+/**
+ * Eligible origins scoped to the res-N hex that contains the given origin:
+ * all of that res-N cell's res-4 descendants, minus the campaign's 7 hexes.
+ * (res-2 → 49 children; res-3 → 7 children.)
+ */
+export function eligibleOriginCellsInContainingParent(
+  originCell: string,
+  parentResolution: number,
+): string[] {
+  const parent = cellToParent(originCell, parentResolution);
+  const res4Children = cellToChildren(parent, 4);
+  const campaign = new Set(campaignCells(originCell));
+  return res4Children.filter(c => !campaign.has(c));
+}
+
 export function prepareResolution(
   resolution: number,
   shadowRes6Cells: string[],
