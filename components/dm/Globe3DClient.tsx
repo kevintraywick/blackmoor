@@ -12,8 +12,8 @@ interface Props {
   res1Cells: PreparedCell[];
   res2Cells: PreparedCell[];
   res3Cells: PreparedCell[];
-  res4StartingCells: PreparedCell[];
-  res4HaloCells: PreparedCell[];
+  res4CampaignCells: PreparedCell[];
+  res4EligibleCells: PreparedCell[];
   anchorCell: string;
   anchorLat: number;
   anchorLng: number;
@@ -120,15 +120,19 @@ function latLngToVec3(lat: number, lng: number, radius = GLOBE_RADIUS): THREE.Ve
  * grades down. `sqrt` eases the curve so a few-hex cell still shows a faint
  * warm tint rather than vanishing into the base.
  */
+const COLOR_WHITE = new THREE.Color('#ffffff');
+
 function colorForCell(
   c: PreparedCell,
   isAnchorCell: boolean,
   maxShadowCount: number,
   showShadow: boolean,
   uniformShadow: boolean,
+  uniformWhite: boolean,
   tmp: THREE.Color,
 ): THREE.Color {
   if (uniformShadow) return tmp.copy(COLOR_SHADOW_HIGH);
+  if (uniformWhite) return tmp.copy(COLOR_WHITE);
   if (showShadow && isAnchorCell) return tmp.copy(COLOR_ANCHOR_FILL);
   if (c.isPentagon) return tmp.copy(COLOR_PENTAGON_FILL);
   if (showShadow && c.shadowDescendantCount > 0 && maxShadowCount > 0) {
@@ -138,7 +142,7 @@ function colorForCell(
   return tmp.copy(COLOR_CELL);
 }
 
-function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: number, showShadow: boolean, skipBaseCells = false, uniformShadow = false): THREE.BufferGeometry {
+function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: number, showShadow: boolean, skipBaseCells = false, uniformShadow = false, uniformWhite = false): THREE.BufferGeometry {
   const positions: number[] = [];
   const colors: number[] = [];
   const indices: number[] = [];
@@ -161,7 +165,7 @@ function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: n
         c.shadowDescendantCount > 0;
       if (!isInteresting) continue;
     }
-    const color = colorForCell(c, c.cell === anchorCell, maxShadowCount, showShadow, uniformShadow, tmp);
+    const color = colorForCell(c, c.cell === anchorCell, maxShadowCount, showShadow, uniformShadow, uniformWhite, tmp);
     const cr = color.r, cg = color.g, cb = color.b;
 
     const [cLat, cLng] = c.center;
@@ -220,6 +224,7 @@ function CellLayer({
   showShadow,
   skipBaseCells = false,
   uniformShadow = false,
+  uniformWhite = false,
 }: {
   cells: PreparedCell[];
   anchorCell: string;
@@ -228,10 +233,11 @@ function CellLayer({
   showShadow: boolean;
   skipBaseCells?: boolean;
   uniformShadow?: boolean;
+  uniformWhite?: boolean;
 }) {
   const geom = useMemo(
-    () => buildCellsGeometry(cells, anchorCell, radius, showShadow, skipBaseCells, uniformShadow),
-    [cells, anchorCell, radius, showShadow, skipBaseCells, uniformShadow],
+    () => buildCellsGeometry(cells, anchorCell, radius, showShadow, skipBaseCells, uniformShadow, uniformWhite),
+    [cells, anchorCell, radius, showShadow, skipBaseCells, uniformShadow, uniformWhite],
   );
   if (opacity <= 0.001) return null; // skip entirely when fully faded — saves a draw call at extremes
   return (
@@ -315,7 +321,7 @@ function WolfToken({ opacity }: { opacity: number }) {
     });
   }, [cloned, opacity]);
   if (opacity <= 0.001) return null;
-  return <primitive object={cloned} scale={0.00064} />;
+  return <primitive object={cloned} scale={0.000512} />;
 }
 useGLTF.preload('/tokens/wolf.glb');
 
@@ -369,12 +375,34 @@ function ZoomWatcher({ onChange }: { onChange: (distance: number) => void }) {
 interface CameraControllerHandle {
   goToAnchor: () => void;
   setDistance: (d: number) => void;
+  flyToAnchor: (distance: number) => void;
 }
 const CameraController = forwardRef<
   CameraControllerHandle,
   { anchorLat: number; anchorLng: number; controlsRef: React.MutableRefObject<OrbitControlsImpl | null> }
 >(function CameraController({ anchorLat, anchorLng, controlsRef }, ref) {
   const { camera } = useThree();
+  const anim = useRef<{
+    startPos: THREE.Vector3;
+    targetPos: THREE.Vector3;
+    startTime: number | null;
+    duration: number;
+  } | null>(null);
+
+  useFrame(({ clock }) => {
+    if (!anim.current) return;
+    if (anim.current.startTime === null) anim.current.startTime = clock.elapsedTime;
+    const t = Math.min(1, (clock.elapsedTime - anim.current.startTime) / anim.current.duration);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    camera.position.lerpVectors(anim.current.startPos, anim.current.targetPos, eased);
+    camera.lookAt(0, 0, 0);
+    if (controlsRef.current) {
+      controlsRef.current.target.set(0, 0, 0);
+      controlsRef.current.update();
+    }
+    if (t >= 1) anim.current = null;
+  });
+
   useImperativeHandle(ref, () => ({
     goToAnchor() {
       const v = latLngToVec3(anchorLat, anchorLng, 2.5);
@@ -386,7 +414,6 @@ const CameraController = forwardRef<
       }
     },
     setDistance(d: number) {
-      // Keep current orbit direction; just change how far away the camera sits.
       const dir = camera.position.clone().normalize();
       camera.position.copy(dir.multiplyScalar(d));
       if (controlsRef.current) {
@@ -394,21 +421,38 @@ const CameraController = forwardRef<
         controlsRef.current.update();
       }
     },
+    flyToAnchor(distance: number) {
+      // Tween the camera from its current orbit to a "looking-down" pose
+      // above the anchor hex at the requested distance.
+      anim.current = {
+        startPos: camera.position.clone(),
+        targetPos: latLngToVec3(anchorLat, anchorLng, distance),
+        startTime: null,
+        duration: 1.2,
+      };
+    },
   }));
   return null;
 });
 
-export default function Globe3DClient({ res3Cells, res4StartingCells, res4HaloCells, anchorCell, anchorLat, anchorLng }: Props) {
+export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells, res4EligibleCells, anchorCell, anchorLat, anchorLng }: Props) {
   const [cameraDistance, setCameraDistance] = useState(2.5);
+  const fillFade = fadeAmount(cameraDistance, FILL_FADE_FAR, FILL_FADE_NEAR);
+  const res3Fade = fadeAmount(cameraDistance, RES3_FADE_FAR, RES3_FADE_NEAR);
   const wolfOpacity = 1 - fadeAmount(cameraDistance, WOLF_FADE_FAR, WOLF_FADE_NEAR);
   const anchorOpacity = 1 - fadeAmount(cameraDistance, ANCHOR_FADE_FAR, ANCHOR_FADE_NEAR);
   const dominantRes = 3;
   const dominantCellCount = res3Cells.length;
 
   const initialCameraPos = useMemo(() => {
-    const v = latLngToVec3(anchorLat, anchorLng, 2.5);
-    return [v.x, v.y, v.z] as [number, number, number];
-  }, [anchorLat, anchorLng]);
+    // Keep the camera on the equator plane (y=0) at the anchor's longitude,
+    // so the N-pole axis maps exactly to screen-up on first load. Anchor
+    // itself appears in the upper half of the visible hemisphere. Distance
+    // tuned so the globe frames cleanly with the pole cone at the top edge.
+    const λ = -anchorLng * RAD;
+    const radius = 3.0;
+    return [radius * Math.cos(λ), 0, radius * Math.sin(λ)] as [number, number, number];
+  }, [anchorLng]);
 
   const controllerRef = useRef<CameraControllerHandle>(null);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
@@ -472,7 +516,9 @@ export default function Globe3DClient({ res3Cells, res4StartingCells, res4HaloCe
 
         <div className="flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid #2a3a5e' }}>
           <LegendChip fill="#ff7a2a" label="Shadow" />
+          <LegendChip fill="#ffffff" label="Eligible origin" />
           <LegendChip fill="#6e7480" label="Astral void" />
+          <LegendChip fill="#7a9ed0" label="Res-2 outline" />
           <LegendChip fill="#a8c0ea" label="Res-3 outline" />
         </div>
       </aside>
@@ -489,24 +535,38 @@ export default function Globe3DClient({ res3Cells, res4StartingCells, res4HaloCe
             <OceanSphere />
           </Suspense>
           <OutlineLayer
+            cells={res2Cells}
+            radius={RES2_OUTLINE_RADIUS}
+            color="#7a9ed0"
+            opacity={0.55 * fillFade}
+          />
+          <OutlineLayer
             cells={res3Cells}
             radius={RES3_OUTLINE_RADIUS}
             color="#a8c0ea"
-            opacity={0.5}
+            opacity={0.45 * res3Fade}
           />
-          {/* Shadow's 3 starting hexes at res-4 (adjacent to origin). */}
+          {/* Eligible origins — res-4 hexes a new campaign may anchor to
+              (within 20 hexes of Shadow's outermost). White, low opacity. */}
           <CellLayer
-            cells={res4StartingCells}
+            cells={res4EligibleCells}
+            anchorCell={anchorCell}
+            radius={RES3_FILL_RADIUS}
+            opacity={0.22}
+            showShadow={false}
+            uniformWhite
+          />
+          {/* Shadow's 7-hex campaign — origin + 6 adjacent hexes, orange. */}
+          <CellLayer
+            cells={res4CampaignCells}
             anchorCell={anchorCell}
             radius={RES3_FILL_RADIUS}
             opacity={0.55}
             showShadow={true}
             uniformShadow
           />
-          {/* White res-4 outlines for origin + 6 neighbors so the starting
-              hexes read against the broader local grid. */}
           <OutlineLayer
-            cells={res4HaloCells}
+            cells={res4CampaignCells}
             radius={RES3_OUTLINE_RADIUS}
             color="#ffffff"
             opacity={0.7}
@@ -516,7 +576,21 @@ export default function Globe3DClient({ res3Cells, res4StartingCells, res4HaloCe
           {/* Shadow's campaign token — wolf pinned at Blaen Hafren. */}
           <Suspense fallback={null}>
             <HexPin lat={anchorLat} lng={anchorLng} radiusScale={1.003}>
-              <WolfToken opacity={wolfOpacity} />
+              <group
+                onClick={e => {
+                  e.stopPropagation();
+                  controllerRef.current?.flyToAnchor(1.5);
+                }}
+                onPointerOver={e => {
+                  e.stopPropagation();
+                  document.body.style.cursor = 'pointer';
+                }}
+                onPointerOut={() => {
+                  document.body.style.cursor = '';
+                }}
+              >
+                <WolfToken opacity={wolfOpacity} />
+              </group>
             </HexPin>
           </Suspense>
 
