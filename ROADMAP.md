@@ -151,15 +151,15 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 
 ### v15 — News, weather, celestial
 
-- [ ] Biome-keyed hex substrate — Köppen zone + elevation + coastal flag per hex (foundation for all weather, magic zones, NPC schedules) <!-- common-v15 -->
+- [x] Biome-keyed hex substrate — Köppen zone + elevation + coastal flag per hex (foundation for all weather, magic zones, NPC schedules) <!-- common-v15 -->
 - [ ] Raven Post Common Desk (inbox of nearby/tagged common-world headlines) <!-- common-v15 -->
 - [ ] Distance-based arrival delay by item kind <!-- common-v15 -->
 - [ ] Trust-tier degradation by hex distance <!-- common-v15 -->
 - [ ] Real-world moon phase → global celestial events <!-- common-v15 -->
 - [ ] Local weather derived from common weather layer <!-- common-v15 -->
 - [ ] Environment pill on local maps (weather + day/night from parent hex) <!-- common-v15 -->
-- [ ] NOAA GFS weather subscription → in-fiction storms (identity-laundered) <!-- common-v15 -->
-- [ ] Weather MVP (Ambience v1) — session-start GFS forecast for party hex + prose presentation + banner/SCB/broadsheet surfaces (docs/brainstorms/2026-04-19-ambience-v1-requirements.md) <!-- common-v15 -->
+- [x] NOAA GFS weather subscription → in-fiction storms (identity-laundered) <!-- common-v15 -->
+- [x] Weather MVP (Ambience v1) — session-start GFS forecast for party hex + prose presentation + banner/SCB/broadsheet surfaces (docs/brainstorms/2026-04-19-ambience-v1-requirements.md) <!-- common-v15 -->
 - [ ] Continent-coherent storm translation — project live GFS onto CW continents with rotation + EMA smoothing (lets live weather scale beyond the party hex) <!-- common-v15 -->
 - [ ] NOAA SWPC aurora/solar-flare feed → sky-danced events <!-- common-v15 -->
 - [ ] Trust tiers on items (Official / Whispered / Rumored / Prophesied) <!-- common-v15 -->
