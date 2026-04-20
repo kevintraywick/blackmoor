@@ -342,11 +342,12 @@ function AnchorMarker({ lat, lng, opacity }: { lat: number; lng: number; opacity
 }
 
 function OceanSphere() {
-  // NASA Blue Marble (public domain). Equirectangular, 2048×1024.
-  // Sphere UVs in three.js map the texture's horizontal center (u=0.5) to
-  // +X world axis. Our latLngToVec3 uses λ = -lng, which places Greenwich
-  // (lng=0) along +X as expected — so no extra rotation/flip is needed.
-  const map = useTexture('/textures/earth_2048.jpg');
+  // NASA Blue Marble (public domain). Equirectangular, 4096×2048 — crisp
+  // enough that the sphere holds up at minDistance 1.25. Sphere UVs in
+  // three.js map the texture's horizontal center (u=0.5) to +X world axis.
+  // Our latLngToVec3 uses λ = -lng, which places Greenwich (lng=0) along +X
+  // as expected — so no extra rotation/flip is needed.
+  const map = useTexture('/textures/earth_4096.jpg');
   return (
     <mesh>
       <sphereGeometry args={[GLOBE_RADIUS * 0.999, 96, 64]} />
@@ -534,7 +535,7 @@ export default function Globe3DClient({ res3Cells, res4StartingCells, res4HaloCe
             dampingFactor={0.08}
             rotateSpeed={0.6}
             zoomSpeed={0.9}
-            minDistance={1.02}
+            minDistance={1.25}
             maxDistance={5}
           />
           <ZoomWatcher onChange={setCameraDistance} />
