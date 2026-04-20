@@ -11,6 +11,7 @@ interface Props {
   res0Cells: PreparedCell[];
   res1Cells: PreparedCell[];
   res2Cells: PreparedCell[];
+  res3Cells: PreparedCell[];
   anchorCell: string;
   anchorLat: number;
   anchorLng: number;
@@ -27,9 +28,10 @@ const COLOR_PENTAGON_FILL = new THREE.Color('#6e7480');
 const COLOR_SHADOW_HIGH = new THREE.Color('rgb(255,208,96)');  // r=255 g=208 b=96
 
 const GLOBE_RADIUS = 1;
-const RES2_OUTLINE_RADIUS = 1.001; // finest outlines, beneath res-1
-const RES1_OUTLINE_RADIUS = 1.002; // just above res-2 outlines + the fills
-const RES0_OUTLINE_RADIUS = 1.004; // above res-1 so colors don't blend where edges overlap
+const RES3_OUTLINE_RADIUS = 1.0005; // finest res, sits just above the fills
+const RES2_OUTLINE_RADIUS = 1.001;
+const RES1_OUTLINE_RADIUS = 1.002;
+const RES0_OUTLINE_RADIUS = 1.004;
 
 // Opacity crossfade anchors — as camera distance drops from FAR to NEAR,
 // the "outer" layer fades out while the "inner" layer fades in. We use two
@@ -39,24 +41,29 @@ const RES0_OUTLINE_RADIUS = 1.004; // above res-1 so colors don't blend where ed
 const OUTLINE_FADE_FAR = 3.5;
 const OUTLINE_FADE_NEAR = 1.5;
 const RES0_OUTLINE_OPACITY_FAR = 1.0;
-const RES0_OUTLINE_OPACITY_NEAR = 0.05;
+const RES0_OUTLINE_OPACITY_NEAR = 0.0; // fully fade out close to Earth
 
 // Res-1 outline uses a triangular envelope: fades in from planetary zoom,
 // peaks around the region-scale zoom, then fades OUT faster than res-0 did
 // as we drill into res-2 territory.
 const RES1_OUTLINE_PEAK_DISTANCE = 2.2;    // where res-1 is most legible
 const RES1_OUTLINE_NEAR_END = 1.3;         // by here, res-1 is ~invisible
-const RES1_OUTLINE_FLOOR = 0.1;
+const RES1_OUTLINE_FLOOR = 0;              // fully fade out close to Earth
 const RES1_OUTLINE_PEAK = 0.95;
 
 const FILL_FADE_FAR = 2.5;
 const FILL_FADE_NEAR = 1.5;
 
-// Radii for the cell-fill layers. Res-2 sits slightly below res-1 so that
-// when both are partially transparent in the crossfade band, there's no
-// z-fight on shared vertices.
+// Res-2 ↔ res-3 crossfade: once the player has zoomed past the res-2 band,
+// start introducing res-3 detail for Shadow's territory.
+const RES3_FADE_FAR = 1.5;
+const RES3_FADE_NEAR = 1.15;
+
+// Radii for the cell-fill layers. Later-rendered layers sit slightly above
+// earlier ones so opacity stacking is deterministic and z-fight is avoided.
 const RES1_FILL_RADIUS = 1.000;
 const RES2_FILL_RADIUS = 0.9995;
+const RES3_FILL_RADIUS = 1.0002;
 
 function fadeAmount(distance: number, farEnd: number, nearEnd: number): number {
   // 0 when at/beyond FAR, 1 when at/below NEAR, linear in between.
@@ -120,7 +127,7 @@ function colorForCell(
   return tmp.copy(COLOR_CELL);
 }
 
-function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: number, showShadow: boolean): THREE.BufferGeometry {
+function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: number, showShadow: boolean, skipBaseCells = false): THREE.BufferGeometry {
   const positions: number[] = [];
   const colors: number[] = [];
   const indices: number[] = [];
@@ -134,6 +141,16 @@ function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: n
   }
 
   for (const c of cells) {
+    // At near zoom, skip "plain" cells so the Earth texture underneath shows
+    // through — only Shadow territory, anchors, and pentagons paint.
+    if (skipBaseCells) {
+      const isInteresting =
+        c.cell === anchorCell ||
+        c.isAnchorAncestor ||
+        c.isPentagon ||
+        c.shadowDescendantCount > 0;
+      if (!isInteresting) continue;
+    }
     const color = colorForCell(c, c.cell === anchorCell, maxShadowCount, showShadow, tmp);
     const cr = color.r, cg = color.g, cb = color.b;
 
@@ -191,16 +208,18 @@ function CellLayer({
   radius,
   opacity,
   showShadow,
+  skipBaseCells = false,
 }: {
   cells: PreparedCell[];
   anchorCell: string;
   radius: number;
   opacity: number;
   showShadow: boolean;
+  skipBaseCells?: boolean;
 }) {
   const geom = useMemo(
-    () => buildCellsGeometry(cells, anchorCell, radius, showShadow),
-    [cells, anchorCell, radius, showShadow],
+    () => buildCellsGeometry(cells, anchorCell, radius, showShadow, skipBaseCells),
+    [cells, anchorCell, radius, showShadow, skipBaseCells],
   );
   if (opacity <= 0.001) return null; // skip entirely when fully faded — saves a draw call at extremes
   return (
@@ -356,13 +375,17 @@ const CameraController = forwardRef<
   return null;
 });
 
-export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorCell, anchorLat, anchorLng }: Props) {
+export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, res3Cells, anchorCell, anchorLat, anchorLng }: Props) {
   const [cameraDistance, setCameraDistance] = useState(2.5);
   const fillFade = fadeAmount(cameraDistance, FILL_FADE_FAR, FILL_FADE_NEAR);
-  const res1FillOpacity = 1 - fillFade; // pure res-1 when far
-  const res2FillOpacity = fillFade;     // pure res-2 when near
-  const dominantRes = fillFade >= 0.5 ? 2 : 1;
-  const dominantCellCount = dominantRes === 2 ? res2Cells.length : res1Cells.length;
+  const res3Fade = fadeAmount(cameraDistance, RES3_FADE_FAR, RES3_FADE_NEAR);
+  // Cap res-1 fill so the Earth texture stays visible even at planetary zoom.
+  const res1FillOpacity = (1 - fillFade) * 0.5;
+  const res2FillOpacity = fillFade;
+  const res3FillOpacity = res3Fade;
+  const dominantRes = res3Fade >= 0.5 ? 3 : fillFade >= 0.5 ? 2 : 1;
+  const dominantCellCount =
+    dominantRes === 3 ? res3Cells.length : dominantRes === 2 ? res2Cells.length : res1Cells.length;
 
   const initialCameraPos = useMemo(() => {
     const v = latLngToVec3(anchorLat, anchorLng, 2.5);
@@ -435,6 +458,7 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
           <LegendChip fill="#6e7480" label="Astral void" />
           <LegendChip fill="#ffd060" label="Res-0 outline (continents)" />
           <LegendChip fill="#ffffff" label="Res-1 outline" />
+          <LegendChip fill="#a8c0ea" label="Res-3 outline (zoomed in)" />
         </div>
       </aside>
 
@@ -450,7 +474,14 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
             <OceanSphere />
           </Suspense>
           <CellLayer cells={res1Cells} anchorCell={anchorCell} radius={RES1_FILL_RADIUS} opacity={res1FillOpacity} showShadow={false} />
-          <CellLayer cells={res2Cells} anchorCell={anchorCell} radius={RES2_FILL_RADIUS} opacity={res2FillOpacity} showShadow={true} />
+          <CellLayer cells={res2Cells} anchorCell={anchorCell} radius={RES2_FILL_RADIUS} opacity={res2FillOpacity} showShadow={true} skipBaseCells />
+          <CellLayer cells={res3Cells} anchorCell={anchorCell} radius={RES3_FILL_RADIUS} opacity={res3FillOpacity} showShadow={true} skipBaseCells />
+          <OutlineLayer
+            cells={res3Cells}
+            radius={RES3_OUTLINE_RADIUS}
+            color="#a8c0ea"
+            opacity={0.45 * res3Fade}
+          />
           <OutlineLayer
             cells={res1Cells}
             radius={RES1_OUTLINE_RADIUS}
@@ -489,7 +520,8 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, anchorC
           </HexPin>
           <OrbitControls
             ref={controlsRef}
-            enablePan={false}
+            enablePan
+            screenSpacePanning
             enableDamping
             dampingFactor={0.08}
             rotateSpeed={0.6}

@@ -24,6 +24,7 @@ export default async function Globe3DPage() {
   const res0Cells = prepareResolution(0, shadowRes6Cells, anchor.cell);
   const res1Cells = prepareResolution(1, shadowRes6Cells, anchor.cell);
   const res2Cells = prepareResolution(2, shadowRes6Cells, anchor.cell);
+  const res3Cells = prepareResolution(3, shadowRes6Cells, anchor.cell);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
@@ -32,6 +33,7 @@ export default async function Globe3DPage() {
         res0Cells={res0Cells}
         res1Cells={res1Cells}
         res2Cells={res2Cells}
+        res3Cells={res3Cells}
         anchorCell={anchor.cell}
         anchorLat={anchorLat}
         anchorLng={anchorLng}
