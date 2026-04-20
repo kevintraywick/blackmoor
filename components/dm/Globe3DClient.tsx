@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, Suspense, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, Suspense, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF, useTexture } from '@react-three/drei';
@@ -12,6 +12,8 @@ interface Props {
   res1Cells: PreparedCell[];
   res2Cells: PreparedCell[];
   res3Cells: PreparedCell[];
+  res4StartingCells: PreparedCell[];
+  res4HaloCells: PreparedCell[];
   anchorCell: string;
   anchorLat: number;
   anchorLng: number;
@@ -25,7 +27,7 @@ const COLOR_CELL = new THREE.Color('#2b3e67');
 const COLOR_ANCHOR_FILL = new THREE.Color('#f06282');
 const COLOR_ANCHOR_ANCESTOR_FILL = new THREE.Color('#d94668');
 const COLOR_PENTAGON_FILL = new THREE.Color('#6e7480');
-const COLOR_SHADOW_HIGH = new THREE.Color('rgb(255,208,96)');  // r=255 g=208 b=96
+const COLOR_SHADOW_HIGH = new THREE.Color('#ff7a2a'); // orange, matches N-pole cone
 
 const GLOBE_RADIUS = 1;
 const RES3_OUTLINE_RADIUS = 1.0005; // finest res, sits just above the fills
@@ -58,6 +60,16 @@ const FILL_FADE_NEAR = 1.5;
 // start introducing res-3 detail for Shadow's territory.
 const RES3_FADE_FAR = 1.5;
 const RES3_FADE_NEAR = 1.15;
+
+// Wolf token fade: reads as a map marker at mid-zoom, vanishes as the user
+// zooms into the actual hex so it doesn't occlude the ground.
+const WOLF_FADE_FAR = 1.75;
+const WOLF_FADE_NEAR = 1.25;
+
+// Anchor marker fade: a subtle "you are here" beacon at far zoom that
+// disappears as the user drills all the way into the hex.
+const ANCHOR_FADE_FAR = 1.4;
+const ANCHOR_FADE_NEAR = 1.0;
 
 // Radii for the cell-fill layers. Later-rendered layers sit slightly above
 // earlier ones so opacity stacking is deterministic and z-fight is avoided.
@@ -113,12 +125,11 @@ function colorForCell(
   isAnchorCell: boolean,
   maxShadowCount: number,
   showShadow: boolean,
+  uniformShadow: boolean,
   tmp: THREE.Color,
 ): THREE.Color {
-  if (showShadow) {
-    if (isAnchorCell) return tmp.copy(COLOR_ANCHOR_FILL);
-    if (c.isAnchorAncestor) return tmp.copy(COLOR_ANCHOR_ANCESTOR_FILL);
-  }
+  if (uniformShadow) return tmp.copy(COLOR_SHADOW_HIGH);
+  if (showShadow && isAnchorCell) return tmp.copy(COLOR_ANCHOR_FILL);
   if (c.isPentagon) return tmp.copy(COLOR_PENTAGON_FILL);
   if (showShadow && c.shadowDescendantCount > 0 && maxShadowCount > 0) {
     const t = Math.sqrt(c.shadowDescendantCount / maxShadowCount);
@@ -127,7 +138,7 @@ function colorForCell(
   return tmp.copy(COLOR_CELL);
 }
 
-function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: number, showShadow: boolean, skipBaseCells = false): THREE.BufferGeometry {
+function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: number, showShadow: boolean, skipBaseCells = false, uniformShadow = false): THREE.BufferGeometry {
   const positions: number[] = [];
   const colors: number[] = [];
   const indices: number[] = [];
@@ -146,12 +157,11 @@ function buildCellsGeometry(cells: PreparedCell[], anchorCell: string, radius: n
     if (skipBaseCells) {
       const isInteresting =
         c.cell === anchorCell ||
-        c.isAnchorAncestor ||
         c.isPentagon ||
         c.shadowDescendantCount > 0;
       if (!isInteresting) continue;
     }
-    const color = colorForCell(c, c.cell === anchorCell, maxShadowCount, showShadow, tmp);
+    const color = colorForCell(c, c.cell === anchorCell, maxShadowCount, showShadow, uniformShadow, tmp);
     const cr = color.r, cg = color.g, cb = color.b;
 
     const [cLat, cLng] = c.center;
@@ -209,6 +219,7 @@ function CellLayer({
   opacity,
   showShadow,
   skipBaseCells = false,
+  uniformShadow = false,
 }: {
   cells: PreparedCell[];
   anchorCell: string;
@@ -216,10 +227,11 @@ function CellLayer({
   opacity: number;
   showShadow: boolean;
   skipBaseCells?: boolean;
+  uniformShadow?: boolean;
 }) {
   const geom = useMemo(
-    () => buildCellsGeometry(cells, anchorCell, radius, showShadow, skipBaseCells),
-    [cells, anchorCell, radius, showShadow, skipBaseCells],
+    () => buildCellsGeometry(cells, anchorCell, radius, showShadow, skipBaseCells, uniformShadow),
+    [cells, anchorCell, radius, showShadow, skipBaseCells, uniformShadow],
   );
   if (opacity <= 0.001) return null; // skip entirely when fully faded — saves a draw call at extremes
   return (
@@ -282,23 +294,32 @@ function HexPin({
  * Loads `/tokens/wolf.glb` and renders Shadow's campaign token. Idle rotation
  * gives it a bit of life so the wolf reads as a character, not a statue.
  */
-function WolfToken() {
+function WolfToken({ opacity }: { opacity: number }) {
   const { scene } = useGLTF('/tokens/wolf.glb');
   const cloned = useMemo(() => {
     const c = scene.clone(true);
     c.traverse((obj) => {
       const mesh = obj as THREE.Mesh;
       if (mesh.isMesh) {
-        mesh.material = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+        mesh.material = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true });
       }
     });
     return c;
   }, [scene]);
+  useEffect(() => {
+    cloned.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.isMesh && mesh.material && !Array.isArray(mesh.material)) {
+        (mesh.material as THREE.Material).opacity = opacity;
+      }
+    });
+  }, [cloned, opacity]);
+  if (opacity <= 0.001) return null;
   return <primitive object={cloned} scale={0.00064} />;
 }
 useGLTF.preload('/tokens/wolf.glb');
 
-function AnchorMarker({ lat, lng }: { lat: number; lng: number }) {
+function AnchorMarker({ lat, lng, opacity }: { lat: number; lng: number; opacity: number }) {
   const pos = useMemo(() => latLngToVec3(lat, lng, GLOBE_RADIUS * 1.01), [lat, lng]);
   const markerRef = useRef<THREE.Mesh>(null);
   // Gentle pulse on the marker so it reads as "here."
@@ -309,11 +330,12 @@ function AnchorMarker({ lat, lng }: { lat: number; lng: number }) {
       markerRef.current.scale.setScalar(s);
     }
   });
+  if (opacity <= 0.001) return null;
   return (
     <group position={pos}>
       <mesh ref={markerRef}>
-        <sphereGeometry args={[0.012, 16, 16]} />
-        <meshBasicMaterial color="#ffb5c5" />
+        <sphereGeometry args={[0.0012, 16, 16]} />
+        <meshBasicMaterial color="#ffb5c5" transparent opacity={opacity} />
       </mesh>
     </group>
   );
@@ -328,7 +350,7 @@ function OceanSphere() {
   return (
     <mesh>
       <sphereGeometry args={[GLOBE_RADIUS * 0.999, 96, 64]} />
-      <meshBasicMaterial map={map} transparent opacity={0.85} depthWrite={false} />
+      <meshBasicMaterial map={map} />
     </mesh>
   );
 }
@@ -375,17 +397,12 @@ const CameraController = forwardRef<
   return null;
 });
 
-export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, res3Cells, anchorCell, anchorLat, anchorLng }: Props) {
+export default function Globe3DClient({ res3Cells, res4StartingCells, res4HaloCells, anchorCell, anchorLat, anchorLng }: Props) {
   const [cameraDistance, setCameraDistance] = useState(2.5);
-  const fillFade = fadeAmount(cameraDistance, FILL_FADE_FAR, FILL_FADE_NEAR);
-  const res3Fade = fadeAmount(cameraDistance, RES3_FADE_FAR, RES3_FADE_NEAR);
-  // Cap res-1 fill so the Earth texture stays visible even at planetary zoom.
-  const res1FillOpacity = (1 - fillFade) * 0.5;
-  const res2FillOpacity = fillFade;
-  const res3FillOpacity = res3Fade;
-  const dominantRes = res3Fade >= 0.5 ? 3 : fillFade >= 0.5 ? 2 : 1;
-  const dominantCellCount =
-    dominantRes === 3 ? res3Cells.length : dominantRes === 2 ? res2Cells.length : res1Cells.length;
+  const wolfOpacity = 1 - fadeAmount(cameraDistance, WOLF_FADE_FAR, WOLF_FADE_NEAR);
+  const anchorOpacity = 1 - fadeAmount(cameraDistance, ANCHOR_FADE_FAR, ANCHOR_FADE_NEAR);
+  const dominantRes = 3;
+  const dominantCellCount = res3Cells.length;
 
   const initialCameraPos = useMemo(() => {
     const v = latLngToVec3(anchorLat, anchorLng, 2.5);
@@ -453,12 +470,9 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, res3Cel
         </div>
 
         <div className="flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid #2a3a5e' }}>
-          <LegendChip fill="#d94668" label="Shadow home" />
-          <LegendChip fill="#e89a48" label="Shadow" />
+          <LegendChip fill="#ff7a2a" label="Shadow" />
           <LegendChip fill="#6e7480" label="Astral void" />
-          <LegendChip fill="#ffd060" label="Res-0 outline (continents)" />
-          <LegendChip fill="#ffffff" label="Res-1 outline" />
-          <LegendChip fill="#a8c0ea" label="Res-3 outline (zoomed in)" />
+          <LegendChip fill="#a8c0ea" label="Res-3 outline" />
         </div>
       </aside>
 
@@ -473,41 +487,35 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, res3Cel
           <Suspense fallback={null}>
             <OceanSphere />
           </Suspense>
-          <CellLayer cells={res1Cells} anchorCell={anchorCell} radius={RES1_FILL_RADIUS} opacity={res1FillOpacity} showShadow={false} />
-          <CellLayer cells={res2Cells} anchorCell={anchorCell} radius={RES2_FILL_RADIUS} opacity={res2FillOpacity} showShadow={true} skipBaseCells />
-          <CellLayer cells={res3Cells} anchorCell={anchorCell} radius={RES3_FILL_RADIUS} opacity={res3FillOpacity} showShadow={true} skipBaseCells />
           <OutlineLayer
             cells={res3Cells}
             radius={RES3_OUTLINE_RADIUS}
             color="#a8c0ea"
-            opacity={0.45 * res3Fade}
+            opacity={0.5}
           />
+          {/* Shadow's 3 starting hexes at res-4 (adjacent to origin). */}
+          <CellLayer
+            cells={res4StartingCells}
+            anchorCell={anchorCell}
+            radius={RES3_FILL_RADIUS}
+            opacity={0.55}
+            showShadow={true}
+            uniformShadow
+          />
+          {/* White res-4 outlines for origin + 6 neighbors so the starting
+              hexes read against the broader local grid. */}
           <OutlineLayer
-            cells={res1Cells}
-            radius={RES1_OUTLINE_RADIUS}
+            cells={res4HaloCells}
+            radius={RES3_OUTLINE_RADIUS}
             color="#ffffff"
-            opacity={RES1_OUTLINE_FLOOR + (RES1_OUTLINE_PEAK - RES1_OUTLINE_FLOOR) * triangleFade(cameraDistance, OUTLINE_FADE_FAR, RES1_OUTLINE_PEAK_DISTANCE, RES1_OUTLINE_NEAR_END)}
+            opacity={0.7}
           />
-          {/* Res-2 outlines — fade in alongside the res-2 fill crossfade so
-              individual 60-km cells become distinguishable when zoomed in. */}
-          <OutlineLayer
-            cells={res2Cells}
-            radius={RES2_OUTLINE_RADIUS}
-            color="#7a9ed0"
-            opacity={0.55 * fillFade}
-          />
-          <OutlineLayer
-            cells={res0Cells}
-            radius={RES0_OUTLINE_RADIUS}
-            color="#ffd060"
-            opacity={RES0_OUTLINE_OPACITY_FAR + (RES0_OUTLINE_OPACITY_NEAR - RES0_OUTLINE_OPACITY_FAR) * fadeAmount(cameraDistance, OUTLINE_FADE_FAR, OUTLINE_FADE_NEAR)}
-          />
-          <AnchorMarker lat={anchorLat} lng={anchorLng} />
+          <AnchorMarker lat={anchorLat} lng={anchorLng} opacity={anchorOpacity} />
 
           {/* Shadow's campaign token — wolf pinned at Blaen Hafren. */}
           <Suspense fallback={null}>
             <HexPin lat={anchorLat} lng={anchorLng} radiusScale={1.003}>
-              <WolfToken />
+              <WolfToken opacity={wolfOpacity} />
             </HexPin>
           </Suspense>
 
@@ -515,7 +523,7 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, res3Cel
           <HexPin lat={90} lng={0} radiusScale={1.002}>
             <mesh position={[0, 0.04, 0]}>
               <coneGeometry args={[0.025, 0.08, 16]} />
-              <meshBasicMaterial color="#ffd060" />
+              <meshBasicMaterial color="#ff7a2a" />
             </mesh>
           </HexPin>
           <OrbitControls
@@ -526,7 +534,7 @@ export default function Globe3DClient({ res0Cells, res1Cells, res2Cells, res3Cel
             dampingFactor={0.08}
             rotateSpeed={0.6}
             zoomSpeed={0.9}
-            minDistance={1.15}
+            minDistance={1.02}
             maxDistance={5}
           />
           <ZoomWatcher onChange={setCameraDistance} />
