@@ -5,8 +5,8 @@ import { ensureSchema } from '@/lib/schema';
 import DmNav from '@/components/DmNav';
 import Globe3DClient from '@/components/dm/Globe3DClient';
 import { getWorldAnchor } from '@/lib/world-anchor';
-import { cellToLatLng } from 'h3-js';
-import { prepareResolution } from '@/lib/h3-world-data';
+import { cellToLatLng, cellToParent } from 'h3-js';
+import { prepareCells, prepareResolution, shadowHaloCells } from '@/lib/h3-world-data';
 
 export default async function Globe3DPage() {
   await ensureSchema();
@@ -26,6 +26,14 @@ export default async function Globe3DPage() {
   const res2Cells = prepareResolution(2, shadowRes6Cells, anchor.cell);
   const res3Cells = prepareResolution(3, shadowRes6Cells, anchor.cell);
 
+  // Shadow's origin hex — the res-4 parent of the anchor cell.
+  const originCell = cellToParent(anchor.cell, 4);
+  const res4StartingCells = prepareCells([originCell], 4, shadowRes6Cells, anchor.cell);
+
+  // Wider res-4 halo (origin + 6 neighbors) — for white outlines only.
+  const haloIds = shadowHaloCells(shadowRes6Cells, 4, 1);
+  const res4HaloCells = prepareCells(haloIds, 4, shadowRes6Cells, anchor.cell);
+
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       <DmNav current="world" />
@@ -34,6 +42,8 @@ export default async function Globe3DPage() {
         res1Cells={res1Cells}
         res2Cells={res2Cells}
         res3Cells={res3Cells}
+        res4StartingCells={res4StartingCells}
+        res4HaloCells={res4HaloCells}
         anchorCell={anchor.cell}
         anchorLat={anchorLat}
         anchorLng={anchorLng}
