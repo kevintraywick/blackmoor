@@ -59,23 +59,35 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
   // Box dimensions — contiguous, no gaps
   const boxW = 200;
   const boxH = 450;
-  const totalW = sessions.length * boxW;
+  const PLACEHOLDER_PANES = 3; // empty panes to the right for planning future sessions
+  const totalW = (sessions.length + PLACEHOLDER_PANES) * boxW;
   const circleR = 60; // radius of session circles (120px diameter)
 
-  // Generate path points — weave up and down
-  const pathPoints = sessions.map((_, i) => {
-    const x = i * boxW + boxW / 2;
-    const y = i % 2 === 0 ? boxH * 0.65 : boxH * 0.3;
-    return { x, y };
-  });
+  // Generate path points — weave up and down (same formula for sessions + placeholders,
+  // so the weave pattern is unbroken)
+  function pointAt(index: number) {
+    return {
+      x: index * boxW + boxW / 2,
+      y: index % 2 === 0 ? boxH * 0.65 : boxH * 0.3,
+    };
+  }
+  const pathPoints = sessions.map((_, i) => pointAt(i));
+  const placeholderPoints = Array.from({ length: PLACEHOLDER_PANES }, (_, p) =>
+    pointAt(sessions.length + p)
+  );
+  // Dim path starts at the last real session and flows through the placeholders
+  // so the weave reads as one continuous journey.
+  const dimPathPoints = pathPoints.length > 0
+    ? [pathPoints[pathPoints.length - 1], ...placeholderPoints]
+    : placeholderPoints;
 
   // Build SVG path string with smooth curves
-  function buildPath(): string {
-    if (pathPoints.length === 0) return '';
-    let d = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
-    for (let i = 1; i < pathPoints.length; i++) {
-      const prev = pathPoints[i - 1];
-      const curr = pathPoints[i];
+  function buildPathFrom(points: { x: number; y: number }[]): string {
+    if (points.length === 0) return '';
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
       const cpx = (prev.x + curr.x) / 2;
       d += ` C ${cpx} ${prev.y}, ${cpx} ${curr.y}, ${curr.x} ${curr.y}`;
     }
@@ -365,13 +377,43 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             );
           })}
 
+          {/* Placeholder panes — planning surface for future sessions */}
+          {Array.from({ length: PLACEHOLDER_PANES }).map((_, p) => {
+            const idx = sessions.length + p;
+            const x = idx * boxW;
+            return (
+              <div
+                key={`placeholder-${p}`}
+                className="absolute overflow-hidden"
+                style={{
+                  left: x,
+                  top: 0,
+                  width: boxW,
+                  height: boxH,
+                  background: 'var(--color-bg)',
+                  border: '0.5px solid rgba(255,255,255,0.25)',
+                }}
+              />
+            );
+          })}
+
           {/* SVG Path */}
           <svg
             className="absolute inset-0 pointer-events-none"
             style={{ width: totalW, height: boxH + 40 }}
           >
+            {/* Dim continuation through the placeholder panes — drawn first so the
+                real session path sits visually on top at the handoff point */}
             <path
-              d={buildPath()}
+              d={buildPathFrom(dimPathPoints)}
+              fill="none"
+              stroke="rgba(150,175,200,0.5)"
+              strokeWidth="3"
+              strokeDasharray="8 4"
+              opacity="0.2"
+            />
+            <path
+              d={buildPathFrom(pathPoints)}
               fill="none"
               stroke="rgba(150,175,200,0.5)"
               strokeWidth="3"
@@ -446,6 +488,40 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                       style={{ position: 'absolute', inset: '-5%', width: '110%', height: '110%', objectFit: 'cover', opacity: 0.6 }}
                     />
                   )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Placeholder circles — future sessions, very light */}
+          {placeholderPoints.map((pt, p) => {
+            const sessionNumber = sessions.length + p + 1;
+            return (
+              <div
+                key={`placeholder-circle-${p}`}
+                className="absolute"
+                style={{
+                  left: pt.x - circleR,
+                  top: pt.y - circleR,
+                  width: circleR * 2,
+                  height: circleR * 2,
+                }}
+              >
+                <div
+                  className="rounded-full flex items-center justify-center"
+                  style={{
+                    width: circleR * 2,
+                    height: circleR * 2,
+                    background: 'rgba(200,200,220,0.12)',
+                    border: '1px solid rgba(255,255,255,0.18)',
+                  }}
+                >
+                  <span
+                    className="font-serif select-none leading-none"
+                    style={{ fontSize: '2.6rem', color: 'rgba(255,255,255,0.18)' }}
+                  >
+                    {sessionNumber}
+                  </span>
                 </div>
               </div>
             );
