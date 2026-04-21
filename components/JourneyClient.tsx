@@ -28,15 +28,58 @@ interface Props {
   sessions: Session[];
   imageMap?: Record<string, string>;
   campaignBackground?: string;
+  campaignAudioUrl?: string;
   /** Player view — hides DM-only affordances (drag-and-drop image uploads, upload errors). */
   readOnly?: boolean;
 }
 
-export default function JourneyClient({ sessions, imageMap: initialImageMap = {}, campaignBackground = '', readOnly = false }: Props) {
+// Nav + banner heights on mobile — the fullscreen overlay anchors below these.
+const MOBILE_NAV_H = 48;
+const MOBILE_BANNER_H = 200;
+
+export default function JourneyClient({ sessions, imageMap: initialImageMap = {}, campaignBackground = '', campaignAudioUrl = '', readOnly = false }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [imageMap, setImageMap] = useState<Record<string, string>>(initialImageMap);
   const [dragTarget, setDragTarget] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Mobile breakpoint detection — matches Tailwind `sm:` (640px). False during SSR,
+  // updated on mount + resize.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Audio playback — one shared element so only one track plays at a time.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playingUrl, setPlayingUrl] = useState<string | null>(null);
+  const toggleAudio = useCallback((url: string) => {
+    if (!url) return;
+    let el = audioRef.current;
+    if (!el) {
+      el = new Audio();
+      el.addEventListener('ended', () => setPlayingUrl(null));
+      audioRef.current = el;
+    }
+    if (playingUrl === url && !el.paused) {
+      el.pause();
+      setPlayingUrl(null);
+      return;
+    }
+    if (el.src !== url && !el.src.endsWith(url)) {
+      el.src = url;
+    }
+    el.currentTime = el.currentTime || 0;
+    el.play().then(() => setPlayingUrl(url)).catch(() => setPlayingUrl(null));
+  }, [playingUrl]);
+  const stopAudio = useCallback(() => {
+    const el = audioRef.current;
+    if (el && !el.paused) el.pause();
+    setPlayingUrl(null);
+  }, []);
 
   // Safari drops files on the window unless every level of dragover/drop
   // calls preventDefault. Block page-level navigation so in-page zones receive the drop.
@@ -55,17 +98,46 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
   // Start with no popup open — the page resets to closed on every visit.
   const [activeJournal, setActiveJournal] = useState<number | null>(null);
   const [showBackstory, setShowBackstory] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // When an overlay is open, close on any click outside the panel — including
+  // the sticky nav bar above JourneyClient, which doesn't bubble into our
+  // root onClick.
+  useEffect(() => {
+    if (!activeJournal && !showBackstory) return;
+    const onDocClick = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (target && panelRef.current?.contains(target)) return;
+      setActiveJournal(null);
+      setShowBackstory(false);
+      const el = audioRef.current;
+      if (el && !el.paused) el.pause();
+      setPlayingUrl(null);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [activeJournal, showBackstory]);
 
   // Box dimensions — contiguous, no gaps
-  const boxW = 200;
-  const boxH = 450;
-  const PLACEHOLDER_PANES = 3; // empty panes to the right for planning future sessions
-  const totalW = (sessions.length + PLACEHOLDER_PANES) * boxW;
-  const circleR = 60; // radius of session circles (120px diameter)
+  // Desktop: horizontal row, 200×450 per box.
+  // Mobile: vertical stack, full-width × 300 per box, with path x in percentage units
+  // (SVG viewBox is 100 units wide so circle x of 25 / 75 reads as 25% / 75%).
+  const PLACEHOLDER_PANES = 3; // empty panes for planning future sessions
+  const boxW = isMobile ? 100 : 200;   // mobile: % units (viewBox scales to 100% width)
+  const boxH = isMobile ? 300 : 450;
+  const totalW = isMobile ? 100 : (sessions.length + PLACEHOLDER_PANES) * boxW;
+  const totalH = isMobile ? (sessions.length + PLACEHOLDER_PANES) * boxH : boxH + 40;
+  const circleR = 60; // radius of session circles (120px diameter) — same on both layouts
 
-  // Generate path points — weave up and down (same formula for sessions + placeholders,
-  // so the weave pattern is unbroken)
+  // Generate path points — weave left/right on mobile, up/down on desktop.
+  // Mobile x is in percentage units (0–100); desktop x is pixels.
   function pointAt(index: number) {
+    if (isMobile) {
+      return {
+        x: index % 2 === 0 ? 30 : 70,
+        y: index * boxH + boxH / 2,
+      };
+    }
     return {
       x: index * boxW + boxW / 2,
       y: index % 2 === 0 ? boxH * 0.65 : boxH * 0.3,
@@ -166,7 +238,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
   };
 
   return (
-    <div className="max-w-full mx-auto relative" onClick={() => { setActiveJournal(null); setShowBackstory(false); }}>
+    <div className="max-w-full mx-auto relative" onClick={() => { setActiveJournal(null); setShowBackstory(false); stopAudio(); }}>
       {!readOnly && uploadError && (
         <div
           role="alert"
@@ -199,12 +271,13 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             <div
               className="absolute z-10 rounded-full overflow-hidden flex items-center justify-center"
               style={{
-                left: boxW / 2 - circleR,
+                ...(isMobile
+                  ? { left: '50%', transform: isDragOver ? 'translateX(-50%) scale(1.1)' : 'translateX(-50%)' }
+                  : { left: 100 - circleR, transform: isDragOver ? 'scale(1.1)' : undefined }),
                 width: circleR * 2,
                 height: circleR * 2,
                 border: isDragOver ? '3px solid #4a7a5a' : '3px solid #000000',
                 background: 'rgba(200,200,220,0.4)',
-                transform: isDragOver ? 'scale(1.1)' : undefined,
                 transition: 'border 0.15s, transform 0.15s',
                 cursor: campaignBackground ? 'pointer' : 'default',
               }}
@@ -238,32 +311,232 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
         <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
       </div>
 
-      {/* Text overlay — anchored to bottom-right of selected circle */}
+      {/* Text overlay — anchored to circle on desktop; fullscreen on mobile */}
       {(() => {
         let overlayText: string | null = null;
         let overlayTitle: string | null = null;
+        let overlayAudio: string = '';
         let anchorX = 0;
         let anchorY = 0;
 
         if (showBackstory && campaignBackground) {
           overlayText = campaignBackground;
-          // Backstory circle is in the banner at (boxW/2, circleR)
-          anchorX = boxW / 2 + circleR;
-          anchorY = 200; // bottom of the banner
+          overlayTitle = 'Our Story So Far…';
+          overlayAudio = campaignAudioUrl;
+          // Backstory circle is in the banner at (boxW/2, circleR) on desktop
+          anchorX = (isMobile ? 0 : boxW / 2) + circleR;
+          anchorY = MOBILE_BANNER_H; // bottom of the banner
         } else if (activeJournal !== null) {
           const idx = sessions.findIndex(s => s.number === activeJournal);
           const s = idx >= 0 ? sessions[idx] : null;
           if (s?.journal_public && idx >= 0) {
             overlayText = s.journal_public;
             overlayTitle = s.title || `Session ${s.number}`;
+            overlayAudio = s.audio_url || '';
             const pt = pathPoints[idx];
-            // Anchor at bottom-right of the circle, offset into the scroll area (below banner)
             anchorX = pt.x + circleR * 0.7;
-            anchorY = 200 + pt.y + circleR * 0.7; // 200 = banner height
+            anchorY = MOBILE_BANNER_H + pt.y + circleR * 0.7;
           }
         }
         if (!overlayText) return null;
         const isBackstory = showBackstory;
+        const isPlaying = !!overlayAudio && playingUrl === overlayAudio;
+
+        // Sessions available in the mobile top-nav — backstory first, then every
+        // session with public journal text. Placeholders skipped (no content yet).
+        const navEntries: Array<
+          { key: string; label: string; active: boolean; onClick: () => void; imageSrc?: string }
+        > = [];
+        if (campaignBackground) {
+          navEntries.push({
+            key: 'ossf',
+            label: '☾',
+            active: isBackstory,
+            onClick: () => { setShowBackstory(true); setActiveJournal(null); stopAudio(); },
+            imageSrc: imageMap['campaign_bg'] || '/images/campaign/campaign_bg.png',
+          });
+        }
+        sessions.forEach((s) => {
+          if (!s.journal_public) return;
+          navEntries.push({
+            key: `s${s.number}`,
+            label: String(s.number),
+            active: !isBackstory && activeJournal === s.number,
+            onClick: () => { setActiveJournal(s.number); setShowBackstory(false); stopAudio(); },
+            imageSrc: imageMap[`s${s.number}_circle`],
+          });
+        });
+
+        // Shared inner panel — nav row (mobile) + title + optional speaker + text + (X) close
+        const innerPanel = (
+          <div
+            ref={panelRef}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#f2ead9',
+              borderRadius: 8,
+              padding: isMobile ? '12px 20px 20px 20px' : '20px 28px 24px 28px',
+              pointerEvents: 'auto',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+              overflow: 'auto',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              ...(isMobile
+                ? { flex: 1, width: '100%' }
+                : { maxHeight: '100%' }),
+            }}
+          >
+            {isMobile && navEntries.length > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 6 }}>
+                <div style={{ display: 'flex', gap: 8, flex: 1, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+                {navEntries.map((e) => (
+                  <button
+                    key={e.key}
+                    type="button"
+                    onClick={(ev) => { ev.stopPropagation(); e.onClick(); }}
+                    aria-label={e.label}
+                    aria-pressed={e.active}
+                    style={{
+                      width: 40, height: 40,
+                      borderRadius: '50%',
+                      background: '#2a3140',
+                      border: e.active ? '2px solid #c9a84c' : '2px solid rgba(26,22,20,0.25)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer',
+                      overflow: 'hidden',
+                      padding: 0,
+                      position: 'relative',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {e.imageSrc && (
+                      <img
+                        src={e.imageSrc}
+                        alt=""
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(ev) => { (ev.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    )}
+                    {!e.imageSrc && (
+                      <span
+                        className="font-serif"
+                        style={{ color: '#ffffff', fontSize: '1rem', lineHeight: 1, position: 'relative' }}
+                      >
+                        {e.label}
+                      </span>
+                    )}
+                  </button>
+                ))}
+                </div>
+                {overlayAudio && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleAudio(overlayAudio); }}
+                    aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
+                    style={{
+                      flexShrink: 0,
+                      width: 40, height: 40,
+                      borderRadius: '50%',
+                      background: isPlaying ? '#1a1614' : 'rgba(26,22,20,0.12)',
+                      color: isPlaying ? '#c9a84c' : '#1a1614',
+                      border: '2px solid rgba(26,22,20,0.25)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: isPlaying ? '0 0 0 3px rgba(201,168,76,0.25)' : 'none',
+                      transition: 'background 0.2s, box-shadow 0.2s',
+                      padding: 0,
+                    }}
+                  >
+                    {isPlaying ? (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                        <rect x="3" y="2" width="3" height="10" rx="0.5" />
+                        <rect x="8" y="2" width="3" height="10" rx="0.5" />
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M3 5.5v5h2.5L9 13V3L5.5 5.5H3z" />
+                        <path d="M11 5c.8.5 1.5 1.7 1.5 3s-.7 2.5-1.5 3" stroke="currentColor" strokeWidth="0.8" fill="none" strokeLinecap="round" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+            {overlayTitle && (
+              <div className="font-serif italic text-[#1a1614]" style={{ fontSize: '1.3rem', lineHeight: 1.2 }}>
+                {overlayTitle}
+              </div>
+            )}
+            {/* Desktop: speaker icon still lives at top-right of the title row */}
+            {!isMobile && overlayAudio && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); toggleAudio(overlayAudio); }}
+                aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
+                style={{
+                  position: 'absolute',
+                  top: 16, right: 16,
+                  width: 36, height: 36,
+                  borderRadius: '50%',
+                  background: isPlaying ? '#1a1614' : 'rgba(26,22,20,0.12)',
+                  color: isPlaying ? '#c9a84c' : '#1a1614',
+                  border: '1px solid rgba(26,22,20,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: isPlaying ? '0 0 0 3px rgba(201,168,76,0.25)' : 'none',
+                  transition: 'background 0.2s, box-shadow 0.2s',
+                  padding: 0,
+                }}
+              >
+                {isPlaying ? (
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                    <rect x="3" y="2" width="3" height="10" rx="0.5" />
+                    <rect x="8" y="2" width="3" height="10" rx="0.5" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M3 5.5v5h2.5L9 13V3L5.5 5.5H3z" />
+                    <path d="M11 5c.8.5 1.5 1.7 1.5 3s-.7 2.5-1.5 3" stroke="currentColor" strokeWidth="0.8" fill="none" strokeLinecap="round" />
+                  </svg>
+                )}
+              </button>
+            )}
+            <div
+              className="font-serif text-[#1a1614] leading-relaxed"
+              style={{ whiteSpace: 'pre-wrap', fontSize: '1.075rem' }}
+            >
+              {overlayText}
+            </div>
+          </div>
+        );
+
+        if (isMobile) {
+          // Fullscreen panel: sits below the sticky nav, covers the banner + timeline.
+          // zIndex inline to beat the timeline circles — Tailwind v4 `z-*` is unreliable.
+          return (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'fixed',
+                zIndex: 9999,
+                top: MOBILE_NAV_H,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                padding: 12,
+                animation: 'fadeIn 0.25s ease-out',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {innerPanel}
+            </div>
+          );
+        }
+
+        // Desktop — anchored to the circle as before
         return (
           <div
             className="absolute z-20"
@@ -276,61 +549,60 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
               pointerEvents: 'none',
             }}
           >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'rgba(255,255,255,0.70)',
-                backdropFilter: 'blur(10px)',
-                borderRadius: 8,
-                padding: '20px 28px',
-                pointerEvents: 'auto',
-              }}
-            >
-              {overlayTitle && (
-                <div className="font-serif italic text-[#1a1614] text-[1.25rem] mb-2">{overlayTitle}</div>
-              )}
-              <div
-                className="font-serif text-[#1a1614] text-[1.075rem] leading-relaxed"
-                style={{ whiteSpace: 'pre-wrap' }}
-              >
-                {overlayText}
-              </div>
-            </div>
+            {innerPanel}
           </div>
         );
       })()}
 
-      {/* Journey map — horizontal scroll */}
+      {/* Journey map — horizontal scroll on desktop, vertical stack on mobile */}
       <div
         ref={scrollRef}
-        className="overflow-x-auto pb-4"
+        className={isMobile ? 'pb-4' : 'overflow-x-auto pb-4'}
         style={{ scrollbarColor: '#5a4f46 transparent', paddingLeft: 0, paddingRight: 0 }}
       >
-        <div className="relative" style={{ width: totalW, height: boxH + 40 }}>
+        <div className="relative" style={{ width: isMobile ? '100%' : totalW, height: totalH }}>
 
-          {/* Terrain boxes — contiguous, top to bottom */}
+          {/* Terrain boxes — contiguous; row on desktop, column on mobile */}
           {sessions.map((session, i) => {
             const terrain = TERRAIN_STYLES[session.terrain] ?? TERRAIN_STYLES.woods;
-            const x = i * boxW;
             const boxBg = BOX_BLUES[i % BOX_BLUES.length];
             const bgKey = `s${session.number}_bg`;
             const bgImage = imageMap[bgKey];
             const isDragOver = dragTarget === bgKey;
             const hasStarted = !!session.started_at;
 
+            const sepBorder = '1px solid rgba(150,180,210,0.15)';
+            const dragBorder = '2px solid #4a7a5a';
+            const boxStyle: React.CSSProperties = isMobile
+              ? {
+                  left: 0,
+                  top: i * boxH,
+                  width: '100%',
+                  height: boxH,
+                  background: boxBg,
+                  borderTop: isDragOver ? dragBorder : (i === 0 ? 'none' : sepBorder),
+                  borderRight: isDragOver ? dragBorder : 'none',
+                  borderBottom: isDragOver ? dragBorder : 'none',
+                  borderLeft: isDragOver ? dragBorder : 'none',
+                }
+              : {
+                  left: i * boxW,
+                  top: 0,
+                  width: boxW,
+                  height: boxH,
+                  background: boxBg,
+                  borderTop: isDragOver ? dragBorder : 'none',
+                  borderRight: isDragOver ? dragBorder : 'none',
+                  borderBottom: isDragOver ? dragBorder : 'none',
+                  borderLeft: isDragOver ? dragBorder : (i === 0 ? 'none' : sepBorder),
+                };
+
             return (
               <div
                 key={session.id}
                 className="absolute overflow-hidden"
                 style={{
-                  left: x,
-                  top: 0,
-                  width: boxW,
-                  height: boxH,
-                  background: boxBg,
-                  borderLeft: i === 0 ? 'none' : '1px solid rgba(150,180,210,0.15)',
-                  borderRight: 'none',
-                  border: isDragOver ? '2px solid #4a7a5a' : undefined,
+                  ...boxStyle,
                   transform: isDragOver ? 'scale(1.02)' : undefined,
                   transition: 'border 0.15s, transform 0.15s',
                 }}
@@ -380,16 +652,15 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
           {/* Placeholder panes — planning surface for future sessions */}
           {Array.from({ length: PLACEHOLDER_PANES }).map((_, p) => {
             const idx = sessions.length + p;
-            const x = idx * boxW;
+            const phStyle: React.CSSProperties = isMobile
+              ? { left: 0, top: idx * boxH, width: '100%', height: boxH }
+              : { left: idx * boxW, top: 0, width: boxW, height: boxH };
             return (
               <div
                 key={`placeholder-${p}`}
                 className="absolute overflow-hidden"
                 style={{
-                  left: x,
-                  top: 0,
-                  width: boxW,
-                  height: boxH,
+                  ...phStyle,
                   background: 'var(--color-bg)',
                   border: '0.5px solid rgba(255,255,255,0.25)',
                 }}
@@ -397,10 +668,13 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             );
           })}
 
-          {/* SVG Path */}
+          {/* SVG Path — mobile uses a % viewBox so the weave scales with viewport */}
           <svg
             className="absolute inset-0 pointer-events-none"
-            style={{ width: totalW, height: boxH + 40 }}
+            style={{ width: isMobile ? '100%' : totalW, height: totalH }}
+            {...(isMobile
+              ? { viewBox: `0 0 100 ${totalH}`, preserveAspectRatio: 'none' }
+              : {})}
           >
             {/* Dim continuation through the placeholder panes — drawn first so the
                 real session path sits visually on top at the handoff point */}
@@ -411,6 +685,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
               strokeWidth="3"
               strokeDasharray="8 4"
               opacity="0.2"
+              vectorEffect="non-scaling-stroke"
             />
             <path
               d={buildPathFrom(pathPoints)}
@@ -419,6 +694,7 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
               strokeWidth="3"
               strokeDasharray="8 4"
               opacity="0.6"
+              vectorEffect="non-scaling-stroke"
             />
           </svg>
 
@@ -432,13 +708,18 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             const isActive = activeJournal === session.number;
             const canOpen = !!session.journal_public;
 
+            // Mobile positions circles by percentage (x is 30/70 in viewBox units).
+            // Desktop uses pixel coords. Both use translate(-50%, -50%) centering on mobile.
+            const circlePos: React.CSSProperties = isMobile
+              ? { left: `${pt.x}%`, top: pt.y, transform: 'translate(-50%, -50%)' }
+              : { left: pt.x - circleR, top: pt.y - circleR };
+
             return (
               <div
                 key={session.id}
                 className="absolute group"
                 style={{
-                  left: pt.x - circleR,
-                  top: pt.y - circleR,
+                  ...circlePos,
                   cursor: canOpen ? 'pointer' : 'default',
                 }}
                 title={hasStarted ? (session.title || `Session ${session.number}`) : `Session ${session.number}`}
@@ -496,13 +777,15 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
           {/* Placeholder circles — future sessions, very light */}
           {placeholderPoints.map((pt, p) => {
             const sessionNumber = sessions.length + p + 1;
+            const phPos: React.CSSProperties = isMobile
+              ? { left: `${pt.x}%`, top: pt.y, transform: 'translate(-50%, -50%)' }
+              : { left: pt.x - circleR, top: pt.y - circleR };
             return (
               <div
                 key={`placeholder-circle-${p}`}
                 className="absolute"
                 style={{
-                  left: pt.x - circleR,
-                  top: pt.y - circleR,
+                  ...phPos,
                   width: circleR * 2,
                   height: circleR * 2,
                 }}

@@ -53,6 +53,7 @@ export default async function PlayerJourneyPage() {
         sessions={sessions}
         imageMap={imageMap}
         campaignBackground={campaign?.background ?? ''}
+        campaignAudioUrl={campaign?.audio_url ?? ''}
         readOnly
       />
     </div>

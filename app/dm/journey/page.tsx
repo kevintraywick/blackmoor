@@ -35,7 +35,7 @@ export default async function JourneyPage() {
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       <DmNav current="journey" />
-      <JourneyClient sessions={sessions} imageMap={imageMap} campaignBackground={campaign?.background ?? ''} />
+      <JourneyClient sessions={sessions} imageMap={imageMap} campaignBackground={campaign?.background ?? ''} campaignAudioUrl={campaign?.audio_url ?? ''} />
     </div>
   );
 }
