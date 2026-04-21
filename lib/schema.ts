@@ -287,6 +287,11 @@ async function _initSchema() {
     )
   `);
 
+  // Per-row image path — DM-uploadable card art for spells / magic items.
+  await pool.query(
+    `ALTER TABLE magic_catalog ADD COLUMN IF NOT EXISTS image_path TEXT NOT NULL DEFAULT ''`
+  ).catch(() => {});
+
   await pool.query(`
     CREATE INDEX IF NOT EXISTS magic_catalog_created_at_idx
     ON magic_catalog (created_at DESC)

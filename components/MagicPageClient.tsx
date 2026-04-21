@@ -7,12 +7,17 @@ import Link from 'next/link';
 type ResultType = 'spell' | 'scroll' | 'magic_item' | 'weapon' | 'armor' | 'tool' | 'other';
 
 interface SearchResult {
+  id: string;
   key: string;
   name: string;
   description: string;
   metadata: Record<string, unknown>;
   resultType: ResultType;
+  image_path: string;
 }
+
+// Per DESIGN.md, AI-driven UI affordances use this muted aged-ink blue.
+const AI_BLUE = '#4a8ab0';
 
 const TYPE_CONFIG: Record<ResultType, { label: string; color: string; sigil: string }> = {
   spell:      { label: 'Spell',  color: '#c9a84c', sigil: '\u2726' },
@@ -54,7 +59,14 @@ export default function MagicPageClient() {
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [showAllResults, setShowAllResults] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(-1);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiPromptLoading, setAiPromptLoading] = useState(false);
+  const [aiPromptCopied, setAiPromptCopied] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageDragOver, setImageDragOver] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const promptAbortRef = useRef<AbortController | null>(null);
 
   async function handleSearch() {
     const q = searchQuery.trim();
@@ -82,12 +94,14 @@ export default function MagicPageClient() {
       if (controller.signal.aborted) return;
 
       const results: SearchResult[] = (data.results ?? []).map(
-        (r: { key: string; name: string; description: string; metadata: Record<string, unknown>; category: string }) => ({
+        (r: { id: string; key: string; name: string; description: string; metadata: Record<string, unknown>; category: string; image_path: string }) => ({
+          id: r.id,
           key: r.key,
           name: r.name,
           description: r.description,
           metadata: r.metadata,
           resultType: r.category as ResultType,
+          image_path: r.image_path ?? '',
         })
       );
       setSearchResults(results);
@@ -151,6 +165,83 @@ export default function MagicPageClient() {
 
   // Reset keyboard highlight whenever the result set changes.
   useEffect(() => { setHighlightIdx(-1); }, [searchResults]);
+
+  // When a card is selected, auto-generate a Midjourney prompt from its
+  // description so the DM has it ready to paste — no extra click required.
+  useEffect(() => {
+    setAiPrompt('');
+    setImageError(null);
+    setAiPromptCopied(false);
+    if (!selectedResult) return;
+    promptAbortRef.current?.abort();
+    const controller = new AbortController();
+    promptAbortRef.current = controller;
+    setAiPromptLoading(true);
+    fetch('/api/items/image-prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: selectedResult.name,
+        item_type: TYPE_CONFIG[selectedResult.resultType]?.label ?? selectedResult.resultType,
+        description: selectedResult.description,
+      }),
+      signal: controller.signal,
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
+      .then(data => {
+        if (controller.signal.aborted) return;
+        if (typeof data.prompt === 'string') setAiPrompt(data.prompt);
+      })
+      .catch(err => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        // Silent — prompt remains empty, DM can write their own.
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setAiPromptLoading(false);
+      });
+  }, [selectedResult]);
+
+  async function uploadCardImage(file: File) {
+    if (!selectedResult) return;
+    if (!file.type.startsWith('image/')) {
+      setImageError('File must be an image');
+      return;
+    }
+    setImageUploading(true);
+    setImageError(null);
+    try {
+      const fd = new FormData();
+      fd.append('id', selectedResult.id);
+      fd.append('image', file);
+      const res = await fetch('/api/uploads/magic', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        setImageError(data.error || `Upload failed (${res.status})`);
+      } else if (data.path) {
+        // Update the selected card + matching row in the cached search list
+        // so the new art appears immediately without re-running the search.
+        setSelectedResult(prev => prev ? { ...prev, image_path: data.path } : prev);
+        setSearchResults(prev =>
+          prev.map(r => r.id === selectedResult.id ? { ...r, image_path: data.path } : r)
+        );
+      }
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setImageUploading(false);
+    }
+  }
+
+  async function copyPrompt() {
+    if (!aiPrompt) return;
+    try {
+      await navigator.clipboard.writeText(aiPrompt);
+      setAiPromptCopied(true);
+      setTimeout(() => setAiPromptCopied(false), 1500);
+    } catch {
+      // Clipboard blocked — silent.
+    }
+  }
 
   const selType = selectedResult ? TYPE_CONFIG[selectedResult.resultType] : null;
   const isSpellLike = selectedResult?.resultType === 'spell' || selectedResult?.resultType === 'scroll';
@@ -324,19 +415,80 @@ export default function MagicPageClient() {
           >
             ✕
           </button>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }} className="mb-3">
-            <span
-              className="text-[0.6rem] uppercase tracking-wider font-sans px-1.5 py-0.5 rounded"
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }} className="mb-3">
+            {/* Drop circle for card art */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setImageDragOver(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setImageDragOver(false); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setImageDragOver(false);
+                const file = e.dataTransfer.files[0];
+                if (file) uploadCardImage(file);
+              }}
+              title={selectedResult.image_path ? 'Drop a new image to replace' : 'Drop an image to add card art'}
               style={{
-                color: selType?.color ?? '#888',
-                border: `1px solid ${(selType?.color ?? '#888')}50`,
+                flexShrink: 0,
+                width: 80,
+                height: 80,
+                borderRadius: '50%',
+                overflow: 'hidden',
+                position: 'relative',
+                background: 'var(--color-surface-raised)',
+                border: imageDragOver
+                  ? `2px solid ${AI_BLUE}`
+                  : `2px dashed ${(selType?.color ?? '#888')}40`,
+                transform: imageDragOver ? 'scale(1.05)' : undefined,
+                transition: 'border 0.15s, transform 0.15s',
+                cursor: 'copy',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              {selType?.label ?? selectedResult.resultType}
-            </span>
-            <span className="font-serif text-xl font-semibold text-[var(--color-text)]">
-              {selectedResult.name}
-            </span>
+              {selectedResult.image_path ? (
+                <img
+                  src={selectedResult.image_path}
+                  alt={selectedResult.name}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                <span
+                  className="font-sans"
+                  style={{
+                    color: 'var(--color-text-muted)',
+                    fontSize: '0.55rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    textAlign: 'center',
+                    padding: 4,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {imageUploading ? 'Uploading…' : 'Drop\nart'}
+                </span>
+              )}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <span
+                  className="text-[0.6rem] uppercase tracking-wider font-sans px-1.5 py-0.5 rounded"
+                  style={{
+                    color: selType?.color ?? '#888',
+                    border: `1px solid ${(selType?.color ?? '#888')}50`,
+                  }}
+                >
+                  {selType?.label ?? selectedResult.resultType}
+                </span>
+                <span className="font-serif text-xl font-semibold text-[var(--color-text)]">
+                  {selectedResult.name}
+                </span>
+              </div>
+              {imageError && (
+                <div className="text-[0.7rem] mt-1" style={{ color: '#c07a8a' }}>
+                  {imageError}
+                </div>
+              )}
+            </div>
           </div>
           {/* Spell metadata */}
           {isSpellLike && 'level' in selectedResult.metadata && (
@@ -379,6 +531,57 @@ export default function MagicPageClient() {
           {/* Description */}
           <div className="font-serif text-[1.05rem] text-[var(--color-text-body)] leading-relaxed whitespace-pre-wrap">
             {selectedResult.description}
+          </div>
+          {/* AI image prompt — auto-generated; DM can edit and copy */}
+          <div style={{ marginTop: 18, position: 'relative' }}>
+            <div
+              className="text-[0.6rem] uppercase tracking-[0.15em] font-sans mb-1"
+              style={{ color: AI_BLUE }}
+            >
+              {aiPromptLoading ? 'Drafting prompt…' : 'AI image prompt'}
+            </div>
+            <textarea
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              rows={4}
+              spellCheck={false}
+              placeholder={aiPromptLoading ? 'The arcane scribes are composing…' : 'Drop a description here for an AI prompt'}
+              style={{
+                width: '100%',
+                background: `${AI_BLUE}1f`,
+                border: `1px solid ${AI_BLUE}66`,
+                borderRadius: 4,
+                padding: '10px 12px',
+                color: 'var(--color-text)',
+                fontFamily: 'var(--font-sans, ui-sans-serif, system-ui)',
+                fontSize: '0.78rem',
+                lineHeight: 1.45,
+                resize: 'vertical',
+                outline: 'none',
+              }}
+            />
+            <button
+              type="button"
+              onClick={copyPrompt}
+              disabled={!aiPrompt}
+              title="Copy prompt"
+              style={{
+                position: 'absolute',
+                top: 0, right: 0,
+                fontSize: '0.6rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                color: AI_BLUE,
+                background: 'transparent',
+                border: `1px solid ${AI_BLUE}66`,
+                borderRadius: 3,
+                padding: '2px 8px',
+                cursor: aiPrompt ? 'pointer' : 'not-allowed',
+                opacity: aiPrompt ? 1 : 0.4,
+              }}
+            >
+              {aiPromptCopied ? 'Copied' : 'Copy'}
+            </button>
           </div>
           {/* Create Card link */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
