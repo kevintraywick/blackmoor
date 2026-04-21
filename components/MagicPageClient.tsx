@@ -583,10 +583,18 @@ export default function MagicPageClient() {
               {aiPromptCopied ? 'Copied' : 'Copy'}
             </button>
           </div>
-          {/* Create Card link */}
+          {/* Create Card link — prefills the inventory form with type, title,
+              description, and the dropped image (if any) */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
             <Link
-              href="/dm/inventory"
+              href={`/dm/inventory?${new URLSearchParams({
+                type: ['spell', 'scroll', 'magic_item'].includes(selectedResult.resultType)
+                  ? selectedResult.resultType
+                  : 'magic_item',
+                title: selectedResult.name,
+                description: selectedResult.description,
+                ...(selectedResult.image_path ? { image: selectedResult.image_path } : {}),
+              }).toString()}`}
               className="text-[0.65rem] uppercase tracking-widest text-[var(--color-text-muted)] hover:text-[var(--color-gold)] transition-colors"
             >
               &rarr; Create Card
