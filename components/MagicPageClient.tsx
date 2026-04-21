@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 
 
@@ -53,6 +53,7 @@ export default function MagicPageClient() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [showAllResults, setShowAllResults] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(-1);
   const abortRef = useRef<AbortController | null>(null);
 
   async function handleSearch() {
@@ -113,8 +114,43 @@ export default function MagicPageClient() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') handleSearch();
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (visibleResults.length === 0) return;
+      setHighlightIdx(i => (i + 1) % visibleResults.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (visibleResults.length === 0) return;
+      setHighlightIdx(i => (i <= 0 ? visibleResults.length - 1 : i - 1));
+    } else if (e.key === 'Enter') {
+      if (highlightIdx >= 0 && visibleResults[highlightIdx]) {
+        e.preventDefault();
+        selectResult(visibleResults[highlightIdx]);
+      } else {
+        handleSearch();
+      }
+    } else if (e.key === 'Escape') {
+      setHighlightIdx(-1);
+    }
   }
+
+  // Auto-search after the user types ≥3 letters — debounced 250 ms so
+  // every keystroke doesn't hit the API. Below 3 chars, clear results.
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 3) {
+      abortRef.current?.abort();
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    const t = setTimeout(() => { handleSearch(); }, 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
+
+  // Reset keyboard highlight whenever the result set changes.
+  useEffect(() => { setHighlightIdx(-1); }, [searchResults]);
 
   const selType = selectedResult ? TYPE_CONFIG[selectedResult.resultType] : null;
   const isSpellLike = selectedResult?.resultType === 'spell' || selectedResult?.resultType === 'scroll';
@@ -212,13 +248,15 @@ export default function MagicPageClient() {
       )}
       {searchResults.length > 0 && (
         <div className="mb-4">
-          {visibleResults.map(r => (
+          {visibleResults.map((r, idx) => (
             <button
               key={`${r.resultType}-${r.key}`}
               onClick={() => selectResult(r)}
+              onMouseEnter={() => setHighlightIdx(idx)}
               className="w-full text-left px-3 py-2 font-serif text-sm text-[var(--color-text)]
-                         hover:bg-[var(--color-surface-raised)] border-b border-[var(--color-border)]
+                         border-b border-[var(--color-border)]
                          transition-colors cursor-pointer"
+              style={highlightIdx === idx ? { background: 'var(--color-surface-raised)' } : undefined}
             >
               {/* Type indicator */}
               <span
