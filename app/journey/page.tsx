@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { readdir, mkdir } from 'fs/promises';
+import { readdir, mkdir, stat } from 'fs/promises';
+import { join } from 'path';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import type { Session, Campaign } from '@/lib/types';
@@ -17,7 +18,11 @@ async function getJourneyImages(): Promise<Record<string, string>> {
     const images: Record<string, string> = {};
     for (const f of files) {
       const m = f.match(/^(s\d+_(circle|bg)|campaign_bg|journal_bg)\.\w+$/);
-      if (m) images[m[1]] = `/api/uploads/journey/${f}`;
+      if (!m) continue;
+      // Append file mtime as ?v= so the browser re-fetches when the DM
+      // replaces an image at the same filename.
+      const mtime = await stat(join(UPLOAD_DIR, f)).then(s => s.mtimeMs).catch(() => Date.now());
+      images[m[1]] = `/api/uploads/journey/${f}?v=${Math.floor(mtime)}`;
     }
     return images;
   } catch {
