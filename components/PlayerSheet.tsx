@@ -634,7 +634,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
               </div>
 
               {/* Col 3: HP + Gold */}
-              <div style={{ display: 'flex', gap: 8, marginLeft: 8 }}>
+              <div style={{ display: 'flex', gap: 8, marginLeft: 8, transform: 'translateX(50px)' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 20, height: 20 }}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                   <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 36, fontSize: '0.925rem' }} />
@@ -647,41 +647,41 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             </div>
 
             {/* ── RIGHT HALF: Notification icons ── */}
-            <div style={{ flex: '1 1 50%', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 20 }}>
+            <div style={{ flex: '1 1 50%', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 20, marginTop: -10, transform: 'translateX(-30px)' }}>
               {/* DM Message */}
               {unread > 0 ? (
-                <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }} aria-label={`${unread} unread message${unread > 1 ? 's' : ''}`}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+                <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 25, height: 29, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }} aria-label={`${unread} unread message${unread > 1 ? 's' : ''}`}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
               ) : messages.length > 0 ? (
-                <svg onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', opacity: 0.3 }} aria-label="View messages"><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+                <svg onClick={toggleMessages} className="cursor-pointer hover:opacity-70 transition-opacity" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 25, height: 29, transform: 'rotate(-15deg)', opacity: 0.3 }} aria-label="View messages"><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
               ) : null}
               {/* Boon */}
               {boonCount > 0 ? (
-                <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} aria-label={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
+                <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 25, height: 25, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} aria-label={`${boonCount} active boon${boonCount > 1 ? 's' : ''}`}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
               ) : null}
               {/* Poison */}
               {poisonCount > 0 ? (
-                <span onClick={togglePoisons} className="animate-pulse cursor-pointer" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
+                <span onClick={togglePoisons} className="animate-pulse cursor-pointer" style={{ fontSize: '1.35rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
               ) : null}
               {/* Sending */}
               {unreadSendings > 0 ? (
-                <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" title={`${unreadSendings} sending${unreadSendings > 1 ? 's' : ''}`} style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
+                <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" title={`${unreadSendings} sending${unreadSendings > 1 ? 's' : ''}`} style={{ fontSize: 20, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
               ) : sendings.length > 0 ? (
-                <span onClick={toggleSendings} className="cursor-pointer hover:opacity-70 transition-opacity select-none" title="View sendings" style={{ fontSize: 22, lineHeight: 1, opacity: 0.3 }}>👂</span>
+                <span onClick={toggleSendings} className="cursor-pointer hover:opacity-70 transition-opacity select-none" title="View sendings" style={{ fontSize: 20, lineHeight: 1, opacity: 0.3 }}>👂</span>
               ) : null}
               {/* Thieves' Cant — only for Rogues */}
               {values.class?.toLowerCase().includes('rogue') && (
                 unreadCants > 0 ? (
-                  <span onClick={toggleCants} className="animate-pulse cursor-pointer select-none" title={`${unreadCants} thieves' cant message${unreadCants > 1 ? 's' : ''}`} style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(220,200,120,0.7)) saturate(1.6) brightness(1.2)' }}>🗝️</span>
+                  <span onClick={toggleCants} className="animate-pulse cursor-pointer select-none" title={`${unreadCants} thieves' cant message${unreadCants > 1 ? 's' : ''}`} style={{ fontSize: 20, lineHeight: 1, filter: 'drop-shadow(0 0 7px rgba(255,225,140,0.75)) drop-shadow(0 0 3px rgba(255,210,90,0.65)) saturate(2.05) brightness(1.5)' }}>🗝️</span>
                 ) : (
-                  <span onClick={toggleCants} className="cursor-pointer hover:opacity-70 transition-opacity select-none" title="Thieves' Cant" style={{ fontSize: 22, lineHeight: 1, opacity: 0.35 }}>🗝️</span>
+                  <span onClick={toggleCants} className="cursor-pointer hover:opacity-70 transition-opacity select-none" title="Thieves' Cant" style={{ fontSize: 20, lineHeight: 1, opacity: 0.35 }}>🗝️</span>
                 )
               )}
               {/* Druid Sign — only for Druids */}
               {values.class?.toLowerCase().includes('druid') && (
                 unreadDruidSigns > 0 ? (
-                  <span onClick={toggleDruidSigns} className="animate-pulse cursor-pointer select-none" title={`${unreadDruidSigns} druid sign${unreadDruidSigns > 1 ? 's' : ''}`} style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(90,184,122,0.8)) saturate(1.4) brightness(1.1)' }}>🌿</span>
+                  <span onClick={toggleDruidSigns} className="animate-pulse cursor-pointer select-none" title={`${unreadDruidSigns} druid sign${unreadDruidSigns > 1 ? 's' : ''}`} style={{ fontSize: 20, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(90,184,122,0.8)) saturate(1.4) brightness(1.1)' }}>🌿</span>
                 ) : (
-                  <span onClick={toggleDruidSigns} className="cursor-pointer hover:opacity-70 transition-opacity select-none" title="Druid Sign" style={{ fontSize: 22, lineHeight: 1, opacity: 0.45 }}>🌿</span>
+                  <span onClick={toggleDruidSigns} className="cursor-pointer hover:opacity-70 transition-opacity select-none" title="Druid Sign" style={{ fontSize: 20, lineHeight: 1, opacity: 0.45 }}>🌿</span>
                 )
               )}
             </div>
@@ -712,7 +712,7 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
             </div>
 
             {/* HP + Gold */}
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center', transform: 'translateX(50px)' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <svg viewBox="0 0 24 24" fill="#b91c1c" style={{ width: 16, height: 16 }}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                 <input value={values.hp} placeholder="—" onChange={e => setField('hp', e.target.value)} className="bg-transparent border-none text-[var(--color-text)] text-center outline-none font-serif" style={{ width: 32, fontSize: '0.85rem' }} />
@@ -725,35 +725,35 @@ export function Sheet({ playerId, playerName, character, initial, img, data, unr
           </div>
 
           {/* Row 2: Notification icons */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 14, marginTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 14, marginTop: 8, transform: 'translateX(-30px)' }}>
             {unread > 0 ? (
-              <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+              <svg onClick={toggleMessages} className="animate-pulse cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 25, height: 29, transform: 'rotate(-15deg)', filter: 'drop-shadow(0 0 4px rgba(220,38,38,0.5))' }}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
             ) : messages.length > 0 ? (
-              <svg onClick={toggleMessages} className="cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 28, height: 32, transform: 'rotate(-15deg)', opacity: 0.3 }}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
+              <svg onClick={toggleMessages} className="cursor-pointer" viewBox="0 0 24 28" fill="#dc2626" style={{ width: 25, height: 29, transform: 'rotate(-15deg)', opacity: 0.3 }}><path d="M12 2L10 18h4L12 2z"/><path d="M8 16l4 10 4-10z"/></svg>
             ) : null}
             {boonCount > 0 ? (
-              <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 28, height: 28, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
+              <svg onClick={toggleBoons} className={`cursor-pointer ${!boonsSeen ? 'animate-pulse' : ''}`} viewBox="0 0 24 24" fill="#ffffff" style={{ width: 25, height: 25, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>
             ) : null}
             {poisonCount > 0 ? (
-              <span onClick={togglePoisons} className="animate-pulse cursor-pointer" style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
+              <span onClick={togglePoisons} className="animate-pulse cursor-pointer" style={{ fontSize: '1.35rem', lineHeight: 1 }} title="Poisoned!">🤢</span>
             ) : null}
             {unreadSendings > 0 ? (
-              <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
+              <span onClick={toggleSendings} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 20, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.7)) hue-rotate(300deg) saturate(3) brightness(1.2)' }}>👂</span>
             ) : sendings.length > 0 ? (
-              <span onClick={toggleSendings} className="cursor-pointer select-none" style={{ fontSize: 22, lineHeight: 1, opacity: 0.3 }}>👂</span>
+              <span onClick={toggleSendings} className="cursor-pointer select-none" style={{ fontSize: 20, lineHeight: 1, opacity: 0.3 }}>👂</span>
             ) : null}
             {values.class?.toLowerCase().includes('rogue') && (
               unreadCants > 0 ? (
-                <span onClick={toggleCants} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 20, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(220,200,120,0.7)) saturate(1.6) brightness(1.2)' }}>🗝️</span>
+                <span onClick={toggleCants} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 18, lineHeight: 1, filter: 'drop-shadow(0 0 7px rgba(255,225,140,0.75)) drop-shadow(0 0 3px rgba(255,210,90,0.65)) saturate(2.05) brightness(1.5)' }}>🗝️</span>
               ) : (
-                <span onClick={toggleCants} className="cursor-pointer select-none" style={{ fontSize: 20, lineHeight: 1, opacity: 0.35 }}>🗝️</span>
+                <span onClick={toggleCants} className="cursor-pointer select-none" style={{ fontSize: 18, lineHeight: 1, opacity: 0.35 }}>🗝️</span>
               )
             )}
             {values.class?.toLowerCase().includes('druid') && (
               unreadDruidSigns > 0 ? (
-                <span onClick={toggleDruidSigns} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 20, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(90,184,122,0.8)) saturate(1.4) brightness(1.1)' }}>🌿</span>
+                <span onClick={toggleDruidSigns} className="animate-pulse cursor-pointer select-none" style={{ fontSize: 18, lineHeight: 1, filter: 'drop-shadow(0 0 4px rgba(90,184,122,0.8)) saturate(1.4) brightness(1.1)' }}>🌿</span>
               ) : (
-                <span onClick={toggleDruidSigns} className="cursor-pointer select-none" style={{ fontSize: 20, lineHeight: 1, opacity: 0.45 }}>🌿</span>
+                <span onClick={toggleDruidSigns} className="cursor-pointer select-none" style={{ fontSize: 18, lineHeight: 1, opacity: 0.45 }}>🌿</span>
               )
             )}
           </div>
