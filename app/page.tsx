@@ -18,14 +18,18 @@ export default async function HomePage() {
     ),
   ]);
   const onlinePlayers = presenceRows.map(r => r.player_id);
-  const splashSrc = campaignRows[0]?.home_splash_path || '/images/splash/tears.png';
+  const splashSrc = campaignRows[0]?.home_splash_path || '/images/splash/tears_with_text.png';
+  // Mobile uses a separately-cropped variant — text positioning differs at
+  // narrow aspect ratios. Not driven off the DB column; if the DM uploads a
+  // custom splash, both layouts use it.
+  const mobileSplashSrc = campaignRows[0]?.home_splash_path || '/images/splash/tears_with_text_mobile.png';
   // next/image doesn't play well with our /api/uploads/* serve routes
   // (no intrinsic dimensions, no optimization pipeline). Fall back to a
   // plain <img> for uploaded paths, keep <Image> for the committed default.
   const isUploaded = splashSrc.startsWith('/api/');
 
   return (
-    <div className="min-h-screen bg-[#2a4a40] relative">
+    <div className="min-h-screen relative" style={{ backgroundColor: '#000' }}>
       {/* Splash art fills the whole viewport, sits behind the nav */}
       <div className="absolute inset-0 overflow-hidden">
         {isUploaded ? (
@@ -34,12 +38,12 @@ export default async function HomePage() {
             <img
               src={splashSrc}
               alt="Shadow of the Wolf"
-              className="hidden sm:block absolute inset-0 w-full h-full object-contain object-top"
-              style={{ transform: 'scale(1.35) translateY(86px)', transformOrigin: 'top center' }}
+              className="hidden sm:block absolute inset-0 w-full h-full object-contain"
+              style={{ objectPosition: 'left top', transform: 'scale(1.2) translateY(61px)', transformOrigin: 'top left' }}
             />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={splashSrc}
+              src={mobileSplashSrc}
               alt="Shadow of the Wolf"
               className="sm:hidden absolute inset-0 w-full h-full object-cover object-top"
               style={{ transform: 'translateY(190px)' }}
@@ -52,13 +56,13 @@ export default async function HomePage() {
               src={splashSrc}
               alt="Shadow of the Wolf"
               fill
-              className="hidden sm:block object-contain object-top"
+              className="hidden sm:block object-contain"
               priority
-              style={{ transform: 'scale(1.35) translateY(86px)', transformOrigin: 'top center' }}
+              style={{ objectPosition: 'left top', transform: 'scale(1.2) translateY(61px)', transformOrigin: 'top left' }}
             />
-            {/* Mobile splash — no scale, cover the screen */}
+            {/* Mobile splash — uses the mobile-cropped variant */}
             <Image
-              src={splashSrc}
+              src={mobileSplashSrc}
               alt="Shadow of the Wolf"
               fill
               className="sm:hidden object-cover object-top"
