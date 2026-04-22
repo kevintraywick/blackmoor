@@ -198,6 +198,35 @@
   section {
     margin-bottom: 80px;
     scroll-margin-top: 24px;
+    position: relative;
+  }
+
+  /* Mobile-only "back to TOC" arrow injected at bottom-right of every section */
+  .to-toc { display: none; }
+  @media (max-width: 640px) {
+    .to-toc {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      bottom: -42px;
+      right: 0;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--line-2);
+      border-radius: 50%;
+      color: var(--ink-2);
+      background: var(--bg-2);
+      font-size: 18px;
+      line-height: 1;
+      text-decoration: none;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .to-toc:hover, .to-toc:focus {
+      color: var(--accent);
+      border-color: var(--accent);
+      text-decoration: none;
+    }
   }
 
   .section-head {
@@ -602,8 +631,24 @@
   @media (max-width: 960px) {
     body::before { right: 0; width: 55vw; opacity: 0.45; }
   }
+  /* Mobile: image moves to top-of-page hero behind the TOC, scrolls away with content. */
   @media (max-width: 640px) {
-    body::before { display: none; }
+    body { position: relative; }
+    body::before {
+      position: absolute;
+      top: 0;
+      bottom: auto;
+      left: 0;
+      right: 0;
+      width: 100%;
+      max-width: none;
+      height: 100vh;
+      background-size: cover;
+      background-position: 75% top;
+      opacity: 0.55;
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
+    }
   }
 
   /* ===== Responsive ===== */
@@ -628,7 +673,7 @@
 <div class="layout">
 
   <!-- ========== TOC ========== -->
-  <aside class="toc">
+  <aside class="toc" id="top">
     <h2>Contents</h2>
     <ol>
       <li><a href="#quickstart">Quick start</a></li>
@@ -1266,6 +1311,18 @@
 
   </main>
 </div>
+
+<script>
+  // Mobile-only "back to TOC" arrow on each section. Hidden via CSS on desktop.
+  document.querySelectorAll('main > section').forEach((s) => {
+    const a = document.createElement('a');
+    a.href = '#top';
+    a.className = 'to-toc';
+    a.setAttribute('aria-label', 'Back to contents');
+    a.textContent = '↑';
+    s.appendChild(a);
+  });
+</script>
 
 </body>
 </html>
