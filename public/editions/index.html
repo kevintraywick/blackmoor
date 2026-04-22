@@ -157,7 +157,7 @@
   }
   header.doc-header h1 {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(44px, 7vw, 72px);
+    font-size: clamp(26px, 4vw, 42px);
     font-weight: 700;
     letter-spacing: -0.035em;
     margin: 0 0 20px 0;
@@ -215,7 +215,7 @@
   }
   section h2 {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 36px;
+    font-size: 26px;
     font-weight: 700;
     letter-spacing: -0.025em;
     margin: 0;
@@ -230,10 +230,10 @@
 
   h3 {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 600;
     letter-spacing: -0.01em;
-    margin: 36px 0 14px 0;
+    margin: 32px 0 12px 0;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -241,16 +241,16 @@
   h3::before {
     content: "";
     width: 4px;
-    height: 20px;
+    height: 17px;
     background: var(--gradient);
     border-radius: 2px;
   }
 
   h4 {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    margin: 20px 0 8px 0;
+    margin: 18px 0 6px 0;
     letter-spacing: -0.005em;
   }
 
@@ -569,40 +569,41 @@
   }
   footer p { margin: 4px 0; }
 
-  /* ===== Backdrop images ===== */
-  header.doc-header,
-  section#combat {
-    position: relative;
-    isolation: isolate;
-  }
-  .backdrop {
-    position: absolute;
-    top: -40px;
-    right: -180px;
-    width: auto;
-    height: auto;
-    max-height: 760px;
-    max-width: 780px;
-    opacity: 0.55;
+  /* ===== Page-fixed character backdrop =====
+     Single atmospheric image anchored to the right, pulled inward so the
+     characters are clearly visible. Sits behind body copy intentionally. */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 6vw;
+    width: 46vw;
+    max-width: 760px;
     pointer-events: none;
     user-select: none;
-    z-index: -1;
-    filter: saturate(0.85) contrast(1.05);
-    -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 40%, rgba(0,0,0,0.85) 65%, rgba(0,0,0,0) 100%);
-    mask-image: linear-gradient(to left, rgba(0,0,0,1) 40%, rgba(0,0,0,0.85) 65%, rgba(0,0,0,0) 100%);
+    z-index: 0;
+    background-image: url('/editions/elf_gnome.png');
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: right center;
+    opacity: 0.82;
+    filter: saturate(0.9) contrast(1.05);
+    -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 100%);
   }
-  .backdrop-combat {
-    top: -20px;
-    right: -200px;
-    max-height: 680px;
-    opacity: 0.5;
+  /* Keep page content above the backdrop */
+  .layout { position: relative; z-index: 1; }
+  footer { position: relative; z-index: 1; }
+
+  @media (max-width: 1400px) {
+    body::before { right: 2vw; width: 48vw; opacity: 0.68; }
   }
-  @media (max-width: 1100px) {
-    .backdrop { right: -280px; opacity: 0.35; }
-    .backdrop-combat { right: -300px; opacity: 0.3; }
+  @media (max-width: 960px) {
+    body::before { right: 0; width: 55vw; opacity: 0.45; }
   }
-  @media (max-width: 760px) {
-    .backdrop { display: none; }
+  @media (max-width: 640px) {
+    body::before { display: none; }
   }
 
   /* ===== Responsive ===== */
@@ -614,10 +615,10 @@
     .exh-track { grid-template-columns: repeat(3, 1fr); }
   }
   @media (max-width: 560px) {
-    header.doc-header h1 { font-size: 40px; }
+    header.doc-header h1 { font-size: 32px; }
     aside.toc ol { grid-template-columns: 1fr; }
     .layout { padding: 24px 18px; }
-    section h2 { font-size: 28px; }
+    section h2 { font-size: 22px; }
     .exh-track { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
@@ -653,8 +654,7 @@
   <main>
 
     <header class="doc-header">
-      <img class="backdrop backdrop-elf" src="/editions/elf_gnome.png" alt="" aria-hidden="true">
-      <div class="eyebrow">Reference · Kevin's Greyhawk Campaign</div>
+      <div class="eyebrow">Reference · Shadow of the Wolf</div>
       <h1>D&amp;D 5e <span class="arrow">→</span> 5.5e</h1>
       <p class="sub">A concise guide to the 2024 rules for players transitioning from 5e — what's new, what's changed, and what still works exactly like you remember.</p>
       <div class="meta">
@@ -748,7 +748,6 @@
 
     <!-- ========== 03 COMBAT ========== -->
     <section id="combat">
-      <img class="backdrop backdrop-combat" src="/editions/goliath_dwarf.png" alt="" aria-hidden="true">
       <div class="section-head"><span class="num">03</span><h2>Combat &amp; actions</h2></div>
       <p class="section-lede">New named actions and an updated action economy.</p>
 
