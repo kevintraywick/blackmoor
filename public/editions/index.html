@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>D&D 5e → 5.5e Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Dark theme — bg matches image blacks so backdrops blend seamlessly */
+    --bg: #000000;
+    --bg-2: #0d0b09;
+    --surface: #15110e;
+    --ink: #f7f1e6;
+    --ink-2: #c9bdae;
+    --ink-3: #8a7f72;
+    --line: #262019;
+    --line-2: #3a3128;
+
+    --accent: #ff7a3d;              /* warmer coral — pops on black */
+    --accent-2: #a78bfa;             /* soft violet */
+    --accent-3: #34d399;             /* emerald */
+    --accent-4: #fbbf24;             /* amber */
+    --accent-5: #f472b6;             /* hot pink */
+    --gradient: linear-gradient(135deg, #ff7a3d 0%, #f472b6 50%, #a78bfa 100%);
+    --gradient-soft: linear-gradient(135deg, rgba(255,122,61,0.12) 0%, rgba(244,114,182,0.12) 50%, rgba(167,139,250,0.12) 100%);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(circle at 15% 5%, rgba(255,122,61,0.06) 0%, transparent 45%),
+      radial-gradient(circle at 85% 20%, rgba(167,139,250,0.05) 0%, transparent 45%);
+    background-attachment: fixed;
+  }
+
+  ::selection { background: var(--accent); color: #fff; }
+
+  a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  code, .mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.88em;
+  }
+
+  /* ===== Layout ===== */
+  .layout {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 40px 32px;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 64px;
+  }
+
+  aside.toc {
+    position: sticky;
+    top: 40px;
+    align-self: start;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    font-size: 13px;
+  }
+  aside.toc h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-3);
+    margin: 0 0 14px 0;
+    font-weight: 600;
+  }
+  aside.toc ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: toc;
+  }
+  aside.toc li {
+    margin: 0;
+    counter-increment: toc;
+  }
+  aside.toc a {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 7px 10px;
+    color: var(--ink-2);
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    font-weight: 400;
+  }
+  aside.toc a::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  aside.toc a:hover {
+    color: var(--ink);
+    background: var(--bg-2);
+    text-decoration: none;
+  }
+
+  main { min-width: 0; max-width: 840px; }
+
+  /* ===== Header ===== */
+  header.doc-header {
+    margin-bottom: 72px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--line);
+    position: relative;
+  }
+  header.doc-header::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 120px;
+    height: 3px;
+    background: var(--gradient);
+    border-radius: 2px;
+  }
+
+  header.doc-header .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    margin-bottom: 16px;
+  }
+  header.doc-header .eyebrow::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(255,91,46,0.2);
+  }
+  header.doc-header h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(44px, 7vw, 72px);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    margin: 0 0 20px 0;
+    line-height: 0.95;
+  }
+  header.doc-header h1 .arrow {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header.doc-header .sub {
+    font-size: 19px;
+    color: var(--ink-2);
+    margin: 0 0 28px 0;
+    max-width: 600px;
+    line-height: 1.45;
+  }
+  header.doc-header .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  header.doc-header .meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  header.doc-header .meta strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* ===== Sections ===== */
+  section {
+    margin-bottom: 80px;
+    scroll-margin-top: 24px;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .section-head .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+  section h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    margin: 0;
+    line-height: 1.1;
+  }
+  section .section-lede {
+    font-size: 17px;
+    color: var(--ink-2);
+    margin: 0 0 32px 0;
+    max-width: 620px;
+  }
+
+  h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 36px 0 14px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h3::before {
+    content: "";
+    width: 4px;
+    height: 20px;
+    background: var(--gradient);
+    border-radius: 2px;
+  }
+
+  h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 20px 0 8px 0;
+    letter-spacing: -0.005em;
+  }
+
+  p { margin: 0 0 12px 0; }
+  ul, ol { margin: 0 0 14px 0; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  strong { font-weight: 600; color: var(--ink); }
+
+  /* ===== Tags ===== */
+  .tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    line-height: 1.5;
+    margin-left: 4px;
+  }
+  .tag.new      { color: #6ee7b7; background: #064e3b; }
+  .tag.changed  { color: #c4b5fd; background: #3b1d82; }
+  .tag.buffed   { color: #86efac; background: #14532d; }
+  .tag.nerfed   { color: #fca5a5; background: #7f1d1d; }
+  .tag.same     { color: #d6d3d1; background: #44403c; }
+  .tag.major    { color: #1a0f08; background: var(--accent); }
+
+  /* ===== Cards ===== */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin: 14px 0;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .card:hover { border-color: var(--line-2); }
+  .card p:last-child { margin-bottom: 0; }
+  .card h4:first-child { margin-top: 0; }
+
+  .card.accent {
+    background: var(--gradient-soft);
+    border: 1px solid transparent;
+    border-left: 3px solid var(--accent);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card.glow {
+    background: var(--surface);
+    box-shadow: 0 0 0 1px var(--line), 0 10px 30px -10px rgba(255,91,46,0.15);
+    border: none;
+  }
+
+  /* ===== Grids ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+  }
+
+  /* ===== Class grid — zippy ===== */
+  .class-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+  }
+  .class-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+  .class-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--class-color, var(--accent));
+  }
+  .class-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--line-2);
+    box-shadow: 0 8px 24px -8px rgba(26,22,20,0.12);
+  }
+  .class-card h3 {
+    font-size: 17px;
+    margin: 0 0 14px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .class-card h3::before { display: none; }
+  .class-card h3 .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--class-color, var(--accent));
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .class-card h4 {
+    font-size: 12px;
+    margin: 14px 0 4px 0;
+    color: var(--ink-2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .class-card ul { margin: 0; padding-left: 18px; font-size: 13.5px; }
+  .class-card li { color: var(--ink-2); }
+
+  .c-barb  { --class-color: #dc2626; }
+  .c-bard  { --class-color: #d97706; }
+  .c-cler  { --class-color: #eab308; }
+  .c-drui  { --class-color: #16a34a; }
+  .c-figh  { --class-color: #64748b; }
+  .c-monk  { --class-color: #ea580c; }
+  .c-pala  { --class-color: #ca8a04; }
+  .c-rang  { --class-color: #15803d; }
+  .c-rogu  { --class-color: #374151; }
+  .c-sorc  { --class-color: #e11d48; }
+  .c-warl  { --class-color: #9333ea; }
+  .c-wiza  { --class-color: #2563eb; }
+
+  /* ===== Tables ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    font-size: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-3);
+    background: var(--bg-2);
+  }
+  tr:last-child td { border-bottom: none; }
+  td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink-2); }
+
+  /* ===== Mastery chips ===== */
+  .mastery-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 10px;
+    margin: 14px 0;
+  }
+  .mastery-item {
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    position: relative;
+    transition: all 0.15s ease;
+  }
+  .mastery-item:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .mastery-item strong {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .mastery-item strong::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: var(--gradient);
+    border-radius: 50%;
+  }
+  .mastery-item p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  .mastery-item .weapons {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--ink-3);
+    margin-top: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ===== FAQ ===== */
+  .faq details {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin: 10px 0;
+    transition: border-color 0.15s ease;
+  }
+  .faq details:hover { border-color: var(--line-2); }
+  .faq details[open] { border-color: var(--accent); }
+  .faq summary {
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    outline: none;
+    list-style: none;
+    padding-right: 28px;
+    position: relative;
+    color: var(--ink);
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after {
+    content: "→";
+    position: absolute;
+    right: 0;
+    top: 0;
+    color: var(--accent);
+    font-size: 16px;
+    transition: transform 0.2s ease;
+    font-weight: 500;
+  }
+  .faq details[open] summary::after { transform: rotate(90deg); }
+  .faq details p {
+    margin: 12px 0 0 0;
+    color: var(--ink-2);
+    font-size: 14px;
+  }
+
+  /* ===== Checklist ===== */
+  .checklist {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0 0;
+  }
+  .checklist li {
+    padding: 4px 0 4px 24px;
+    position: relative;
+    font-size: 13.5px;
+    color: var(--ink-2);
+  }
+  .checklist li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--line-2);
+    border-radius: 4px;
+  }
+
+  /* ===== Exhaustion Track ===== */
+  .exh-track {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    margin: 16px 0;
+  }
+  .exh-level {
+    padding: 14px 10px;
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .exh-level .num {
+    display: block;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .exh-level .penalty {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .exh-level.death .num,
+  .exh-level.death .penalty { color: #fff; }
+  .exh-level.death {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
+  /* ===== Footer ===== */
+  footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  footer p { margin: 4px 0; }
+
+  /* ===== Backdrop images ===== */
+  header.doc-header,
+  section#combat {
+    position: relative;
+    isolation: isolate;
+  }
+  .backdrop {
+    position: absolute;
+    top: -40px;
+    right: -180px;
+    width: auto;
+    height: auto;
+    max-height: 760px;
+    max-width: 780px;
+    opacity: 0.55;
+    pointer-events: none;
+    user-select: none;
+    z-index: -1;
+    filter: saturate(0.85) contrast(1.05);
+    -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 40%, rgba(0,0,0,0.85) 65%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to left, rgba(0,0,0,1) 40%, rgba(0,0,0,0.85) 65%, rgba(0,0,0,0) 100%);
+  }
+  .backdrop-combat {
+    top: -20px;
+    right: -200px;
+    max-height: 680px;
+    opacity: 0.5;
+  }
+  @media (max-width: 1100px) {
+    .backdrop { right: -280px; opacity: 0.35; }
+    .backdrop-combat { right: -300px; opacity: 0.3; }
+  }
+  @media (max-width: 760px) {
+    .backdrop { display: none; }
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 960px) {
+    .layout { grid-template-columns: 1fr; gap: 32px; }
+    aside.toc { position: static; max-height: none; }
+    aside.toc ol { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; }
+    main { max-width: none; }
+    .exh-track { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 560px) {
+    header.doc-header h1 { font-size: 40px; }
+    aside.toc ol { grid-template-columns: 1fr; }
+    .layout { padding: 24px 18px; }
+    section h2 { font-size: 28px; }
+    .exh-track { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ========== TOC ========== -->
+  <aside class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#quickstart">Quick start</a></li>
+      <li><a href="#character">Character creation</a></li>
+      <li><a href="#combat">Combat &amp; actions</a></li>
+      <li><a href="#classes">Class changes</a></li>
+      <li><a href="#multiclass">Multiclassing</a></li>
+      <li><a href="#mastery">Weapon mastery</a></li>
+      <li><a href="#spells">Spell changes</a></li>
+      <li><a href="#conditions">Surprise &amp; conditions</a></li>
+      <li><a href="#mechanics">Rolling &amp; mechanics</a></li>
+      <li><a href="#equipment">Equipment</a></li>
+      <li><a href="#exploration">Exploration &amp; rest</a></li>
+      <li><a href="#social">Social interaction</a></li>
+      <li><a href="#conversion">Conversion guide</a></li>
+      <li><a href="#faq">FAQ</a></li>
+      <li><a href="#dm">DM notes</a></li>
+      <li><a href="#houserules">House rules</a></li>
+    </ol>
+  </aside>
+
+  <!-- ========== MAIN ========== -->
+  <main>
+
+    <header class="doc-header">
+      <img class="backdrop backdrop-elf" src="/editions/elf_gnome.png" alt="" aria-hidden="true">
+      <div class="eyebrow">Reference · Kevin's Greyhawk Campaign</div>
+      <h1>D&amp;D 5e <span class="arrow">→</span> 5.5e</h1>
+      <p class="sub">A concise guide to the 2024 rules for players transitioning from 5e — what's new, what's changed, and what still works exactly like you remember.</p>
+      <div class="meta">
+        <span><strong>Updated</strong> Apr 2026</span>
+        <span><strong>Version</strong> 1.0</span>
+        <span><strong>Source</strong> 2024 PHB · DMG · MM</span>
+      </div>
+    </header>
+
+    <!-- ========== 01 QUICK START ========== -->
+    <section id="quickstart">
+      <div class="section-head"><span class="num">01</span><h2>Quick start</h2></div>
+      <p class="section-lede">The short version: what to know before session 1.</p>
+
+      <div class="card accent">
+        <h4>Can I use my 5e character?</h4>
+        <p>Yes, with minor adjustments:</p>
+        <ul>
+          <li>Add <strong>1 free feat</strong> to match 5.5e power level</li>
+          <li>Use <strong>5.5e rules</strong> for Surprise, Inspiration/Hero Points, and new actions</li>
+          <li>Review the class section for changed features</li>
+        </ul>
+      </div>
+
+      <h3>Biggest changes at a glance</h3>
+      <div class="grid">
+        <div class="card"><h4>No racial ability bonuses</h4><p>Choose where your +2/+1 (or +1/+1/+1) go — no fixed racial stats.</p></div>
+        <div class="card"><h4>Level 1 feat for everyone</h4><p>Every background grants an Origin Feat at creation.</p></div>
+        <div class="card"><h4>Weapon Mastery</h4><p>Weapons have tactical properties — Cleave, Topple, Vex, etc.</p></div>
+        <div class="card"><h4>Widespread rebalancing</h4><p>Small improvements across every class, spell, and subsystem.</p></div>
+      </div>
+    </section>
+
+    <!-- ========== 02 CHARACTER ========== -->
+    <section id="character">
+      <div class="section-head"><span class="num">02</span><h2>Character creation</h2></div>
+      <p class="section-lede">Species, backgrounds, and feats — all reworked.</p>
+
+      <h3>Species <span class="tag major">Major</span></h3>
+
+      <h4>Ability score increases</h4>
+      <ul>
+        <li><strong>5e:</strong> Fixed by race (e.g., Dwarf = +2 CON, +2 WIS)</li>
+        <li><strong>5.5e:</strong> Choose +2/+1 or +1/+1/+1 to any abilities</li>
+      </ul>
+
+      <h4>Languages</h4>
+      <ul>
+        <li>Pick any 2 languages besides Common (no restrictions)</li>
+        <li>Total languages reduced from 16 → 10</li>
+      </ul>
+
+      <div class="grid">
+        <div class="card">
+          <h4>Added to core PHB</h4>
+          <ul><li>Aasimar</li><li>Goliath</li><li>Orc (as its own species)</li></ul>
+        </div>
+        <div class="card">
+          <h4>Removed</h4>
+          <ul><li>Half-Elf → play Elf or Human</li><li>Half-Orc → play Orc or Human</li></ul>
+        </div>
+      </div>
+
+      <h3>Backgrounds <span class="tag buffed">Buffed</span></h3>
+      <p>Every background now grants an <strong>Origin Feat</strong> at level 1 — in addition to flavor, skills, and features.</p>
+
+      <table>
+        <thead><tr><th>Origin feat</th><th>Benefit</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Alert</strong></td><td>+5 initiative; can't be surprised</td></tr>
+          <tr><td><strong>Lucky</strong></td><td>3 luck points per long rest for rerolls</td></tr>
+          <tr><td><strong>Magic Initiate</strong></td><td>Cantrips + 1st-level spell from another class</td></tr>
+          <tr><td><strong>Skilled</strong></td><td>3 skill proficiencies</td></tr>
+          <tr><td><strong>Tough</strong></td><td>+2 HP per level (retroactive)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Feats <span class="tag changed">Rebalanced</span></h3>
+      <table>
+        <thead><tr><th>Feat</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>Great Weapon Master</td><td>No longer −5/+10 <span class="tag nerfed">Nerfed</span></td></tr>
+          <tr><td>Sharpshooter</td><td>No longer −5/+10 <span class="tag nerfed">Nerfed</span></td></tr>
+          <tr><td>Lucky</td><td>Works slightly differently <span class="tag changed">Changed</span></td></tr>
+          <tr><td>Crossbow Expert</td><td>Simplified mechanics <span class="tag changed">Changed</span></td></tr>
+          <tr><td>Polearm Master</td><td>Minor tweaks <span class="tag same">Same-ish</span></td></tr>
+        </tbody>
+      </table>
+      <p class="section-lede" style="margin-top:8px;">ASI vs. feat is unchanged at level-up — but remember you already got one free at level 1.</p>
+    </section>
+
+    <!-- ========== 03 COMBAT ========== -->
+    <section id="combat">
+      <img class="backdrop backdrop-combat" src="/editions/goliath_dwarf.png" alt="" aria-hidden="true">
+      <div class="section-head"><span class="num">03</span><h2>Combat &amp; actions</h2></div>
+      <p class="section-lede">New named actions and an updated action economy.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h4>Study <span class="tag new">New</span></h4>
+          <p>INT check to learn about a creature/object. Uses Arcana, History, Investigation, Nature, or Religion. Similar to Pathfinder's Recall Knowledge.</p>
+        </div>
+        <div class="card">
+          <h4>Influence <span class="tag changed">Revised</span></h4>
+          <p>Formalized social action using Persuasion, Deception, Intimidation, or Performance.</p>
+        </div>
+        <div class="card">
+          <h4>Magic action <span class="tag new">Terminology</span></h4>
+          <p>Replaces "cast a spell." Includes magic items and magical abilities. <strong>Action Surge can no longer be used for Magic actions.</strong></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 04 CLASSES ========== -->
+    <section id="classes">
+      <div class="section-head"><span class="num">04</span><h2>Class changes</h2></div>
+      <p class="section-lede">What's different for each class at a glance.</p>
+
+      <div class="class-grid">
+
+        <div class="class-card c-barb">
+          <h3><span class="dot"></span>Barbarian</h3>
+          <h4>Primal Knowledge <span class="tag new">L3</span></h4>
+          <ul><li>Expertise in Animal Handling, Athletics, Intimidation, Nature, Perception, or Survival</li></ul>
+          <h4>Weapon Mastery</h4>
+          <ul><li>2 at L1, more at L4 &amp; L10</li></ul>
+          <h4>Brutal Strike <span class="tag changed">Replaces Brutal Crit</span></h4>
+          <ul>
+            <li>Forceful Blow: +1d10 force + push 15 ft</li>
+            <li>Hamstring Blow: +2d6 + speed 0</li>
+          </ul>
+        </div>
+
+        <div class="class-card c-bard">
+          <h3><span class="dot"></span>Bard</h3>
+          <h4>Bardic Inspiration <span class="tag buffed">Buffed</span></h4>
+          <ul>
+            <li>d6 → d12 (same dice)</li>
+            <li>Now adds to damage rolls too</li>
+            <li>Uses = Proficiency Bonus</li>
+          </ul>
+          <h4>Magical Secrets <span class="tag changed">Changed</span></h4>
+          <ul><li>New progression, more structured</li></ul>
+        </div>
+
+        <div class="class-card c-cler">
+          <h3><span class="dot"></span>Cleric</h3>
+          <h4>Divine Order <span class="tag new">L1</span></h4>
+          <ul>
+            <li>Protector: heavy armor + martial weapons</li>
+            <li>Thaumaturge: cantrip + WIS for Arcana</li>
+          </ul>
+          <h4>Channel Divinity <span class="tag buffed">Buffed</span></h4>
+          <ul><li>Uses = Proficiency Bonus per rest</li></ul>
+        </div>
+
+        <div class="class-card c-drui">
+          <h3><span class="dot"></span>Druid</h3>
+          <h4>Wild Shape <span class="tag buffed">Improved</span></h4>
+          <ul><li>Smoother CR progression, more options</li></ul>
+          <h4>Wild Companion <span class="tag changed">Now core</span></h4>
+          <ul><li>From Tasha's to core at L2</li></ul>
+          <h4>Spells</h4>
+          <ul><li>Conjure Animals &amp; Woodland Beings reworked</li></ul>
+        </div>
+
+        <div class="class-card c-figh">
+          <h3><span class="dot"></span>Fighter</h3>
+          <h4>Second Wind <span class="tag buffed">Buffed</span></h4>
+          <ul><li>2 charges/day, 1 back per short rest</li></ul>
+          <h4>Action Surge <span class="tag nerfed">Nerfed</span></h4>
+          <ul><li>Can't be used for Magic actions</li></ul>
+          <h4>Weapon Mastery <span class="tag buffed">Signature</span></h4>
+          <ul><li>3 at L1, 4 at L4, 5 at L10</li></ul>
+          <h4>Tactical Mind <span class="tag new">L2</span></h4>
+          <ul><li>Spend Second Wind → +d10 to failed check</li></ul>
+          <h4>Master of Armaments <span class="tag new">L9</span></h4>
+          <ul><li>+PB to damage with mastered weapons</li></ul>
+        </div>
+
+        <div class="class-card c-monk">
+          <h3><span class="dot"></span>Monk</h3>
+          <h4>Martial Arts Die <span class="tag same">Same</span></h4>
+          <ul><li>d4 → d12 progression</li></ul>
+          <h4>Ki / Flurry <span class="tag same">Same</span></h4>
+          <h4>Empty Body <span class="tag changed">Changed</span></h4>
+          <ul><li>Cost/duration tweaked</li></ul>
+        </div>
+
+        <div class="class-card c-pala">
+          <h3><span class="dot"></span>Paladin</h3>
+          <h4>Lay on Hands <span class="tag same">Same</span></h4>
+          <h4>Divine Smite <span class="tag major">Major</span></h4>
+          <ul>
+            <li>Part of attack, not bonus action</li>
+            <li>Turns hit into crit for smite damage</li>
+            <li>2d8 + 1d8/slot level (max 5d8)</li>
+          </ul>
+          <h4>Weapon Mastery</h4>
+          <ul><li>2 at L1</li></ul>
+          <h4>Channel Divinity</h4>
+          <ul><li>Uses = PB per rest</li></ul>
+        </div>
+
+        <div class="class-card c-rang">
+          <h3><span class="dot"></span>Ranger</h3>
+          <h4>Favored Enemy <span class="tag nerfed">Removed</span></h4>
+          <h4>Natural Explorer <span class="tag nerfed">Removed</span></h4>
+          <h4>Hunter's Mark <span class="tag major">Major</span></h4>
+          <ul>
+            <li>No concentration required</li>
+            <li>Bonus action, 1d6, 1 hour</li>
+          </ul>
+          <h4>Deft Explorer <span class="tag new">New</span></h4>
+          <ul><li>Replaces Natural Explorer, includes expertise</li></ul>
+          <h4>Spellcasting <span class="tag buffed">Improved</span></h4>
+          <ul><li>Prepare = WIS + half Ranger level</li></ul>
+        </div>
+
+        <div class="class-card c-rogu">
+          <h3><span class="dot"></span>Rogue</h3>
+          <h4>Cunning Action <span class="tag same">Same</span></h4>
+          <h4>Sneak Attack <span class="tag changed">Clarified</span></h4>
+          <ul><li>Same damage, conditions clarified</li></ul>
+          <h4>Weapon Mastery</h4>
+          <ul><li>2 at L1</li></ul>
+          <h4>Reliable Talent · Evasion <span class="tag same">Same</span></h4>
+        </div>
+
+        <div class="class-card c-sorc">
+          <h3><span class="dot"></span>Sorcerer</h3>
+          <h4>Sorcery Points <span class="tag same">Same</span></h4>
+          <h4>Metamagic <span class="tag buffed">Expanded</span></h4>
+          <ul>
+            <li>Learn 2 at L2 (earlier than 5e)</li>
+            <li>New options</li>
+          </ul>
+          <h4>Subclasses</h4>
+          <ul><li>Draconic, Wild Magic, etc. reworked</li></ul>
+        </div>
+
+        <div class="class-card c-warl">
+          <h3><span class="dot"></span>Warlock</h3>
+          <h4>Pact Boon <span class="tag same">Same</span></h4>
+          <ul><li>Chain, Blade, Tome at L3</li></ul>
+          <h4>Eldritch Invocations <span class="tag buffed">Expanded</span></h4>
+          <ul><li>More options; some prereqs changed</li></ul>
+          <h4>Spell Slots <span class="tag same">Same</span></h4>
+          <h4>Pact Magic <span class="tag changed">Clarified</span></h4>
+          <ul><li>Multiclass wording updated</li></ul>
+        </div>
+
+        <div class="class-card c-wiza">
+          <h3><span class="dot"></span>Wizard</h3>
+          <h4>Spellcasting <span class="tag buffed">Improved</span></h4>
+          <ul><li>Prep INT + Wizard level; updated list</li></ul>
+          <h4>Arcane Recovery · Spell Mastery <span class="tag same">Same</span></h4>
+          <h4>School features</h4>
+          <ul><li>Many arcane traditions tweaked</li></ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 05 MULTICLASS ========== -->
+    <section id="multiclass">
+      <div class="section-head"><span class="num">05</span><h2>Multiclassing</h2></div>
+      <p class="section-lede">Two paths, one hero — the rules are essentially unchanged.</p>
+      <div class="grid">
+        <div class="card"><h4>Requirements <span class="tag same">Same</span></h4><p>13 in relevant abilities for both classes.</p></div>
+        <div class="card"><h4>Spell slots <span class="tag changed">Clarified</span></h4><p>Calculation unchanged; Pact Magic interaction clarified.</p></div>
+        <div class="card"><h4>Class features</h4><p>Most combos work as in 5e; specific interactions clarified.</p></div>
+      </div>
+    </section>
+
+    <!-- ========== 06 MASTERY ========== -->
+    <section id="mastery">
+      <div class="section-head"><span class="num">06</span><h2>Weapon mastery</h2></div>
+      <p class="section-lede">The signature 5.5e system — weapons now carry tactical properties.</p>
+
+      <table>
+        <thead><tr><th>Class</th><th>At L1</th><th>Growth</th></tr></thead>
+        <tbody>
+          <tr><td>Fighter</td><td class="mono">3</td><td>4 at L4, 5 at L10</td></tr>
+          <tr><td>Barbarian</td><td class="mono">2</td><td>More at L4, L10</td></tr>
+          <tr><td>Paladin</td><td class="mono">2</td><td>Scales with class</td></tr>
+          <tr><td>Ranger</td><td class="mono">2</td><td>Scales with class</td></tr>
+          <tr><td>Rogue</td><td class="mono">2</td><td>Scales with class</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Properties</h3>
+      <div class="mastery-list">
+        <div class="mastery-item"><strong>Cleave</strong><p>Hit → deal damage (= ability mod) to another creature within 5 ft.</p><span class="weapons">Greataxe · Greatsword</span></div>
+        <div class="mastery-item"><strong>Graze</strong><p>Miss → still deal damage = ability modifier.</p><span class="weapons">Glaive · Halberd</span></div>
+        <div class="mastery-item"><strong>Nick</strong><p>Off-hand attack is part of the Attack action — no bonus action needed.</p><span class="weapons">Scimitar · Sickle · Light</span></div>
+        <div class="mastery-item"><strong>Push</strong><p>Hit → push target 10 ft away (Large or smaller).</p><span class="weapons">Pike · Maul · Heavy</span></div>
+        <div class="mastery-item"><strong>Sap</strong><p>Hit → target has disadvantage on its next attack.</p><span class="weapons">Mace · Flail</span></div>
+        <div class="mastery-item"><strong>Slow</strong><p>Hit → target's speed reduced by 10 ft until your next turn.</p><span class="weapons">Whip · Spear</span></div>
+        <div class="mastery-item"><strong>Topple</strong><p>Hit → target makes STR save or is knocked prone.</p><span class="weapons">Quarterstaff · Battleaxe</span></div>
+        <div class="mastery-item"><strong>Vex</strong><p>Hit → advantage on your next attack against the target.</p><span class="weapons">Shortsword · Dagger · Rapier</span></div>
+      </div>
+    </section>
+
+    <!-- ========== 07 SPELLS ========== -->
+    <section id="spells">
+      <div class="section-head"><span class="num">07</span><h2>Spell changes</h2></div>
+      <p class="section-lede">Rebalanced spell lists, rebuilt conjurations, retuned concentration.</p>
+
+      <h3>Spell list reorganization</h3>
+      <table>
+        <thead><tr><th>List</th><th>Classes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Divine</strong></td><td>Cleric, Paladin</td></tr>
+          <tr><td><strong>Arcane</strong></td><td>Wizard, Sorcerer, Warlock</td></tr>
+          <tr><td><strong>Primal</strong></td><td>Druid, Ranger</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Specific spells</h3>
+      <table>
+        <thead><tr><th>Spell</th><th>Change</th><th>Tag</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Counterspell</strong></td><td>Requires a check for <em>all</em> spell levels</td><td><span class="tag nerfed">Nerfed</span></td></tr>
+          <tr><td><strong>Hunter's Mark</strong></td><td>No concentration</td><td><span class="tag buffed">Buffed</span></td></tr>
+          <tr><td><strong>Conjure Animals</strong></td><td>Reworked — fixed "spirit animal" stat blocks</td><td><span class="tag major">Major</span></td></tr>
+          <tr><td><strong>Conjure Woodland Beings</strong></td><td>Similar rework to Conjure Animals</td><td><span class="tag major">Major</span></td></tr>
+          <tr><td><strong>Spiritual Weapon</strong></td><td>Mechanics tweaked</td><td><span class="tag changed">Changed</span></td></tr>
+          <tr><td><strong>Find Familiar</strong></td><td>Improved wording, new familiar options</td><td><span class="tag changed">Clarified</span></td></tr>
+          <tr><td><strong>Healing Word</strong></td><td>Still bonus action, 1d4 + mod</td><td><span class="tag same">Same</span></td></tr>
+          <tr><td><strong>Shield</strong></td><td>+5 AC until next turn, wording clarified</td><td><span class="tag same">Same</span></td></tr>
+          <tr><td><strong>Fireball</strong></td><td>8d6, 20-ft radius — the gold standard</td><td><span class="tag same">Same</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Cantrips</h3>
+      <div class="grid">
+        <div class="card"><h4>Blade Ward <span class="tag buffed">Buffed</span></h4><p>Action economy fixed — worthwhile now.</p></div>
+        <div class="card"><h4>True Strike <span class="tag major">Reworked</span></h4><p>From worst cantrip to actually useful.</p></div>
+        <div class="card"><h4>Primal Savagery <span class="tag same">Same</span></h4><p>Melee spell attack, 1d10 acid.</p></div>
+        <div class="card"><h4>Booming / Green-Flame Blade <span class="tag changed">Not in PHB</span></h4><p>SCAG cantrips not reprinted — check with DM.</p></div>
+      </div>
+    </section>
+
+    <!-- ========== 08 CONDITIONS ========== -->
+    <section id="conditions">
+      <div class="section-head"><span class="num">08</span><h2>Surprise &amp; conditions</h2></div>
+      <p class="section-lede">Simpler surprise, new status effects, unified exhaustion.</p>
+
+      <h3>Surprise <span class="tag changed">Changed</span></h3>
+      <div class="grid">
+        <div class="card">
+          <h4>5e</h4>
+          <ul>
+            <li>Surprised creatures skip turn 1</li>
+            <li>No reactions until turn 1 ends</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>5.5e: Surprised condition</h4>
+          <ul>
+            <li>Disadvantage on Initiative rolls</li>
+            <li>Lasts until end of your first turn</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Hero Points <span class="tag new">Optional</span></h3>
+      <div class="card">
+        <ul>
+          <li><strong>Start:</strong> 5 per session · <strong>Max:</strong> 10</li>
+          <li>Spend 1 → reroll a d20 (keep higher)</li>
+          <li>Spend 1 → +10 to a d20 (after seeing result)</li>
+          <li>Spend 5 → stabilize at 0 HP with 1 HP</li>
+          <li>DM awards more for great roleplay / heroic moments</li>
+        </ul>
+      </div>
+
+      <h3>New &amp; changed conditions</h3>
+      <div class="grid">
+        <div class="card"><h4>Burning <span class="tag new">New</span></h4><p>1d4 fire at start of turn. Remove by dropping prone &amp; rolling, dousing, or submerging.</p></div>
+        <div class="card"><h4>Dehydration <span class="tag new">New</span></h4><p>Drinking less than half required water → 1 level of Exhaustion.</p></div>
+        <div class="card"><h4>Incapacitated <span class="tag changed">Changed</span></h4><p>5e effects plus: can't speak, auto-fail STR/DEX saves, auto-Surprised, breaks concentration.</p></div>
+      </div>
+
+      <h3>Exhaustion <span class="tag major">Reworked</span></h3>
+      <p>Exhaustion was completely streamlined. Instead of six different effects stacked on top of each other, 5.5e applies a single unified penalty that scales with each level.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h4>5e (old)</h4>
+          <ul>
+            <li>L1: Disadvantage on ability checks</li>
+            <li>L2: Speed halved</li>
+            <li>L3: Disadvantage on attacks &amp; saves</li>
+            <li>L4: HP max halved</li>
+            <li>L5: Speed reduced to 0</li>
+            <li>L6: Death</li>
+          </ul>
+        </div>
+        <div class="card accent">
+          <h4>5.5e (new)</h4>
+          <ul>
+            <li>Each level: <strong>−2 penalty</strong> to all d20 tests <em>and</em> spell save DCs</li>
+            <li>Penalties stack up to −10 at L5</li>
+            <li>L6 still = death</li>
+            <li>Remove 1 level per long rest</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="exh-track" aria-label="Exhaustion level track">
+        <div class="exh-level"><span class="num">1</span><span class="penalty">−2</span></div>
+        <div class="exh-level"><span class="num">2</span><span class="penalty">−4</span></div>
+        <div class="exh-level"><span class="num">3</span><span class="penalty">−6</span></div>
+        <div class="exh-level"><span class="num">4</span><span class="penalty">−8</span></div>
+        <div class="exh-level"><span class="num">5</span><span class="penalty">−10</span></div>
+        <div class="exh-level death"><span class="num">6</span><span class="penalty">Death</span></div>
+      </div>
+
+      <h3>Clarified terms</h3>
+      <ul>
+        <li><strong>Round down</strong> by default unless a feature says "round up"</li>
+        <li><strong>Teleportation</strong> never provokes opportunity attacks; equipment comes with; fails if blocked</li>
+        <li><strong>Simultaneous effects</strong> — the player or DM whose turn it is chooses the order</li>
+      </ul>
+    </section>
+
+    <!-- ========== 09 MECHANICS ========== -->
+    <section id="mechanics">
+      <div class="section-head"><span class="num">09</span><h2>Rolling &amp; mechanics</h2></div>
+      <p class="section-lede">The d20 core is unchanged; small clarifications around it.</p>
+
+      <h3>D20 tests</h3>
+      <ol>
+        <li><strong>Ability checks</strong> — doing tasks</li>
+        <li><strong>Saving throws</strong> — resisting effects</li>
+        <li><strong>Attack rolls</strong> — hitting targets</li>
+      </ol>
+      <p>All: roll d20 + modifiers vs. DC or AC.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h4>Advantage / Disadvantage <span class="tag same">Same</span></h4>
+          <ul>
+            <li>Roll 2d20, take higher/lower</li>
+            <li>Multiple sources don't stack</li>
+            <li>Adv + Dis = straight roll</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Critical hits <span class="tag changed">Slight</span></h4>
+          <ul>
+            <li>Nat 20 = crit, double damage dice</li>
+            <li>Some Mastery properties interact with crits</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Proficiency bonus <span class="tag same">Same</span></h4>
+          <ul>
+            <li>L1–4 +2 · L5–8 +3</li>
+            <li>L9–12 +4 · L13–16 +5</li>
+            <li>L17–20 +6</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 10 EQUIPMENT ========== -->
+    <section id="equipment">
+      <div class="section-head"><span class="num">10</span><h2>Equipment</h2></div>
+      <div class="grid">
+        <div class="card"><h4>Starting equipment <span class="tag changed">Revised</span></h4><p>Backgrounds give different starting gear; class packages updated.</p></div>
+        <div class="card"><h4>Magic items <span class="tag same">Mostly same</span></h4><p>Most work identically; some new items in DMG; attunement still caps at 3.</p></div>
+        <div class="card"><h4>Coinage <span class="tag same">Same</span></h4><p>CP · SP · EP · GP · PP unchanged.</p></div>
+      </div>
+    </section>
+
+    <!-- ========== 11 EXPLORATION ========== -->
+    <section id="exploration">
+      <div class="section-head"><span class="num">11</span><h2>Exploration &amp; rest</h2></div>
+      <div class="grid">
+        <div class="card">
+          <h4>Travel pace <span class="tag same">Same</span></h4>
+          <ul>
+            <li>Fast: 4 mph, −5 passive Perception</li>
+            <li>Normal: 3 mph</li>
+            <li>Slow: 2 mph, can Stealth</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Rest <span class="tag same">Same</span></h4>
+          <ul>
+            <li>Short: 1 hr, spend Hit Dice</li>
+            <li>Long: 8 hr, full HP + half HD</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 12 SOCIAL ========== -->
+    <section id="social">
+      <div class="section-head"><span class="num">12</span><h2>Social interaction</h2></div>
+      <div class="card">
+        <h4>Influence action <span class="tag new">New</span></h4>
+        <p>Formalized as a specific action in combat or social scenarios. Use Persuasion, Deception, Intimidation, or Performance. DM sets the DC; outcome can grant advantage/disadvantage on future interactions.</p>
+      </div>
+    </section>
+
+    <!-- ========== 13 CONVERSION ========== -->
+    <section id="conversion">
+      <div class="section-head"><span class="num">13</span><h2>Conversion guide</h2></div>
+      <p class="section-lede">Five steps to bring a 5e character into 5.5e.</p>
+      <ol>
+        <li><strong>Species:</strong> keep unless Half-Elf/Half-Orc; reassign ASI (+2/+1 or +1/+1/+1); pick any 2 languages + Common.</li>
+        <li><strong>Background:</strong> add an Origin Feat (or just add 1 feat).</li>
+        <li><strong>Class:</strong> check your class section; pick mastered weapons if applicable; update spell list.</li>
+        <li><strong>Actions:</strong> learn Study, Magic terminology, and Weapon Mastery.</li>
+        <li><strong>Conditions:</strong> learn Burning, Dehydration; relearn Surprise and the new Exhaustion track.</li>
+      </ol>
+    </section>
+
+    <!-- ========== 14 FAQ ========== -->
+    <section id="faq">
+      <div class="section-head"><span class="num">14</span><h2>FAQ</h2></div>
+      <div class="faq">
+        <details><summary>Is my 5e character weaker than a 5.5e character?</summary><p>Slightly — that's why you add a free feat when converting.</p></details>
+        <details><summary>Can I keep using my 5e PHB?</summary><p>Mostly yes, but you'll miss new options and changed features.</p></details>
+        <details><summary>Do I need to buy new books?</summary><p>Not required. The 2024 PHB consolidates the current rules.</p></details>
+        <details><summary>What about adventures written for 5e?</summary><p>They still work. DM converts monster stats and NPC abilities as needed.</p></details>
+        <details><summary>Are 5e subclasses still legal?</summary><p>Ask your DM. Many work fine; some are outdated.</p></details>
+        <details><summary>What happens if rules conflict?</summary><p>5.5e takes precedence. When in doubt, ask DM.</p></details>
+      </div>
+    </section>
+
+    <!-- ========== 15 DM NOTES ========== -->
+    <section id="dm">
+      <div class="section-head"><span class="num">15</span><h2>DM notes</h2></div>
+      <div class="grid">
+        <div class="card">
+          <h4>Running mixed tables</h4>
+          <ul>
+            <li>Give 5e characters a free feat</li>
+            <li>Use 5.5e Surprise, Inspiration, new actions</li>
+            <li>Let players choose between versions of features</li>
+            <li>Differences are minor in actual play</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Monster conversions</h4>
+          <ul>
+            <li>5e monsters work fine in 5.5e</li>
+            <li>Spellcasting simplified for casters</li>
+            <li>CR system unchanged</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Resources</h3>
+      <div class="grid">
+        <div class="card"><h4>Official</h4><ul><li>2024 Player's Handbook</li><li>2024 Dungeon Master's Guide</li><li>2024 Monster Manual</li></ul></div>
+        <div class="card"><h4>Online</h4><ul><li>D&amp;D Beyond — 5e + 5.5e side-by-side</li><li>Roll20 — 5.5e support rolling out</li><li>Foundry VTT — 5.5e modules available</li></ul></div>
+      </div>
+    </section>
+
+    <!-- ========== 16 HOUSE RULES ========== -->
+    <section id="houserules">
+      <div class="section-head"><span class="num">16</span><h2>House rules</h2></div>
+      <p class="section-lede">DM fills this in for the campaign.</p>
+      <div class="grid">
+        <div class="card">
+          <h4>Allowed 5e content</h4>
+          <ul class="checklist">
+            <li>All 5e subclasses allowed</li>
+            <li>Select 5e subclasses only (list below)</li>
+            <li>5.5e subclasses only</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Conversion policy</h4>
+          <ul class="checklist">
+            <li>All players convert to 5.5e by [date]</li>
+            <li>Players can choose 5e or 5.5e</li>
+            <li>Mixed table with balance adjustments</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Inspiration / Hero Points</h4>
+          <ul class="checklist">
+            <li>5.5e Hero Points</li>
+            <li>5e Inspiration</li>
+            <li>Custom system: ______________</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Weapon mastery</h4>
+          <ul class="checklist">
+            <li>Full Weapon Mastery rules</li>
+            <li>Simplified version</li>
+            <li>Not using Weapon Mastery</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>Living document · Updates as errata emerge · Questions? Ask your DM.</p>
+      <p>v1.0 · April 2026 · Kevin's Greyhawk Campaign</p>
+    </footer>
+
+  </main>
+</div>
+
+</body>
+</html>
