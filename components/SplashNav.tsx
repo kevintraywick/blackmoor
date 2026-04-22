@@ -19,7 +19,7 @@ export default function SplashNav({ players, onlinePlayers: initialOnline = [] }
   return (
     <>
       {/* Desktop layout — single row */}
-      <div className="hidden sm:flex px-4 items-start justify-center gap-5 z-10" style={{ background: 'rgba(42,49,64,0.6)', paddingTop: '12px', maxHeight: '110px', overflow: 'visible' }}>
+      <div className="hidden sm:flex px-4 items-start justify-center gap-5 z-10" style={{ background: 'transparent', paddingTop: '12px', maxHeight: '110px', overflow: 'visible' }}>
         {/* DM circle */}
         <Link href="/dm" className="flex flex-col items-center gap-1.5 no-underline group" title="Dungeon Master">
           <span className="text-xs uppercase tracking-[0.1em] text-[#6b8fa8] font-sans">DM</span>

@@ -18,14 +18,14 @@ export default async function HomePage() {
     ),
   ]);
   const onlinePlayers = presenceRows.map(r => r.player_id);
-  const splashSrc = campaignRows[0]?.home_splash_path || '/images/splash/home_splash_2.png';
+  const splashSrc = campaignRows[0]?.home_splash_path || '/images/splash/tears.png';
   // next/image doesn't play well with our /api/uploads/* serve routes
   // (no intrinsic dimensions, no optimization pipeline). Fall back to a
   // plain <img> for uploaded paths, keep <Image> for the committed default.
   const isUploaded = splashSrc.startsWith('/api/');
 
   return (
-    <div className="min-h-screen bg-[#2a3140] relative">
+    <div className="min-h-screen bg-[#2a4a40] relative">
       {/* Splash art fills the whole viewport, sits behind the nav */}
       <div className="absolute inset-0 overflow-hidden">
         {isUploaded ? (
@@ -35,7 +35,7 @@ export default async function HomePage() {
               src={splashSrc}
               alt="Shadow of the Wolf"
               className="hidden sm:block absolute inset-0 w-full h-full object-contain object-top"
-              style={{ transform: 'scale(1.35) translateY(-14px)', transformOrigin: 'top center' }}
+              style={{ transform: 'scale(1.35) translateY(86px)', transformOrigin: 'top center' }}
             />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -54,7 +54,7 @@ export default async function HomePage() {
               fill
               className="hidden sm:block object-contain object-top"
               priority
-              style={{ transform: 'scale(1.35) translateY(-14px)', transformOrigin: 'top center' }}
+              style={{ transform: 'scale(1.35) translateY(86px)', transformOrigin: 'top center' }}
             />
             {/* Mobile splash — no scale, cover the screen */}
             <Image

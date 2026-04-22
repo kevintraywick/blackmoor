@@ -649,9 +649,15 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             );
           })}
 
-          {/* Placeholder panes — planning surface for future sessions */}
+          {/* Placeholder panes — planning surface for future sessions.
+              DM can drop a bg image onto these even before the session row exists;
+              the upload is keyed by session number and re-renders next reload. */}
           {Array.from({ length: PLACEHOLDER_PANES }).map((_, p) => {
             const idx = sessions.length + p;
+            const sessionNumber = sessions.length + p + 1;
+            const bgKey = `s${sessionNumber}_bg`;
+            const bgImage = imageMap[bgKey];
+            const isDragOver = dragTarget === bgKey;
             const phStyle: React.CSSProperties = isMobile
               ? { left: 0, top: idx * boxH, width: '100%', height: boxH }
               : { left: idx * boxW, top: 0, width: boxW, height: boxH };
@@ -662,9 +668,23 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                 style={{
                   ...phStyle,
                   background: 'var(--color-bg)',
-                  border: '0.5px solid rgba(255,255,255,0.25)',
+                  border: isDragOver ? '2px solid #4a7a5a' : '0.5px solid rgba(255,255,255,0.25)',
+                  transform: isDragOver ? 'scale(1.02)' : undefined,
+                  transition: 'border 0.15s, transform 0.15s',
                 }}
-              />
+                onDragOver={readOnly ? undefined : (e) => onDragOver(e, bgKey)}
+                onDragLeave={readOnly ? undefined : onDragLeave}
+                onDrop={readOnly ? undefined : (e) => onDrop(e, sessionNumber, 'bg')}
+              >
+                {bgImage && (
+                  <img
+                    src={bgImage}
+                    alt=""
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                )}
+              </div>
             );
           })}
 
@@ -774,9 +794,14 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
             );
           })}
 
-          {/* Placeholder circles — future sessions, very light */}
+          {/* Placeholder circles — future sessions, very light.
+              DM-droppable: an uploaded circle image renders here even before
+              the session row exists. */}
           {placeholderPoints.map((pt, p) => {
             const sessionNumber = sessions.length + p + 1;
+            const circleKey = `s${sessionNumber}_circle`;
+            const circleImage = imageMap[circleKey];
+            const isDragOver = dragTarget === circleKey;
             const phPos: React.CSSProperties = isMobile
               ? { left: `${pt.x}%`, top: pt.y, transform: 'translate(-50%, -50%)' }
               : { left: pt.x - circleR, top: pt.y - circleR };
@@ -791,20 +816,34 @@ export default function JourneyClient({ sessions, imageMap: initialImageMap = {}
                 }}
               >
                 <div
-                  className="rounded-full flex items-center justify-center"
+                  className="rounded-full flex items-center justify-center overflow-hidden relative"
                   style={{
                     width: circleR * 2,
                     height: circleR * 2,
                     background: 'rgba(200,200,220,0.12)',
-                    border: '1px solid rgba(255,255,255,0.18)',
+                    border: isDragOver ? '2px solid #4a7a5a' : '1px solid rgba(255,255,255,0.18)',
+                    transform: isDragOver ? 'scale(1.1)' : undefined,
+                    transition: 'border 0.15s, transform 0.15s',
                   }}
+                  onDragOver={readOnly ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(circleKey); }}
+                  onDragLeave={readOnly ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); }}
+                  onDrop={readOnly ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); const file = e.dataTransfer.files[0]; if (file && file.type.startsWith('image/')) { handleDrop(sessionNumber, 'circle', file); } else { setDragTarget(null); } }}
                 >
-                  <span
-                    className="font-serif select-none leading-none"
-                    style={{ fontSize: '2.6rem', color: 'rgba(255,255,255,0.18)' }}
-                  >
-                    {sessionNumber}
-                  </span>
+                  {circleImage ? (
+                    <img
+                      src={circleImage}
+                      alt={`Session ${sessionNumber}`}
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <span
+                      className="font-serif select-none leading-none"
+                      style={{ fontSize: '2.6rem', color: 'rgba(255,255,255,0.18)' }}
+                    >
+                      {sessionNumber}
+                    </span>
+                  )}
                 </div>
               </div>
             );
