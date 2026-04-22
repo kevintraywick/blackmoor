@@ -42,7 +42,7 @@ export default async function HomePage() {
               src={splashSrc}
               alt="Shadow of the Wolf"
               className="sm:hidden absolute inset-0 w-full h-full object-cover object-top"
-              style={{ transform: 'translateY(155px)' }}
+              style={{ transform: 'translateY(190px)' }}
             />
           </>
         ) : (
@@ -63,7 +63,7 @@ export default async function HomePage() {
               fill
               className="sm:hidden object-cover object-top"
               priority
-              style={{ transform: 'translateY(155px)' }}
+              style={{ transform: 'translateY(190px)' }}
             />
           </>
         )}
