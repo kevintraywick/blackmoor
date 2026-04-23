@@ -33,10 +33,12 @@ export default function SplashNav({ players, onlinePlayers: initialOnline = [] }
   return (
     <>
       {/* Desktop layout — single row.
-          Inline `display: flex` + `alignItems: 'flex-end'` because Tailwind v4
-          + Safari are unreliable for flex alignment, and bottom-aligning the
-          columns keeps all circles on the same y regardless of label width. */}
-      <div className="hidden sm:flex px-4 z-10" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 20, background: 'transparent', paddingTop: '12px', paddingBottom: 4, maxHeight: '110px', overflow: 'visible' }}>
+          Outer div handles mobile/desktop visibility via Tailwind. Inner div
+          uses inline flex because Tailwind v4 + Safari are unreliable for flex
+          alignment; flex-end keeps all circle bottoms on the same y regardless
+          of label width. */}
+      <div className="hidden sm:block">
+      <div className="px-4 z-10" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 20, background: 'transparent', paddingTop: '12px', paddingBottom: 4, maxHeight: '110px', overflow: 'visible' }}>
         {/* DM circle */}
         <Link href="/dm" className="flex flex-col items-center gap-1.5 no-underline group" title="Dungeon Master">
           <span className="text-xs uppercase tracking-[0.1em] text-[#6b8fa8] font-sans">DM</span>
@@ -87,6 +89,7 @@ export default function SplashNav({ players, onlinePlayers: initialOnline = [] }
             </div>
           </Link>
         ))}
+      </div>
       </div>
 
       {/* Mobile layout — players in 2 rows, DM in bottom-right corner */}
