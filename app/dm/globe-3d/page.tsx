@@ -5,8 +5,9 @@ import { ensureSchema } from '@/lib/schema';
 import DmNav from '@/components/DmNav';
 import Globe3DClient from '@/components/dm/Globe3DClient';
 import { getWorldAnchor } from '@/lib/world-anchor';
-import { cellToLatLng, cellToParent } from 'h3-js';
+import { cellToLatLng, cellToParent, gridDisk, gridDiskDistances } from 'h3-js';
 import { campaignCells, eligibleOriginCellsInContainingParent, prepareCells, prepareResolution } from '@/lib/h3-world-data';
+import { fetchCloudCoverByCell } from '@/lib/open-meteo-clouds';
 
 export default async function Globe3DPage() {
   await ensureSchema();
@@ -39,6 +40,37 @@ export default async function Globe3DPage() {
     anchor.cell,
   );
 
+  // Numbered labels for res-2 hexes around Shadow's anchor — center hex (#1)
+  // plus 7 grid rings outward (1+6+12+18+24+30+36+42 = 169 hexes). Numbered
+  // ring-by-ring, then by H3 index for ties — so #1 is always the center.
+  // gridDiskDistances groups by ring, which avoids gridDistance's pentagon
+  // edge cases.
+  const labelCenter = cellToParent(anchor.cell, 2);
+  const ringsByDistance = gridDiskDistances(labelCenter, 7);
+  // Precipitation cloud rule: walk the 10-ring of res-2 hexes around
+  // Shadow's anchor (~331 cells), fetch live weather per centroid, render
+  // a cloud at any hex with measurable precipitation. Replaces the global
+  // N-hemi cloud-cover layers — clouds now mean "rain is happening here."
+  const PRECIP_THRESHOLD_MM = 0.05;
+  const PRECIP_RING_K = 10;
+  const shadowRes2 = cellToParent(anchor.cell, 2);
+  const ringCellIds = gridDisk(shadowRes2, PRECIP_RING_K);
+  const ringCells = ringCellIds.map(cell => {
+    const [lat, lng] = cellToLatLng(cell);
+    return { cell, lat, lng };
+  });
+  const weatherByCell = await fetchCloudCoverByCell(ringCells);
+  const liveCloudCellsPrecip = ringCells.filter(c => (weatherByCell.get(c.cell)?.precipMm ?? 0) >= PRECIP_THRESHOLD_MM);
+  console.log(`[globe-3d] Open-Meteo precip: ${weatherByCell.size}/${ringCells.length} res-2 hexes (k=${PRECIP_RING_K}) returned weather; precip ≥${PRECIP_THRESHOLD_MM}mm at ${liveCloudCellsPrecip.length} hexes`);
+
+  const labeledRes2Cells = ringsByDistance
+    .flatMap((ring, distance) => ring.map(cell => ({ cell, distance })))
+    .sort((a, b) => a.distance - b.distance || a.cell.localeCompare(b.cell))
+    .map(({ cell }, i) => {
+      const [lat, lng] = cellToLatLng(cell);
+      return { cell, lat, lng, number: i + 1 };
+    });
+
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       <DmNav current="world" />
@@ -49,6 +81,8 @@ export default async function Globe3DPage() {
         res3Cells={res3Cells}
         res4CampaignCells={res4CampaignCells}
         res4EligibleCells={res4EligibleCells}
+        labeledRes2Cells={labeledRes2Cells}
+        liveCloudCellsPrecip={liveCloudCellsPrecip}
         anchorCell={anchor.cell}
         anchorLat={anchorLat}
         anchorLng={anchorLng}

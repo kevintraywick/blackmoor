@@ -164,6 +164,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] NOAA SWPC aurora/solar-flare feed → sky-danced events <!-- common-v15 -->
 - [ ] Trust tiers on items (Official / Whispered / Rumored / Prophesied) <!-- common-v15 -->
 - [ ] Earth-region remap engine — per-world rotation/mirror/shuffle of real geography <!-- common-v15 -->
+- [ ] Look-dev pass: Open-Meteo heatmap overlay — sample cloud_cover on a regular lat/lng grid, paint to canvas, wrap as transparent sphere texture (alternative path to NASA GIBS; full control + uses integration we already run) <!-- common-v15 -->
 
 ### v16 — Steampunk + airships
 
