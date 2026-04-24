@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ensureSchema } from '@/lib/schema';
 import { advanceGameTime, ClockPausedError, getGameClock } from '@/lib/game-clock';
+import { broadcast } from '@/lib/events';
 
 // POST /api/clock/advance
 // Body: { seconds: number }
@@ -15,6 +16,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'seconds must be a positive number' }, { status: 400 });
     }
     const clock = await advanceGameTime(seconds);
+    // Fan out to any SSE subscriber so ambience surfaces refresh without polling.
+    broadcast('game_clock', 'default', 'patch');
     return NextResponse.json({ ok: true, clock });
   } catch (err) {
     if (err instanceof ClockPausedError) {

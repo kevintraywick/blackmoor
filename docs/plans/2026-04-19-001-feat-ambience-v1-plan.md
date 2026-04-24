@@ -1,7 +1,7 @@
 ---
 title: Ambience v1 — biome substrate, prose weather, party-hex live forecast
 type: feat
-status: active
+status: completed
 date: 2026-04-19
 origin: docs/brainstorms/2026-04-19-ambience-v1-requirements.md
 ---

@@ -698,6 +698,32 @@ async function _initSchema() {
     `CREATE INDEX IF NOT EXISTS world_entities_position_idx ON world_entities (current_q, current_r)`
   ).catch(() => {});
 
+  // ─── Ambience v1 — biome substrate + session forecast cache (R1, R3) ────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ambience_hex_substrate (
+      h3_cell      BIGINT PRIMARY KEY,
+      h3_res       SMALLINT NOT NULL,
+      koppen       TEXT NOT NULL,
+      elevation_m  INTEGER NOT NULL,
+      coastal      BOOLEAN NOT NULL,
+      cw_latitude  REAL NOT NULL,
+      seeded_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `).catch(() => {});
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS ambience_hex_substrate_h3_res_idx ON ambience_hex_substrate (h3_res)`,
+  ).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ambience_session_cache (
+      session_id         TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+      party_h3_cell      BIGINT NOT NULL,
+      fetched_at_real    TIMESTAMPTZ NOT NULL DEFAULT now(),
+      session_game_start BIGINT NOT NULL,
+      forecast           JSONB NOT NULL
+    )
+  `).catch(() => {});
+
   // ─── H3 spatial substrate (v3 item #20) ──────────────────────────────────
   // Nullable `h3_cell BIGINT` + `h3_res SMALLINT` on every spatial table.
   // Reads still use (q,r) legacy coords; writes populate H3 alongside
@@ -777,7 +803,8 @@ async function _initSchema() {
       ('twilio',     3.00),
       ('websearch',  3.00),
       ('railway',    0.00),
-      ('openai_embeddings', 1.00)
+      ('openai_embeddings', 1.00),
+      ('noaa_gfs',   1.00)
     ON CONFLICT (service) DO NOTHING
   `).catch(() => {});
 
