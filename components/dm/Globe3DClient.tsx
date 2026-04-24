@@ -7,6 +7,7 @@ import { Html, OrbitControls, useGLTF, useTexture } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { PreparedCell } from '@/lib/h3-world-data';
 import { CARTOGRAPHY, type Location } from '@/lib/cartography';
+import { latToTileY, lngToTileX, tileBoundsLatLng } from '@/lib/tile-math';
 import { cellToLatLng, cellToParent, getHexagonEdgeLengthAvg, gridDisk, latLngToCell } from 'h3-js';
 
 interface LabeledRes2Cell {
@@ -694,6 +695,74 @@ function EventMarkers({ events }: { events: EventMarker[] }) {
   );
 }
 
+// Tier 3: local terrain tiles. One ring of 9 ESRI World Topo tiles at
+// z=9 around Shadow's anchor, rendered as curved patches on the sphere
+// with a warm sepia tint. Hard-switches off above LOCAL_TILE_MAX_DISTANCE
+// to keep the planetary view uncluttered.
+const LOCAL_TILE_MAX_DISTANCE = 1.5;
+const LOCAL_TILE_ZOOM = 9;
+const LOCAL_TILE_RING = 1; // 1 = 3x3 = 9 tiles around the anchor
+const LOCAL_TILE_TINT = '#c8a878'; // warm parchment — multiplies the texture
+const LOCAL_TILE_SUBDIVISIONS = 16; // mesh density per patch
+const LOCAL_TILE_RADIUS = GLOBE_RADIUS * 1.003; // just above Blue Marble
+
+function esriTopoUrl(z: number, x: number, y: number): string {
+  // ESRI uses z/y/x order in the REST path (not z/x/y like OSM/Stamen).
+  return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`;
+}
+
+// Builds a curved patch geometry: a grid of vertices inside a tile's
+// lat/lng bounds, reprojected onto the sphere. UVs match the tile image
+// (origin top-left, v flipped).
+function buildTilePatchGeometry(z: number, x: number, y: number, subdivisions: number): THREE.BufferGeometry {
+  const bounds = tileBoundsLatLng(z, x, y);
+  const geom = new THREE.PlaneGeometry(1, 1, subdivisions, subdivisions);
+  const posAttr = geom.attributes.position;
+  for (let i = 0; i < posAttr.count; i++) {
+    const u = posAttr.getX(i) + 0.5;
+    const v = 1 - (posAttr.getY(i) + 0.5);
+    const lng = bounds.w + u * (bounds.e - bounds.w);
+    const lat = bounds.n + v * (bounds.s - bounds.n);
+    const p = latLngToVec3(lat, lng, LOCAL_TILE_RADIUS);
+    posAttr.setXYZ(i, p.x, p.y, p.z);
+  }
+  posAttr.needsUpdate = true;
+  geom.computeVertexNormals();
+  return geom;
+}
+
+function TerrainTile({ z, x, y }: { z: number; x: number; y: number }) {
+  const texture = useTexture(esriTopoUrl(z, x, y));
+  const geom = useMemo(() => buildTilePatchGeometry(z, x, y, LOCAL_TILE_SUBDIVISIONS), [z, x, y]);
+  useEffect(() => () => geom.dispose(), [geom]);
+  return (
+    <mesh geometry={geom}>
+      <meshBasicMaterial map={texture} color={LOCAL_TILE_TINT} toneMapped={false} />
+    </mesh>
+  );
+}
+
+function LocalTilesLayer({ anchorLat, anchorLng, cameraDistance }: { anchorLat: number; anchorLng: number; cameraDistance: number }) {
+  const tiles = useMemo(() => {
+    const z = LOCAL_TILE_ZOOM;
+    const cx = lngToTileX(anchorLng, z);
+    const cy = latToTileY(anchorLat, z);
+    const out: { z: number; x: number; y: number }[] = [];
+    for (let dy = -LOCAL_TILE_RING; dy <= LOCAL_TILE_RING; dy++) {
+      for (let dx = -LOCAL_TILE_RING; dx <= LOCAL_TILE_RING; dx++) {
+        out.push({ z, x: cx + dx, y: cy + dy });
+      }
+    }
+    return out;
+  }, [anchorLat, anchorLng]);
+  if (cameraDistance > LOCAL_TILE_MAX_DISTANCE) return null;
+  return (
+    <Suspense fallback={null}>
+      {tiles.map(t => <TerrainTile key={`${t.z}/${t.x}/${t.y}`} z={t.z} x={t.x} y={t.y} />)}
+    </Suspense>
+  );
+}
+
 // Cartography markers: dot + label for each named location. Labels only
 // render at Tier 2 zoom or closer (cameraDistance ≤ 3.0) — keeps planetary
 // view uncluttered.
@@ -1181,6 +1250,11 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
               Reset
             </button>
           </div>
+          {cameraDistance <= LOCAL_TILE_MAX_DISTANCE && (
+            <div className="text-[0.6rem] opacity-50" style={{ lineHeight: 1.4 }}>
+              Tiles © Esri World Topo · OSM contributors
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid #2a3a5e' }}>
@@ -1242,6 +1316,13 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
             <Suspense fallback={null}>
               <OceanSphere onSurfaceClick={handleSurfaceClick} />
             </Suspense>
+          )}
+          {geoVisible && (
+            <LocalTilesLayer
+              anchorLat={anchorLat}
+              anchorLng={anchorLng}
+              cameraDistance={cameraDistance}
+            />
           )}
           {weatherVisible && (
             <>
