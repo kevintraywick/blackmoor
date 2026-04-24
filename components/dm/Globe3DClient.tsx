@@ -1340,7 +1340,7 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
           </Suspense>
 
           {eventsVisible && <EventMarkers events={shadowNearbyEvents} />}
-          <LocationMarkers locations={CARTOGRAPHY} cameraDistance={cameraDistance} />
+          {/* <LocationMarkers locations={CARTOGRAPHY} cameraDistance={cameraDistance} /> — hidden until sizing/labels are reworked */}
           {/* <Res2Labels labels={allLabels} /> — labels hidden; still power cloud/ship config + side panel */}
           <OutlineLayer
             cells={res2Cells}
@@ -1381,7 +1381,11 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
           />
           <AnchorMarker lat={anchorLat} lng={anchorLng} opacity={anchorOpacity} />
 
-          {/* Shadow's campaign token — wolf pinned at Blaen Hafren. */}
+          {/* Shadow's campaign wolf token (planetary + territory LODs) hidden
+              for now. Fly-to on click is wired to the wolf group — if we keep
+              the wolf off we need another trigger (Go to Blaen Hafren button
+              still works). */}
+          {/*
           <Suspense fallback={null}>
             <HexPin lat={anchorLat} lng={anchorLng} radiusScale={1.003}>
               <group
@@ -1402,12 +1406,12 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
             </HexPin>
           </Suspense>
 
-          {/* Territory wolf — hex-sized, fades in at close zoom. */}
           <Suspense fallback={null}>
             <HexPin lat={anchorLat} lng={anchorLng} radiusScale={1.0005}>
               <TerritoryWolfToken opacity={territoryWolfOpacity} />
             </HexPin>
           </Suspense>
+          */}
 
           {/* N-pole reference cone. */}
           <HexPin lat={90} lng={0} radiusScale={1.002}>
