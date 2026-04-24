@@ -6,6 +6,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF, useTexture } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { PreparedCell } from '@/lib/h3-world-data';
+import { CARTOGRAPHY, type Location } from '@/lib/cartography';
 import { cellToLatLng, cellToParent, getHexagonEdgeLengthAvg, gridDisk, latLngToCell } from 'h3-js';
 
 interface LabeledRes2Cell {
@@ -693,6 +694,48 @@ function EventMarkers({ events }: { events: EventMarker[] }) {
   );
 }
 
+// Cartography markers: dot + label for each named location. Labels only
+// render at Tier 2 zoom or closer (cameraDistance ≤ 3.0) — keeps planetary
+// view uncluttered.
+const LOCATION_LABEL_MAX_DISTANCE = 3.0;
+function LocationMarkers({ locations, cameraDistance }: { locations: Location[]; cameraDistance: number }) {
+  const showLabels = cameraDistance <= LOCATION_LABEL_MAX_DISTANCE;
+  return (
+    <>
+      {locations.map(loc => {
+        const pos = latLngToVec3(loc.lat, loc.lng, GLOBE_RADIUS * 1.006);
+        return (
+          <group key={loc.id} position={pos}>
+            <mesh>
+              <sphereGeometry args={[0.0028, 16, 12]} />
+              <meshBasicMaterial color="#ffcd5a" />
+            </mesh>
+            {showLabels && (
+              <Html
+                center={false}
+                zIndexRange={[38, 0]}
+                style={{ pointerEvents: 'none', userSelect: 'none', transform: 'translate(8px, -6px)' }}
+              >
+                <div style={{
+                  color: '#f3e7cd',
+                  fontFamily: "'EB Garamond', ui-serif, Georgia, serif",
+                  fontSize: 13,
+                  fontStyle: 'italic',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.7)',
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '0.02em',
+                }}>
+                  {loc.name}
+                </div>
+              </Html>
+            )}
+          </group>
+        );
+      })}
+    </>
+  );
+}
+
 function AnchorMarker({ lat, lng, opacity }: { lat: number; lng: number; opacity: number }) {
   const pos = useMemo(() => latLngToVec3(lat, lng, GLOBE_RADIUS * 1.01), [lat, lng]);
   const markerRef = useRef<THREE.Mesh>(null);
@@ -1216,6 +1259,7 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
           </Suspense>
 
           {eventsVisible && <EventMarkers events={shadowNearbyEvents} />}
+          <LocationMarkers locations={CARTOGRAPHY} cameraDistance={cameraDistance} />
           {/* <Res2Labels labels={allLabels} /> — labels hidden; still power cloud/ship config + side panel */}
           <OutlineLayer
             cells={res2Cells}
