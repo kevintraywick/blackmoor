@@ -1381,11 +1381,8 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
           />
           <AnchorMarker lat={anchorLat} lng={anchorLng} opacity={anchorOpacity} />
 
-          {/* Shadow's campaign wolf token (planetary + territory LODs) hidden
-              for now. Fly-to on click is wired to the wolf group — if we keep
-              the wolf off we need another trigger (Go to Blaen Hafren button
-              still works). */}
-          {/*
+          {/* Planetary wolf token — visible at planetary zoom, fades out
+              between 1.75 → 1.25 so it's gone before Tier 3 tiles take over. */}
           <Suspense fallback={null}>
             <HexPin lat={anchorLat} lng={anchorLng} radiusScale={1.003}>
               <group
@@ -1406,12 +1403,10 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
             </HexPin>
           </Suspense>
 
-          <Suspense fallback={null}>
-            <HexPin lat={anchorLat} lng={anchorLng} radiusScale={1.0005}>
-              <TerritoryWolfToken opacity={territoryWolfOpacity} />
-            </HexPin>
-          </Suspense>
-          */}
+          {/* Territory wolf hidden at terrain level — it previously faded in
+              between 1.5 → 1.25, exactly where Tier 3 tiles render, which
+              caused the oversized 3D wolf to stomp on the map. Keep off
+              until we redesign it as a small screen-space marker. */}
 
           {/* N-pole reference cone. */}
           <HexPin lat={90} lng={0} radiusScale={1.002}>
