@@ -798,7 +798,7 @@ function ShadowTerrainHex({ cellData }: { cellData: PreparedCell }) {
   useEffect(() => () => geom.dispose(), [geom]);
   return (
     <mesh geometry={geom}>
-      <meshBasicMaterial map={texture} color={LOCAL_TILE_TINT} transparent opacity={0} toneMapped={false} depthWrite={false} />
+      <meshBasicMaterial map={texture} color={LOCAL_TILE_TINT} transparent opacity={0.5} toneMapped={false} depthWrite={false} />
     </mesh>
   );
 }
