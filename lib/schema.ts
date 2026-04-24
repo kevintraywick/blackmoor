@@ -287,6 +287,11 @@ async function _initSchema() {
     )
   `);
 
+  // Per-row image path — DM-uploadable card art for spells / magic items.
+  await pool.query(
+    `ALTER TABLE magic_catalog ADD COLUMN IF NOT EXISTS image_path TEXT NOT NULL DEFAULT ''`
+  ).catch(() => {});
+
   await pool.query(`
     CREATE INDEX IF NOT EXISTS magic_catalog_created_at_idx
     ON magic_catalog (created_at DESC)
@@ -477,6 +482,26 @@ async function _initSchema() {
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS journal_public TEXT NOT NULL DEFAULT ''`).catch(() => {});
   await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS narrative_notes TEXT NOT NULL DEFAULT ''`).catch(() => {});
   await pool.query(`ALTER TABLE campaign ADD COLUMN IF NOT EXISTS narrative_notes TEXT NOT NULL DEFAULT ''`).catch(() => {});
+
+  // Journal audio — optional URL to an audio reading of the public journal /
+  // "Our Story So Far…" backstory. Rendered as a speaker icon on the overlay.
+  await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS audio_url TEXT NOT NULL DEFAULT ''`).catch(() => {});
+  await pool.query(`ALTER TABLE campaign ADD COLUMN IF NOT EXISTS audio_url TEXT NOT NULL DEFAULT ''`).catch(() => {});
+
+  // Seed the 4 existing Shadow audio files if a session/campaign row is present
+  // and no audio_url has been set yet. One-time — idempotent.
+  await pool.query(
+    `UPDATE campaign SET audio_url = '/audio/Shadow_Backstory.mp3' WHERE audio_url = ''`
+  ).catch(() => {});
+  await pool.query(
+    `UPDATE sessions SET audio_url = '/audio/Shadow_Hunted.mp3' WHERE number = 1 AND audio_url = ''`
+  ).catch(() => {});
+  await pool.query(
+    `UPDATE sessions SET audio_url = '/audio/Shadow_Graveyard.mp3' WHERE number = 2 AND audio_url = ''`
+  ).catch(() => {});
+  await pool.query(
+    `UPDATE sessions SET audio_url = '/audio/Shadow_S3_The_Cliffhanger.mp3' WHERE number = 3 AND audio_url = ''`
+  ).catch(() => {});
 
   // ── Map Builder tables ──────────────────────────────────────────────────────
 

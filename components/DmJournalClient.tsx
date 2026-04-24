@@ -199,8 +199,13 @@ function JournalEntry({ kind, title, subtitle, summaryText, stats, initialNotes,
               className="w-full bg-transparent text-[var(--color-text)] text-[0.95rem] leading-relaxed resize-y outline-none font-serif placeholder:text-[var(--color-text-muted)]"
             />
 
-            <div className="border-t border-[var(--color-border)] pt-3 mt-3">
-              <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans mb-2">Journal — Public</div>
+            <div
+              className="mt-3 rounded px-3 py-3"
+              style={{ backgroundColor: 'rgba(220, 38, 38, 0.10)', border: '1px solid rgba(220, 38, 38, 0.25)' }}
+            >
+              <div className="text-[0.6rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans mb-2">
+                Journal — <span style={{ color: '#ff3b3b', fontWeight: 600 }}>Public</span>
+              </div>
               <textarea
                 rows={6}
                 value={pubText}

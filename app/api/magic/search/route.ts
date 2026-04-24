@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
 interface CatalogRow {
+  id: string;
   api_key: string;
   name: string;
   description: string;
   metadata: Record<string, unknown>;
   category: string;
+  image_path: string;
 }
 
 export async function POST(request: Request) {
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
     let rows: CatalogRow[];
     if (category && category !== 'all') {
       rows = await query<CatalogRow>(
-        `SELECT api_key, name, description, metadata, category
+        `SELECT id, api_key, name, description, metadata, category, image_path
          FROM magic_catalog
          WHERE category = $1 AND name ILIKE $2
          ORDER BY name ASC
@@ -31,7 +33,7 @@ export async function POST(request: Request) {
     } else {
       // Search all categories
       rows = await query<CatalogRow>(
-        `SELECT api_key, name, description, metadata, category
+        `SELECT id, api_key, name, description, metadata, category, image_path
          FROM magic_catalog
          WHERE name ILIKE $1
          ORDER BY name ASC
@@ -41,11 +43,13 @@ export async function POST(request: Request) {
     }
 
     const results = rows.map(r => ({
+      id: r.id,
       key: r.api_key ?? r.name,
       name: r.name,
       description: r.description,
       metadata: r.metadata,
       category: r.category,
+      image_path: r.image_path ?? '',
     }));
 
     return NextResponse.json({ results });

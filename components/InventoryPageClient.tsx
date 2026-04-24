@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import InventoryCreateForm from './InventoryCreateForm';
 import InventoryItemGrid, { type Item } from './InventoryItemGrid';
 import CardPreview, { type CardFields } from './CardPreview';
@@ -27,6 +28,7 @@ const DEFAULT_FIELDS: CardFields = {
 };
 
 export default function InventoryPageClient() {
+  const searchParams = useSearchParams();
   const [fields, setFieldsRaw] = useState<CardFields>({ ...DEFAULT_FIELDS });
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -46,6 +48,46 @@ export default function InventoryPageClient() {
   function setFields(update: Partial<CardFields>) {
     setFieldsRaw(prev => ({ ...prev, ...update }));
   }
+
+  // Prefill from /dm/magic → "Create Card". One-shot on mount.
+  // Brings over type, title, description, and the magic card art.
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (prefilledRef.current) return;
+    const type = searchParams?.get('type');
+    const title = searchParams?.get('title') ?? '';
+    const description = searchParams?.get('description') ?? '';
+    const image = searchParams?.get('image') ?? '';
+    if (!type && !title && !description && !image) return;
+    prefilledRef.current = true;
+
+    const validTypes: Array<'magic_item' | 'scroll' | 'spell'> = ['magic_item', 'scroll', 'spell'];
+    setFieldsRaw(prev => ({
+      ...prev,
+      itemType: validTypes.includes(type as 'magic_item' | 'scroll' | 'spell')
+        ? (type as 'magic_item' | 'scroll' | 'spell')
+        : prev.itemType,
+      title: title || prev.title,
+      description: description || prev.description,
+    }));
+
+    if (image) {
+      // Fetch the magic card art and convert to a File so the inventory's
+      // existing upload flow handles it identically to a drag-and-drop.
+      fetch(image)
+        .then(r => r.ok ? r.blob() : Promise.reject(new Error(String(r.status))))
+        .then(blob => {
+          const ext = (blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+          const file = new File([blob], `prefill.${ext}`, { type: blob.type || 'image/png' });
+          fileRef.current = file;
+          setFieldsRaw(prev => ({ ...prev, imagePreview: URL.createObjectURL(file) }));
+        })
+        .catch(() => {
+          // Silent — DM can drop their own image.
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- Auto-fill via AI ---
   useEffect(() => {

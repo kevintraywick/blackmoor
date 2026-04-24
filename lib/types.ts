@@ -113,6 +113,7 @@ export interface Session {
   journal: string;
   journal_public: string;
   narrative_notes: string;
+  audio_url: string;
 }
 
 export type GridType = 'square' | 'hex';
@@ -133,6 +134,7 @@ export interface Campaign {
   narrative_notes: string;
   home_splash_path: string;
   home_banner_path: string;
+  audio_url: string;
 }
 
 export interface Invitation {

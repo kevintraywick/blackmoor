@@ -1,0 +1,2428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Web of Whispers — A Communication System for Dungeon Masters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Dark modern palette — matched to the Campaign editions page */
+    --bg: #000000;
+    --bg-2: #0d0b09;
+    --surface: #15110e;
+    --ink: #f7f1e6;
+    --ink-2: #c9bdae;
+    --ink-3: #8a7f72;
+    --line: #262019;
+    --line-2: #3a3128;
+
+    --accent: #ff7a3d;              /* warm coral */
+    --accent-2: #a78bfa;             /* soft violet */
+    --accent-3: #34d399;             /* emerald */
+    --accent-4: #fbbf24;             /* amber */
+    --accent-5: #f472b6;             /* hot pink */
+    --gradient: linear-gradient(135deg, #ff7a3d 0%, #f472b6 50%, #a78bfa 100%);
+    --gradient-soft: linear-gradient(135deg, rgba(255,122,61,0.12) 0%, rgba(244,114,182,0.12) 50%, rgba(167,139,250,0.12) 100%);
+
+    /* Channel accents — mapped to the new palette */
+    --c-gossip:  #ff7a3d;
+    --c-bardic:  #f472b6;
+    --c-crier:   #fbbf24;
+    --c-dream:   #a78bfa;
+    --c-cant:    #34d399;
+    --c-druidic: #6ee7b7;
+    --c-poster:  #e8b95a;
+    --c-mouth:   #fb7185;
+    --c-tree:    #22c55e;
+    --c-statue:  #94a3b8;
+    --c-knocker: #f59e0b;
+    --c-raven:   #818cf8;
+
+    /* Gossip source highlight */
+    --c-from-traveler: #ff7a3d;   /* orange — heard directly from the traveler */
+    --c-from-chain:    #38bdf8;   /* blue   — heard through the grapevine */
+    --c-from-crier:    #38bdf8;   /* blue   — cried by the town crier      */
+    --c-from-env:      #4ade80;   /* green  — doorknocker / speaking statue */
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.6;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(circle at 15% 5%, rgba(255,122,61,0.06) 0%, transparent 45%),
+      radial-gradient(circle at 85% 20%, rgba(167,139,250,0.05) 0%, transparent 45%);
+    background-attachment: fixed;
+  }
+
+  ::selection { background: var(--accent); color: #fff; }
+
+  code, .mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.88em;
+  }
+
+  header.hero {
+    text-align: left;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 56px 32px 32px;
+    position: relative;
+    z-index: 1;
+    border-bottom: 1px solid var(--line);
+  }
+  header.hero::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 32px;
+    width: 120px;
+    height: 3px;
+    background: var(--gradient);
+    border-radius: 2px;
+  }
+
+  .hero .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    margin-bottom: 14px;
+  }
+  .hero .eyebrow::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(255,122,61,0.2);
+  }
+  .hero h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(18px, 2.5vw, 31px);
+    margin: 0;
+    color: var(--ink);
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+  .hero h1 .amp {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  .hero .ornament { display: none; }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 32px 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  section.intro {
+    max-width: 820px;
+    margin: 32px auto 48px;
+    padding: 0 32px;
+    position: relative;
+    z-index: 1;
+  }
+  section.intro p {
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--ink-2);
+    margin: 0;
+  }
+  .dropcap::first-letter {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 3.2em;
+    float: left;
+    line-height: 0.85;
+    padding: 6px 12px 0 0;
+    font-weight: 700;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  h2.section-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    text-align: left;
+    margin: 56px 0 8px;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    line-height: 1.1;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+  h2.section-title::before {
+    content: "";
+    width: 4px;
+    height: 20px;
+    background: var(--gradient);
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .section-sub {
+    text-align: left;
+    font-family: 'Inter', sans-serif;
+    color: var(--ink-2);
+    max-width: 620px;
+    font-size: 15px;
+    margin: 0 0 24px;
+  }
+
+  /* ===== MAP ===== */
+  .map-wrap {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    min-height: 540px;
+    margin-top: 16px;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.4);
+  }
+  .map-wrap svg { display: block; width: 100%; height: 100%; }
+
+  .map-legend {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    background: rgba(13,11,9,0.85);
+    border: 1px solid var(--line-2);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+    color: var(--ink-2);
+    max-width: 280px;
+    backdrop-filter: blur(6px);
+  }
+
+  .map-title {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: rgba(13,11,9,0.75);
+    padding: 5px 14px;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    backdrop-filter: blur(6px);
+  }
+
+  .map-pause-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(13,11,9,0.85);
+    border: 1px solid var(--line-2);
+    color: var(--ink-2);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+  .map-pause-btn:hover {
+    border-color: var(--c-from-traveler);
+    color: var(--ink);
+    background: rgba(13,11,9,0.95);
+  }
+  .map-pause-btn .pause-icon {
+    font-size: 13px;
+    line-height: 1;
+    color: var(--c-from-traveler);
+  }
+
+  /* NPC styling */
+  .npc-node { cursor: pointer; transition: transform 0.2s ease; }
+  .npc-node:hover { transform: scale(1.08); }
+  .npc-circle {
+    fill: var(--bg-2);
+    stroke: var(--ink-2);
+    stroke-width: 1.5;
+    transition: all 0.3s ease;
+  }
+  .npc-node.sender .npc-circle { fill: var(--accent); stroke: #fff; stroke-width: 2.5; }
+  .npc-node.receiver .npc-circle { stroke-width: 2.5; }
+  .npc-node.receiver.channel-gossip .npc-circle  { fill: #3a1d10; stroke: var(--c-gossip); }
+  /* Source-specific gossip styling overrides channel-gossip */
+  .npc-node.receiver.src-traveler .npc-circle {
+    fill: #3a1d10;
+    stroke: var(--c-from-traveler);
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c-from-traveler) 60%, transparent));
+  }
+  .npc-node.receiver.src-chain .npc-circle {
+    fill: #0d2133;
+    stroke: var(--c-from-chain);
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c-from-chain) 60%, transparent));
+  }
+  .npc-node.receiver.src-crier .npc-circle {
+    fill: #2d2305;
+    stroke: var(--c-from-crier);
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c-from-crier) 60%, transparent));
+  }
+  .npc-node.receiver.src-env .npc-circle {
+    fill: #0d2816;
+    stroke: var(--c-from-env);
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c-from-env) 60%, transparent));
+  }
+  .npc-knowledge-ring {
+    fill: none;
+    pointer-events: none;
+    opacity: 0.9;
+  }
+  .npc-node.receiver.channel-bardic .npc-circle  { fill: #3a1425; stroke: var(--c-bardic); }
+  .npc-node.receiver.channel-crier .npc-circle   { fill: #2d2305; stroke: var(--c-crier); }
+  .npc-node.receiver.channel-dream .npc-circle   { fill: #231a3a; stroke: var(--c-dream); }
+  .npc-node.receiver.channel-cant .npc-circle    { fill: #082a1c; stroke: var(--c-cant); }
+  .npc-node.receiver.channel-druidic .npc-circle { fill: #0c2a1c; stroke: var(--c-druidic); }
+  .npc-node.receiver.channel-poster .npc-circle  { fill: #2a1f08; stroke: var(--c-poster); }
+  .npc-node.receiver.channel-mouth .npc-circle   { fill: #2d0e12; stroke: var(--c-mouth); }
+  .npc-node.receiver.channel-tree .npc-circle    { fill: #0d2816; stroke: var(--c-tree); }
+  .npc-node.receiver.channel-statue .npc-circle  { fill: #1c2026; stroke: var(--c-statue); }
+  .npc-node.receiver.channel-knocker .npc-circle { fill: #2a1c07; stroke: var(--c-knocker); }
+  .npc-node.receiver.channel-raven .npc-circle   { fill: #1a1d30; stroke: var(--c-raven); }
+
+  /* Environmental entities — objects, not people: dashed rim */
+  .npc-node.env .npc-circle {
+    stroke-dasharray: 4 2;
+    stroke-width: 2;
+    fill: var(--surface);
+  }
+  .npc-node.env.sender .npc-circle {
+    stroke-dasharray: 0;
+    fill: var(--accent);
+  }
+
+  .npc-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    fill: var(--ink);
+    text-anchor: middle;
+    pointer-events: none;
+  }
+  .npc-tags {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    fill: var(--ink-3);
+    text-anchor: middle;
+    pointer-events: none;
+    letter-spacing: 0.04em;
+  }
+
+  .npc-glyph {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    fill: var(--ink);
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+
+  /* Propagation edge */
+  .edge {
+    fill: none;
+    stroke: var(--c-gossip);
+    stroke-width: 1.25;
+    stroke-dasharray: 4 4;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .edge.active { opacity: 0.55; animation: edgeDash 1.6s linear infinite; }
+  @keyframes edgeDash {
+    to { stroke-dashoffset: -16; }
+  }
+  .edge.fade { opacity: 0; transition: opacity 1.4s ease; }
+
+  .pulse {
+    fill: none;
+    stroke-width: 2;
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .pulse.active {
+    animation: pulseRing 1.4s ease-out forwards;
+  }
+  @keyframes pulseRing {
+    0%   { opacity: 0.9; r: 14; stroke-width: 2.5; }
+    100% { opacity: 0;   r: 44; stroke-width: 0.5; }
+  }
+
+  /* Street walkers — ambient townsfolk moving along the roads */
+  .walker { pointer-events: none; }
+  .walker-circle {
+    fill: #1a1410;
+    stroke: #8a7a60;
+    stroke-width: 1;
+    transition: stroke 0.25s ease, fill 0.25s ease, filter 0.25s ease;
+  }
+  .walker.infected.src-traveler .walker-circle {
+    fill: #3a1d10;
+    stroke: var(--c-from-traveler);
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--c-from-traveler) 60%, transparent));
+  }
+  .walker.infected.src-chain .walker-circle {
+    fill: #0d2133;
+    stroke: var(--c-from-chain);
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--c-from-chain) 60%, transparent));
+  }
+  .walker.infected.src-crier .walker-circle {
+    fill: #2d2305;
+    stroke: var(--c-from-crier);
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--c-from-crier) 60%, transparent));
+  }
+  .walker.infected.src-env .walker-circle {
+    fill: #0d2816;
+    stroke: var(--c-from-env);
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--c-from-env) 60%, transparent));
+  }
+  .walker-glyph {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    fill: #c4b090;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+
+  /* Range rings — show the reach of each message-passer */
+  .range-ring {
+    fill: none;
+    stroke-width: 1.25;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  .range-ring.traveler-range {
+    stroke: var(--c-from-traveler);
+    fill: color-mix(in srgb, var(--c-from-traveler) 8%, transparent);
+    opacity: 0.25;
+  }
+  .range-ring.chain-range {
+    stroke: var(--c-from-chain);
+    fill: color-mix(in srgb, var(--c-from-chain) 8%, transparent);
+    stroke-dasharray: 3 5;
+  }
+  .range-ring.chain-range.active { opacity: 0.25; }
+  .range-ring.chain-range.fade { opacity: 0; transition: opacity 1.4s ease; }
+
+  /* Traveler — the animated wanderer carrying the rumor */
+  .traveler .traveler-ring {
+    fill: #1a0d07;
+    stroke: var(--c-gossip);
+    stroke-width: 2.5;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--c-gossip) 70%, transparent));
+  }
+  .traveler .traveler-glow {
+    fill: none;
+    stroke: var(--c-gossip);
+    stroke-width: 1.5;
+    opacity: 0.35;
+    animation: travelerGlow 1.6s ease-in-out infinite;
+  }
+  @keyframes travelerGlow {
+    0%, 100% { r: 22; opacity: 0.45; }
+    50%      { r: 30; opacity: 0.1; }
+  }
+  .traveler .traveler-glyph {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    fill: var(--c-gossip);
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+  .traveler .traveler-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    fill: var(--c-gossip);
+    text-anchor: middle;
+    pointer-events: none;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ===== CHANNELS — vertical drop-list + detail panel ===== */
+  .channels-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 24px;
+    margin-top: 20px;
+    align-items: start;
+  }
+  @media (max-width: 720px) { .channels-layout { grid-template-columns: 1fr; } }
+
+  .channel-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .channel-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    outline: none;
+  }
+  .channel-item:hover { background: var(--bg-2); border-color: var(--line); }
+  .channel-item:focus-visible { border-color: var(--accent); }
+  .channel-item.active {
+    background: var(--surface);
+    border-color: var(--line-2);
+  }
+  .channel-drop {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-2);
+    border: 1.5px dashed var(--line-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    color: var(--accent, var(--ink-2));
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.15s ease;
+  }
+  .channel-drop img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+  .channel-item.active .channel-drop {
+    background: color-mix(in srgb, var(--accent, var(--ink-3)) 18%, var(--surface));
+    border-style: solid;
+    border-color: var(--accent, var(--line-2));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, var(--ink-3)) 15%, transparent);
+  }
+  .channel-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: -0.005em;
+    color: var(--ink-2);
+  }
+  .channel-item.active .channel-name { color: var(--ink); }
+
+  .channel-detail {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--accent, var(--line-2));
+    border-radius: 10px;
+    padding: 24px 28px 26px;
+    min-height: 240px;
+    box-shadow: 0 8px 24px -8px rgba(0,0,0,0.5);
+  }
+  .channel-detail h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    margin: 0 0 4px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .channel-detail .channel-detail-sub {
+    font-family: 'Inter', sans-serif;
+    color: var(--ink-2);
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+  .channel-detail dl { margin: 0; font-size: 14px; }
+  .channel-detail dt {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--accent, var(--ink-3));
+    margin-top: 14px;
+  }
+  .channel-detail dd {
+    margin: 4px 0 0;
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  .channel-detail-empty {
+    font-family: 'Inter', sans-serif;
+    color: var(--ink-3);
+    text-align: center;
+    padding: 60px 0;
+    font-size: 13px;
+  }
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .chip {
+    display: inline-block;
+    background: var(--bg-2);
+    color: var(--ink-2);
+    border: 1px solid var(--line-2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.02em;
+  }
+  .chip.req {
+    background: color-mix(in srgb, var(--accent, var(--accent-5)) 10%, var(--bg-2));
+    border-color: color-mix(in srgb, var(--accent, var(--accent-5)) 40%, var(--line-2));
+    color: var(--accent, var(--accent-5));
+  }
+
+  /* Channel accents assigned by class */
+  .c-gossip { --accent: var(--c-gossip); }
+  .c-bardic { --accent: var(--c-bardic); }
+  .c-crier { --accent: var(--c-crier); }
+  .c-dream { --accent: var(--c-dream); }
+  .c-cant { --accent: var(--c-cant); }
+  .c-druidic { --accent: var(--c-druidic); }
+  .c-poster { --accent: var(--c-poster); }
+  .c-mouth { --accent: var(--c-mouth); }
+  .c-tree { --accent: var(--c-tree); }
+  .c-statue { --accent: var(--c-statue); }
+  .c-knocker { --accent: var(--c-knocker); }
+  .c-raven { --accent: var(--c-raven); }
+
+  /* ===== MATRIX ===== */
+  .matrix-wrap {
+    overflow-x: auto;
+    margin-top: 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  table.matrix {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+    background: transparent;
+  }
+  table.matrix th, table.matrix td {
+    border-bottom: 1px solid var(--line);
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    color: var(--ink-2);
+  }
+  table.matrix thead th {
+    background: var(--bg-2);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  table.matrix tbody th {
+    background: transparent;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  table.matrix tbody tr:last-child td,
+  table.matrix tbody tr:last-child th { border-bottom: none; }
+  table.matrix tbody tr:hover td,
+  table.matrix tbody tr:hover th { background: var(--bg-2); }
+
+  footer {
+    max-width: 1080px;
+    margin: 60px auto 0;
+    padding: 24px 32px 32px;
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>The Web <span class="amp">of</span> Whispers</h1>
+</header>
+
+<section class="intro">
+  <p class="dropcap">Every campaign runs on information. An overheard rumor, street gossip, a chalk mark on a window frame. Create discoveries for players and see them spread as NPCs live out their lives in a relentlessly changing world.</p>
+</section>
+
+<div class="wrap">
+
+<div class="map-wrap">
+  <div class="map-title">Durn's Hollow · A Market Town</div>
+  <button id="map-pause-btn" class="map-pause-btn" type="button" aria-label="Pause animation">
+    <span class="pause-icon">❚❚</span><span class="pause-label">Pause</span>
+  </button>
+  <svg id="map" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" aria-label="Town map"></svg>
+</div>
+
+<h2 class="section-title">The Channels</h2>
+<p class="section-sub">Click a drop to open its card.</p>
+
+<div class="channels-layout">
+  <ul class="channel-list" id="channel-list"></ul>
+  <div class="channel-detail" id="channel-detail">
+    <div class="channel-detail-empty">Select a channel at left.</div>
+  </div>
+</div>
+
+</div> <!-- /.wrap -->
+
+<footer></footer>
+
+<script>
+// =====================================================================
+//  DATA: The 13 channels
+// =====================================================================
+const CHANNELS = {
+  gossip: {
+    name: "Gossip",
+    className: "c-gossip",
+    icon: "☕",
+    sub: "Word of mouth; the oldest network",
+    method: "Spoken freely, overheard, repeated, mutated at each retelling",
+    duration: "Minutes to weeks — modulated by temperature & freshness",
+    range: "Earshot (~135 ft) per day; town-wide via chain",
+    languageGate: "Must share a spoken language with each previous hop",
+    classGate: "None — anyone may overhear",
+    speciesGate: "None",
+    proximityGate: "Must be within ~135 ft of someone retelling it",
+    bestUse: "Seeding rumours, establishing public knowledge, tracking reputation",
+    origin: "NPC speakers, overhearers, repeaters — the town itself",
+    targeted: false,
+    wordBudget: null,
+    sampleChips: ["Common", "Any spoken tongue", "HOT / WARM / COLD", "FRESH / AGING / STALE"],
+    reqChips: []
+  },
+  bardic: {
+    name: "Bardic Rumors",
+    className: "c-bardic",
+    icon: "♪",
+    sub: "Songs and tales, traded between taverns",
+    method: "Performed in taverns and halls; the bard's craft weaves the news into verse so it sticks",
+    duration: "Songs outlive their singers — weeks to years in the tavern repertoire",
+    range: "Hearing range at the performance; unlimited via the bardic network",
+    languageGate: "Audience must understand the performance's language",
+    classGate: "Bards pick up and carry each other's songs; non-bards in earshot simply hear them",
+    speciesGate: "None",
+    proximityGate: "Immediate listeners within earshot; other bards anywhere in the town within days",
+    bestUse: "Satire, warning, propaganda dressed as art, a message carried from city to city",
+    origin: "A bard, often travelling — or a ballad commissioned by the DM's hidden benefactor",
+    targeted: false,
+    wordBudget: null,
+    sampleChips: ["Common", "Any shared tongue"],
+    reqChips: ["Bard performs", "Tavern / gathering"]
+  },
+  crier: {
+    name: "Town Crier",
+    className: "c-crier",
+    icon: "🕭",
+    sub: "\"Hear ye, hear ye\" — the state's own voice",
+    method: "A crier walks a circuit of public spaces and reads announcements aloud, several times a day",
+    duration: "Each cry is fleeting; the circuit repeats morning, noon, and evening",
+    range: "Large radius of the crying spot (~150 ft in a crowded square)",
+    languageGate: "Audience must speak the crier's language (usually Common)",
+    classGate: "None",
+    speciesGate: "None",
+    proximityGate: "Must be near the crier's station when the cry goes up",
+    bestUse: "Taxes, curfews, bounty announcements, royal proclamations — the slow official channel",
+    origin: "Lawful authority: a lord, a guild, a temple",
+    targeted: false,
+    wordBudget: null,
+    sampleChips: ["Common"],
+    reqChips: ["Crier present"]
+  },
+  dream: {
+    name: "Dreams",
+    className: "c-dream",
+    icon: "☾",
+    sub: "Recurring nocturnal messages — gods, ghosts, curses",
+    method: "A god, haunt, or spellcaster shapes the dreams of a sleeper; persistence comes from recurrence",
+    duration: "One rest per casting — but recurring dreams return nightly until the hook is resolved",
+    range: "Unlimited on the same plane",
+    languageGate: "Sleeper must understand the sender's language (or receive it in imagery)",
+    classGate: "None required of the receiver",
+    speciesGate: "None (target must sleep)",
+    proximityGate: "None — but the target must rest during the sending window",
+    bestUse: "Recurring villain, prophecy, haunting, a curse that will not let the PC rest",
+    origin: "A god, a lich, a cursed relic, a grieving spirit, a distant caster",
+    targeted: true,
+    wordBudget: null,
+    sampleChips: ["Any shared language"],
+    reqChips: ["Dream-sender"]
+  },
+  cant: {
+    name: "Thieves' Cant (Marks)",
+    className: "c-cant",
+    icon: "✂",
+    sub: "Chalk-marks on lintels, benches, mile-posts",
+    method: "Short coded glyphs scratched or chalked onto doorframes, signposts, and alley walls",
+    duration: "Persists until scrubbed, painted over, or weathered off — often months",
+    range: "Unlimited time; legible within a few feet of the mark",
+    languageGate: "Must know Thieves' Cant",
+    classGate: "Rogues (class feature); bards or others only by story-earned training",
+    speciesGate: "None",
+    proximityGate: "Must be close enough to see the mark",
+    bestUse: "Warnings left by thieves who moved on, safehouse signalling, guild politics",
+    origin: "A rogue long-vanished — from this campaign or another. Left for whoever comes next.",
+    targeted: false,
+    wordBudget: null,
+    sampleChips: ["Thieves' Cant"],
+    reqChips: ["Rogue (or trained)"]
+  },
+  druidic: {
+    name: "Druidic (Marks)",
+    className: "c-druidic",
+    icon: "❦",
+    sub: "Carved glyphs, bent branches, pressed stones",
+    method: "Natural signs — a knot tied in a sapling, a stone circle disturbed, a sigil in bark",
+    duration: "As long as the tree lives or the stone weathers — often years",
+    range: "Visible within a few paces of the sign",
+    languageGate: "Must know Druidic",
+    classGate: "Druids only — tradition forbids teaching outsiders",
+    speciesGate: "None",
+    proximityGate: "Must be close enough to read the sign",
+    bestUse: "Grove boundaries, blight warnings, druidic-circle coordination across seasons",
+    origin: "A druid of this circle or a prior one; sometimes the place itself remembers",
+    targeted: false,
+    wordBudget: null,
+    sampleChips: ["Druidic"],
+    reqChips: ["Druid"]
+  },
+  poster: {
+    name: "Posters & Flyers",
+    className: "c-poster",
+    icon: "▤",
+    sub: "Paper nailed to boards and gate-posts",
+    method: "Printed or painted on paper, nailed at guard posts, tavern boards, town gates",
+    duration: "Days to months, depending on weather and who wants them removed",
+    range: "Legible at arm's length; posting spot is fixed",
+    languageGate: "Reader must know the language and, critically, be literate in it",
+    classGate: "None — but literacy is far from universal",
+    speciesGate: "None",
+    proximityGate: "Must pass the posting spot and stop to look",
+    bestUse: "Bounties, wanted notices, event announcements, royal edicts, political agitation",
+    origin: "A lord, a sheriff, a guild, a rival faction, a cryptic stranger",
+    targeted: false,
+    wordBudget: null,
+    sampleChips: ["Common (read)"],
+    reqChips: ["Literacy"]
+  },
+  mouth: {
+    name: "Magic Mouth",
+    className: "c-mouth",
+    icon: "☥",
+    sub: "A voice sealed in an object, awaiting its cue",
+    method: "An object is enchanted to speak a 25-word message when its trigger condition is met",
+    duration: "Permanent until dispelled or triggered (caster's choice at casting)",
+    range: "Audible within ~30 ft of the enchanted object",
+    languageGate: "Listeners must understand the recorded language",
+    classGate: "Requires a caster of Magic Mouth to have placed the glyph",
+    speciesGate: "None",
+    proximityGate: "Anyone within audible range when triggered",
+    bestUse: "Tomb guardians, wards, \"if you are reading this\" scenes, glyphs on gates",
+    origin: "A wizard long dead, a paranoid patron, a noble's final warning",
+    targeted: false,
+    wordBudget: 25,
+    sampleChips: ["Any shared language"],
+    reqChips: ["Placed in advance"]
+  },
+  tree: {
+    name: "Talking Trees",
+    className: "c-tree",
+    icon: "♣",
+    sub: "Awakened oaks, watchful treants, sacred groves",
+    method: "A tree speaks when a worthy seeker approaches — often only in Druidic or Sylvan",
+    duration: "The tree remembers as long as it lives (centuries)",
+    range: "Audible within ~20 paces of the trunk",
+    languageGate: "Tree speaks its chosen tongues — usually Druidic, Sylvan, sometimes Common",
+    classGate: "Some trees answer only druids or those who know the right courtesy",
+    speciesGate: "None — but fey and elves are often favoured",
+    proximityGate: "Must approach the tree, often with a gesture of respect",
+    bestUse: "Hidden lore, forest gatekeepers, druidic oracles, the grove's memory",
+    origin: "An Awaken-spell legacy; an ancient treant; a god's bound servant",
+    targeted: false,
+    wordBudget: null,
+    sampleChips: ["Druidic", "Sylvan", "sometimes Common"],
+    reqChips: ["Approach with respect"]
+  },
+  statue: {
+    name: "Speaking Statues",
+    className: "c-statue",
+    icon: "⛬",
+    sub: "Oracular stone; saints that prophecy",
+    method: "A carved figure speaks to any who pray, recite the passphrase, or meet the trigger",
+    duration: "Permanent — the enchantment is set in the stone itself",
+    range: "Audible within ~10 paces",
+    languageGate: "Statue speaks whatever was set at consecration — often Celestial, Common, or the temple tongue",
+    classGate: "Some statues answer only clerics of their deity, or those bearing the right sigil",
+    speciesGate: "None",
+    proximityGate: "Must approach, often kneel or touch the plinth",
+    bestUse: "Temple oracles, crypt guardians, tomb wardens, ancient prophets preserved in stone",
+    origin: "A consecration rite; a god's final gift; a lich's vanity",
+    targeted: false,
+    wordBudget: null,
+    sampleChips: ["Common", "Celestial"],
+    reqChips: ["Prayer or passphrase"]
+  },
+  knocker: {
+    name: "Doorknockers",
+    className: "c-knocker",
+    icon: "◉",
+    sub: "Animated heads of bronze, brass, or bone",
+    method: "A knocker-head wakes when someone knocks and speaks to the knocker directly",
+    duration: "Permanent — as long as the door stands",
+    range: "The step; you must stand at the door",
+    languageGate: "Knocker speaks one or two languages, usually Common and whatever the maker spoke",
+    classGate: "Some knockers refuse non-wizards, or demand a password known only to the household",
+    speciesGate: "A few are openly bigoted — an old drow-warding knocker will abuse a drow caller",
+    proximityGate: "Must stand at the door and knock",
+    bestUse: "Mage-tower entrance, noble manor, Sigil-style portal gate, planar threshold",
+    origin: "The builder's commission — often the wizard or noble who lives behind the door",
+    targeted: false,
+    wordBudget: null,
+    sampleChips: ["Common"],
+    reqChips: ["At the door"]
+  },
+  raven: {
+    name: "Ravens",
+    className: "c-raven",
+    icon: "✦",
+    sub: "A sealed note clutched in a bird's feet",
+    method: "A trained raven (or tressym, or pigeon) carries a small note to a named destination",
+    duration: "Days to a week across a kingdom; the note persists as long as the recipient keeps it",
+    range: "As far as a bird can fly — effectively unlimited overland",
+    languageGate: "Recipient must be literate in the note's language (or have someone to read it)",
+    classGate: "None — but noble/wizard/temple households keep ravens far more than commoners",
+    speciesGate: "None",
+    proximityGate: "Bird must reach the destination — and can be intercepted, shot down, redirected",
+    bestUse: "Noble correspondence, temple business, wizard-to-wizard; a PC may intercept one",
+    origin: "A distant sender — another noble, an agent of the Crown, a patron in another city",
+    targeted: true,
+    wordBudget: null,
+    sampleChips: ["Common (read)"],
+    reqChips: ["Literacy", "Named destination", "Interceptable"]
+  }
+};
+
+// =====================================================================
+//  DATA: The entities of Durn's Hollow
+// =====================================================================
+// x,y in 800x600 viewBox; glyph is a short mark inside the node.
+// `type:'npc'` is a person; `type:'env'` is an enchanted/animated object (tree, statue, knocker).
+// `literate` determines whether Posters land.
+// Environmental entities are left UNNAMED — the DM gives them names (and may scatter
+// several of each throughout the kingdom). We track them here by role + place only.
+const NPCS = [
+  // Named people (the PCs meet these by name)
+  { id:'mira',    name:"Mira Quickfingers",  glyph:"M", species:"Human",    class:"Rogue",    languages:["Common","Thieves' Cant"],                       x:500, y:430, place:"Market Lane", literate:true,  type:'npc' },
+  { id:'rowan',   name:"Elder Rowan",        glyph:"R", species:"Half-Elf", class:"Druid",    languages:["Common","Elvish","Druidic","Sylvan"],           x:120, y:140, place:"The Grove",         literate:true,  type:'npc' },
+  { id:'aldric',  name:"Baron Aldric",       glyph:"A", species:"Human",    class:"Fighter",  languages:["Common","Dwarvish"],                            x:630, y:175, place:"The Manor",         literate:true,  type:'npc' },
+  { id:'shezra',  name:"Shez'ra",            glyph:"S", species:"Drow",     class:"Ranger",   languages:["Common","Elvish","Undercommon"],                x:510, y:480, place:"Undermarket stall", literate:true,  type:'npc' },
+  { id:'oddvin',  name:"Oddvin Deepdelve",   glyph:"O", species:"Dwarf",    class:"Cleric",   languages:["Common","Dwarvish","Giant"],                    x:500, y:290, place:"Temple of Moradin", literate:true,  type:'npc' },
+  { id:'lysander',name:"Lysander",           glyph:"L", species:"Elf",      class:"Wizard",   languages:["Common","Elvish","Draconic","Sylvan"],          x:670, y:360, place:"The Tower",         literate:true,  type:'npc' },
+  { id:'grig',    name:"Grig the Gossip",    glyph:"G", species:"Halfling", class:"Commoner", languages:["Common","Halfling"],                            x:410, y:325, place:"Town square",       literate:false, type:'npc' },
+  { id:'shadow',  name:"Shadowmane",         glyph:"✦", species:"Tabaxi",   class:"Rogue",    languages:["Common","Thieves' Cant"],                       x:300, y:345, place:"Back alley",        literate:true,  type:'npc' },
+  { id:'vaelith', name:"Vaelith",            glyph:"V", species:"Drow",     class:"Cleric",   languages:["Undercommon","Elvish","Infernal"],              x:160, y:540, place:"Crypt-shrine on the South Road", literate:true,  type:'npc' },
+  { id:'sten',    name:"Brother Sten",       glyph:"✝", species:"Human",    class:"Cleric",   languages:["Common","Celestial"],                           x:260, y:215, place:"Abbey garden",      literate:true,  type:'npc' },
+  { id:'thess',   name:"Thessaly",           glyph:"T", species:"Half-Elf", class:"Bard",     languages:["Common","Elvish","Thieves' Cant"],              x:460, y:395, place:"Tavern stage",      literate:true,  type:'npc' },
+  { id:'kael',    name:"Kael",               glyph:"K", species:"Wood Elf", class:"Druid",    languages:["Common","Elvish","Druidic","Sylvan"],           x:230, y:70,  place:"Forest edge",       literate:true,  type:'npc' },
+
+  // Unnamed roles — town criers. The DM names them.
+  { id:'crier_a', name:"A Town Crier",       glyph:"🕭", species:"Human",   class:"Town Crier", languages:["Common"],                                      x:445, y:145, place:"top of Market Lane", literate:true,  type:'npc' },
+
+  // Unnamed, place-bound voices — scattered through the kingdom. The DM names each.
+  { id:'tree_a',    name:"A Talking Tree",     glyph:"♣", species:"Awakened Tree", class:"Oracle",   languages:["Druidic","Sylvan","Common"],               x:55,  y:95,  place:"the Deep Forest",   literate:false, type:'env' },
+  { id:'tree_b',    name:"A Talking Tree",     glyph:"♣", species:"Awakened Tree", class:"Oracle",   languages:["Sylvan","Common"],                         x:730, y:520, place:"the South Road",    literate:false, type:'env' },
+  { id:'statue_b',  name:"A Speaking Statue",  glyph:"⛬", species:"Stone Idol",    class:"Oracle",   languages:["Common","Infernal"],                       x:290, y:540, place:"along the South Road", literate:false, type:'env' },
+  { id:'knocker_a', name:"A Doorknocker",      glyph:"◉", species:"Doorknocker",   class:"Guardian", languages:["Common","Draconic"],                       x:580, y:220, place:"the Manor",         literate:false, type:'env' },
+];
+
+const byId = Object.fromEntries(NPCS.map(n => [n.id, n]));
+
+// Proximity thresholds (pixels in the 800x600 map)
+// Proximity thresholds. The map's 800×600 viewBox represents a ~600 ft town,
+// so 1 ft ≈ 1.33 px. Narrative scale, not strict RAW.
+const HEAR_NEAR = 180;            // gossip hop distance (~135 ft)
+const BARDIC_IMMEDIATE = 180;     // bard's immediate audience in the hall
+const CRIER_RANGE = 300;          // town crier's cry reaches the square and nearby streets
+const CANT_MARK_RANGE = 220;      // range at which a chalk-mark is noticed / read
+const DRUID_MARK_RANGE = 260;     // range at which a druidic sign is noticed
+const POSTER_RANGE = 200;         // passers-by who stop to read
+const MAGIC_MOUTH_RANGE = 150;    // Magic Mouth trigger earshot (~110 ft)
+const TREE_RANGE = 180;           // approach a tree to hear it speak
+const STATUE_RANGE = 140;         // stand in the statue's alcove
+const KNOCKER_RANGE = 80;         // be at the door — intimate
+
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+const SECRET_LANGS = new Set(["Thieves' Cant", "Druidic"]);
+
+// =====================================================================
+//  PROPAGATION
+// =====================================================================
+function sharedCommonLanguages(a, b) {
+  return a.languages.filter(l => b.languages.includes(l) && !SECRET_LANGS.has(l));
+}
+
+// Gossip chain model. Temperature × freshness set how MANY days the rumor
+// keeps spreading and how many neighbors each carrier retells it to per day.
+// On every "day", each NPC who currently knows picks up to N nearest
+// unaware neighbors within HEAR_NEAR and tells them — and the next day,
+// THOSE NPCs pass it on too. A fresh HOT rumor saturates the town; a stale
+// COLD rumor barely reaches the sender's immediate circle.
+const GOSSIP_DAYS   = { hot:{fresh:4,aging:3,stale:2}, warm:{fresh:3,aging:2,stale:1}, cold:{fresh:2,aging:1,stale:1} };
+const GOSSIP_SHARES = { hot:{fresh:3,aging:2,stale:2}, warm:{fresh:2,aging:2,stale:1}, cold:{fresh:1,aging:1,stale:1} };
+
+function propagateGossipChain(sender, temperature, freshness) {
+  const temp = temperature || 'warm';
+  const fresh = freshness || 'fresh';
+  const maxDays      = (GOSSIP_DAYS[temp]   && GOSSIP_DAYS[temp][fresh])   || 2;
+  const sharesPerDay = (GOSSIP_SHARES[temp] && GOSSIP_SHARES[temp][fresh]) || 2;
+
+  const knows = new Set([sender.id]);
+  const events = []; // {from, to, day, reason, shared}
+
+  for (let day = 1; day <= maxDays; day++) {
+    // Carriers are those who already know — process in a stable order.
+    const carriers = NPCS.filter(n => knows.has(n.id) && n.type !== 'env');
+    const todaysNew = [];
+
+    for (const carrier of carriers) {
+      // Candidates: unknown NPCs in earshot that share a (non-secret) tongue.
+      const candidates = NPCS
+        .filter(n => !knows.has(n.id) && !todaysNew.some(e => e.to.id === n.id))
+        .filter(n => n.type !== 'env')                        // objects don't pick up street gossip
+        .filter(n => dist(carrier, n) <= HEAR_NEAR)
+        .filter(n => sharedCommonLanguages(carrier, n).length > 0)
+        .sort((a, b) => dist(carrier, a) - dist(carrier, b)); // closest first
+
+      for (const cand of candidates.slice(0, sharesPerDay)) {
+        const shared = sharedCommonLanguages(carrier, cand)[0];
+        todaysNew.push({ from: carrier, to: cand, day, shared });
+      }
+    }
+
+    if (todaysNew.length === 0) break;
+    for (const e of todaysNew) { knows.add(e.to.id); events.push(e); }
+  }
+  return { events, maxDays, sharesPerDay };
+}
+
+function propagate(senderId, channelKey, targetId, message, opts = {}) {
+  const sender = byId[senderId];
+  const recipients = []; // {npc, edgeFrom, reason, hop, day}
+  let note = null;
+
+  if (channelKey === 'gossip') {
+    const { events, maxDays, sharesPerDay } = propagateGossipChain(sender, opts.temperature, opts.freshness);
+    events.forEach(e => {
+      recipients.push({
+        npc: e.to, edgeFrom: e.from, hop: e.day, day: e.day,
+        reason: e.day === 1
+          ? `in earshot of ${e.from.name}; shared ${e.shared}`
+          : `told by ${e.from.name} on day ${e.day}; shared ${e.shared}`
+      });
+    });
+    note = `A <strong>${(opts.temperature || 'warm').toUpperCase()}</strong> rumor, <strong>${(opts.freshness || 'fresh').toUpperCase()}</strong> — runs for ${maxDays} day${maxDays===1?'':'s'}, each carrier passes it to up to ${sharesPerDay} neighbor${sharesPerDay===1?'':'s'} per day.`;
+  }
+
+  else if (channelKey === 'bardic') {
+    // Immediate audience in the hall
+    for (const other of NPCS) {
+      if (other.id === sender.id) continue;
+      if (other.type === 'env') continue;
+      if (dist(sender, other) > BARDIC_IMMEDIATE) continue;
+      const shared = sharedCommonLanguages(sender, other);
+      if (shared.length === 0) continue;
+      recipients.push({
+        npc: other, edgeFrom: sender,
+        reason: `in the hall for the performance; follows the verse in ${shared[0]}`
+      });
+    }
+    // Bardic network: every OTHER bard in town picks up the song within days
+    for (const other of NPCS) {
+      if (other.id === sender.id) continue;
+      if (other.class !== 'Bard') continue;
+      if (recipients.some(r => r.npc.id === other.id)) continue;
+      recipients.push({
+        npc: other, edgeFrom: sender,
+        reason: `bardic network — bards carry each other's songs between taverns`
+      });
+    }
+  }
+
+  else if (channelKey === 'crier') {
+    for (const other of NPCS) {
+      if (other.id === sender.id) continue;
+      if (other.type === 'env') continue;
+      if (dist(sender, other) > CRIER_RANGE) continue;
+      const shared = sharedCommonLanguages(sender, other);
+      if (shared.length === 0) continue;
+      recipients.push({
+        npc: other, edgeFrom: sender,
+        reason: `within hearing of the cry; follows ${shared[0]}`
+      });
+    }
+  }
+
+  else if (channelKey === 'dream') {
+    if (!targetId) return { ok:false, note: "A dream needs a sleeper — pick a target." };
+    const target = byId[targetId];
+    const shared = sharedCommonLanguages(sender, target);
+    recipients.push({
+      npc: target, edgeFrom: sender,
+      reason: shared.length
+        ? `dream-visited during rest; ${shared[0]} speaker — visions lingered at dawn`
+        : `dream arrives as imagery — no shared tongue for words, but the feeling stays`
+    });
+  }
+
+  else if (channelKey === 'cant') {
+    // Chalk/knife marks persist. Anyone who knows Cant and passes within range reads them.
+    for (const other of NPCS) {
+      if (other.id === sender.id) continue;
+      if (!other.languages.includes("Thieves' Cant")) continue;
+      if (dist(sender, other) > CANT_MARK_RANGE) continue;
+      recipients.push({
+        npc: other, edgeFrom: sender,
+        reason: `reads the chalk-mark — trained in Thieves' Cant (${other.class})`
+      });
+    }
+  }
+
+  else if (channelKey === 'druidic') {
+    for (const other of NPCS) {
+      if (other.id === sender.id) continue;
+      if (!other.languages.includes("Druidic")) continue;
+      if (dist(sender, other) > DRUID_MARK_RANGE) continue;
+      recipients.push({
+        npc: other, edgeFrom: sender,
+        reason: `finds the sign; a druid reads it in Druidic`
+      });
+    }
+  }
+
+  else if (channelKey === 'poster') {
+    for (const other of NPCS) {
+      if (other.id === sender.id) continue;
+      if (other.type === 'env') continue;
+      if (dist(sender, other) > POSTER_RANGE) continue;
+      const shared = sharedCommonLanguages(sender, other);
+      if (shared.length === 0) continue;
+      if (!other.literate) {
+        recipients.push({
+          npc: other, edgeFrom: sender,
+          reason: `passes the poster but cannot read — may ask someone else`
+        });
+        continue;
+      }
+      recipients.push({
+        npc: other, edgeFrom: sender,
+        reason: `stops, reads the poster in ${shared[0]}`
+      });
+    }
+  }
+
+  else if (channelKey === 'mouth') {
+    // Magic Mouth — anyone within trigger earshot; shared language understands
+    for (const other of NPCS) {
+      if (other.id === sender.id) continue;
+      if (other.type === 'env') continue;
+      if (dist(sender, other) > MAGIC_MOUTH_RANGE) continue;
+      const shared = sharedCommonLanguages(sender, other);
+      recipients.push({
+        npc: other, edgeFrom: sender,
+        reason: shared.length
+          ? `hears the glyph speak in ${shared[0]}`
+          : `hears the glyph speak — but cannot parse the words`
+      });
+    }
+  }
+
+  else if (channelKey === 'tree' || channelKey === 'statue' || channelKey === 'knocker') {
+    const rangeFor = { tree: TREE_RANGE, statue: STATUE_RANGE, knocker: KNOCKER_RANGE };
+    const verbFor = {
+      tree: 'approaches the tree',
+      statue: 'kneels at the statue',
+      knocker: 'stands at the door and knocks'
+    };
+    for (const other of NPCS) {
+      if (other.id === sender.id) continue;
+      if (other.type === 'env') continue;
+      if (dist(sender, other) > rangeFor[channelKey]) continue;
+      const shared = sharedCommonLanguages(sender, other);
+      if (shared.length === 0) {
+        recipients.push({
+          npc: other, edgeFrom: sender,
+          reason: `${verbFor[channelKey]}, but does not share a tongue with the voice`
+        });
+        continue;
+      }
+      recipients.push({
+        npc: other, edgeFrom: sender,
+        reason: `${verbFor[channelKey]}; the voice speaks ${shared[0]}`
+      });
+    }
+  }
+
+  else if (channelKey === 'raven') {
+    if (!targetId) return { ok:false, note: "A raven needs a destination — pick a target." };
+    const target = byId[targetId];
+    if (target.type === 'env') {
+      return { ok:false, note: `${target.name} is not a living recipient — a raven will not land there.` };
+    }
+    const shared = sharedCommonLanguages(sender, target);
+    if (!shared.length) {
+      recipients.push({
+        npc: target, edgeFrom: sender,
+        reason: `raven arrives with a sealed note — no shared tongue, needs translation`
+      });
+    } else if (!target.literate) {
+      recipients.push({
+        npc: target, edgeFrom: sender,
+        reason: `raven arrives — ${target.name} cannot read; they find someone who can`
+      });
+    } else {
+      recipients.push({
+        npc: target, edgeFrom: sender,
+        reason: `raven arrives with a sealed note; ${target.name} reads it in ${shared[0]}`
+      });
+    }
+  }
+
+  return { ok: true, recipients, note };
+}
+
+// =====================================================================
+//  RENDERING
+// =====================================================================
+const svgNS = "http://www.w3.org/2000/svg";
+const map = document.getElementById('map');
+const streetPathRefs = {}; // id -> SVG path element, for walker routing
+let travelerPathEl = null; // SVG path the traveler follows — woods → High St → East Gate
+
+function drawMap() {
+  map.innerHTML = '';
+
+  // Background flourishes — streets, buildings, forest
+  const bg = document.createElementNS(svgNS, 'g');
+
+  // ----- Streets of Durn's Hollow -----
+  // Paved tan stone, drawn as a soft tan band with a dashed center line.
+  const streets = [
+    // High Street — runs east-west through town, ties the abbey side
+    // to the East Gate, passing the square, the temple, and the tower.
+    {
+      id: 'high-street',
+      d: 'M -20 335 Q 200 345, 310 330 T 500 310 Q 620 305, 820 300',
+      label: 'High Street',
+      labelPos: { x: 200, y: 328, angle: -2 }
+    },
+    // Market Lane — runs north-south, from the manor road down through
+    // the tavern to the underdark market by the river.
+    {
+      id: 'market-lane',
+      d: 'M 445 145 Q 455 260, 440 330 T 500 460 L 530 560',
+      label: 'Market Lane',
+      labelPos: { x: 453, y: 210, angle: 88 }
+    },
+    // South Road — the cart track along the south of town, past the
+    // crypt and undermarket, meeting the Talking Tree of the south.
+    {
+      id: 'south-road',
+      d: 'M -20 555 Q 200 568, 400 558 Q 600 548, 820 528',
+      label: 'South Road',
+      labelPos: { x: 640, y: 550, angle: -3 }
+    }
+  ];
+
+  streets.forEach(s => {
+    // Outer casing (wider, darker — gives the road an edge)
+    const casing = document.createElementNS(svgNS, 'path');
+    casing.setAttribute('d', s.d);
+    casing.setAttribute('fill', 'none');
+    casing.setAttribute('stroke', '#4a3a28');
+    casing.setAttribute('stroke-width', '24');
+    casing.setAttribute('stroke-linecap', 'round');
+    casing.setAttribute('opacity', '0.32');
+    bg.appendChild(casing);
+
+    // Road surface
+    const road = document.createElementNS(svgNS, 'path');
+    road.setAttribute('d', s.d);
+    road.setAttribute('fill', 'none');
+    road.setAttribute('stroke', '#a18866');
+    road.setAttribute('stroke-width', '18');
+    road.setAttribute('stroke-linecap', 'round');
+    road.setAttribute('opacity', '0.35');
+    bg.appendChild(road);
+    streetPathRefs[s.id] = road;
+
+    // Cobbled center line — subtle dashed stroke
+    const center = document.createElementNS(svgNS, 'path');
+    center.setAttribute('d', s.d);
+    center.setAttribute('fill', 'none');
+    center.setAttribute('stroke', '#d9c29a');
+    center.setAttribute('stroke-width', '1.25');
+    center.setAttribute('stroke-dasharray', '4 8');
+    center.setAttribute('opacity', '0.4');
+    bg.appendChild(center);
+
+    // Label
+    if (s.label) {
+      const lbl = document.createElementNS(svgNS, 'text');
+      lbl.textContent = s.label;
+      lbl.setAttribute('x', s.labelPos.x);
+      lbl.setAttribute('y', s.labelPos.y);
+      lbl.setAttribute('transform',
+        `rotate(${s.labelPos.angle} ${s.labelPos.x} ${s.labelPos.y})`);
+      lbl.setAttribute('fill', '#b89870');
+      lbl.setAttribute('opacity', '0.55');
+      lbl.setAttribute('font-family', 'JetBrains Mono, monospace');
+      lbl.setAttribute('font-size', '9');
+      lbl.setAttribute('letter-spacing', '0.2em');
+      lbl.setAttribute('text-anchor', 'middle');
+      bg.appendChild(lbl);
+    }
+  });
+
+  // Forest (top-left)
+  for (let i = 0; i < 18; i++) {
+    const t = document.createElementNS(svgNS, 'circle');
+    t.setAttribute('cx', 40 + Math.random() * 260);
+    t.setAttribute('cy', 30 + Math.random() * 180);
+    t.setAttribute('r', 14 + Math.random() * 12);
+    t.setAttribute('fill', '#6e8a5a');
+    t.setAttribute('opacity', '0.35');
+    bg.appendChild(t);
+  }
+
+  // Traveler's route — comes out of the deep woods, winds down through the
+  // tree line, joins High Street at the west end, then follows the road east
+  // to the gate. A faint dashed trail shows the route.
+  const travelPath = document.createElementNS(svgNS, 'path');
+  travelPath.setAttribute('d',
+    'M 30 50 C 70 140, 150 220, 210 325 ' +
+    'Q 310 340, 400 320 T 500 310 Q 620 305, 820 300');
+  travelPath.setAttribute('fill', 'none');
+  travelPath.setAttribute('stroke', '#d9c29a');
+  travelPath.setAttribute('stroke-width', '1.25');
+  travelPath.setAttribute('stroke-dasharray', '3 6');
+  travelPath.setAttribute('opacity', '0.25');
+  bg.appendChild(travelPath);
+  travelerPathEl = travelPath;
+
+  // Buildings of Durn's Hollow — the same twelve blocks, moved to line the streets.
+  // Four along the north side of High Street, four along the south side, two west of
+  // Market Lane, and two east of Market Lane. No new buildings — just repositioned.
+  const buildings = [
+    // North side of High Street
+    { x:  80, y: 296, w: 26, h: 22, shade: '#8a6a44' },
+    { x: 160, y: 302, w: 28, h: 22, shade: '#7a5e3e' },
+    { x: 310, y: 298, w: 30, h: 22, shade: '#a0805a' },
+    { x: 540, y: 275, w: 28, h: 22, shade: '#8a6a44' },
+    // South side of High Street
+    { x:  60, y: 368, w: 26, h: 22, shade: '#7a5e3e' },
+    { x: 240, y: 365, w: 28, h: 24, shade: '#8a6a44' },
+    { x: 350, y: 355, w: 26, h: 22, shade: '#a0805a' },
+    { x: 555, y: 335, w: 30, h: 24, shade: '#7a5e3e' },
+    // West of Market Lane
+    { x: 380, y: 230, w: 26, h: 22, shade: '#8a6a44' },
+    { x: 378, y: 375, w: 28, h: 22, shade: '#a0805a' },
+    // East of Market Lane
+    { x: 478, y: 200, w: 28, h: 22, shade: '#7a5e3e' },
+    { x: 533, y: 495, w: 26, h: 22, shade: '#8a6a44' }
+  ];
+  buildings.forEach(b => {
+    // Shadow beneath
+    const sh = document.createElementNS(svgNS, 'rect');
+    sh.setAttribute('x', b.x + 2); sh.setAttribute('y', b.y + 2);
+    sh.setAttribute('width', b.w); sh.setAttribute('height', b.h);
+    sh.setAttribute('fill', '#000'); sh.setAttribute('opacity', '0.25');
+    bg.appendChild(sh);
+    // Wall
+    const r = document.createElementNS(svgNS, 'rect');
+    r.setAttribute('x', b.x); r.setAttribute('y', b.y);
+    r.setAttribute('width', b.w); r.setAttribute('height', b.h);
+    r.setAttribute('fill', b.shade); r.setAttribute('opacity', '0.55');
+    r.setAttribute('stroke', '#3d2f20'); r.setAttribute('stroke-width', '1');
+    bg.appendChild(r);
+    // Simple pitched roof line across the top third
+    const roof = document.createElementNS(svgNS, 'polygon');
+    const rx1 = b.x, rx2 = b.x + b.w, rcx = b.x + b.w / 2;
+    const ry1 = b.y, ry2 = b.y - Math.min(7, b.h * 0.35);
+    roof.setAttribute('points', `${rx1},${ry1} ${rx2},${ry1} ${rcx},${ry2}`);
+    roof.setAttribute('fill', '#5a4228'); roof.setAttribute('opacity', '0.55');
+    roof.setAttribute('stroke', '#2e2215'); roof.setAttribute('stroke-width', '0.75');
+    bg.appendChild(roof);
+  });
+
+  // Manor (top right)
+  const manor = document.createElementNS(svgNS, 'rect');
+  manor.setAttribute('x', 590); manor.setAttribute('y', 140);
+  manor.setAttribute('width', 70); manor.setAttribute('height', 60);
+  manor.setAttribute('fill', '#b89870'); manor.setAttribute('opacity', '0.4');
+  bg.appendChild(manor);
+
+  // Tower
+  const tower = document.createElementNS(svgNS, 'circle');
+  tower.setAttribute('cx', 670); tower.setAttribute('cy', 360);
+  tower.setAttribute('r', 30); tower.setAttribute('fill', '#a88860'); tower.setAttribute('opacity', '0.35');
+  bg.appendChild(tower);
+
+  // Crypt (along the South Road, bottom-left)
+  const crypt = document.createElementNS(svgNS, 'rect');
+  crypt.setAttribute('x', 130); crypt.setAttribute('y', 515);
+  crypt.setAttribute('width', 60); crypt.setAttribute('height', 35);
+  crypt.setAttribute('fill', '#5a4a3e'); crypt.setAttribute('opacity', '0.45');
+  bg.appendChild(crypt);
+
+  map.appendChild(bg);
+
+  // Range-ring layer (below edges so rings read as ambient backdrops)
+  const rangeLayer = document.createElementNS(svgNS, 'g');
+  rangeLayer.setAttribute('id', 'ranges');
+  map.appendChild(rangeLayer);
+
+  // Edge layer
+  const edgeLayer = document.createElementNS(svgNS, 'g');
+  edgeLayer.setAttribute('id', 'edges');
+  map.appendChild(edgeLayer);
+
+  // Pulse layer
+  const pulseLayer = document.createElementNS(svgNS, 'g');
+  pulseLayer.setAttribute('id', 'pulses');
+  map.appendChild(pulseLayer);
+
+  // NPC layer
+  const npcLayer = document.createElementNS(svgNS, 'g');
+  npcLayer.setAttribute('id', 'npcs');
+
+  NPCS.forEach(n => {
+    const g = document.createElementNS(svgNS, 'g');
+    g.setAttribute('class', 'npc-node' + (n.type === 'env' ? ' env' : ''));
+    g.setAttribute('data-id', n.id);
+    g.setAttribute('transform', `translate(${n.x},${n.y})`);
+
+    const c = document.createElementNS(svgNS, 'circle');
+    c.setAttribute('r', 14);
+    c.setAttribute('class', 'npc-circle');
+    g.appendChild(c);
+
+    const glyph = document.createElementNS(svgNS, 'text');
+    glyph.setAttribute('class', 'npc-glyph');
+    glyph.textContent = n.glyph;
+    g.appendChild(glyph);
+
+    const label = document.createElementNS(svgNS, 'text');
+    label.setAttribute('class', 'npc-label');
+    label.setAttribute('y', 30);
+    label.textContent = n.name;
+    g.appendChild(label);
+
+    const tags = document.createElementNS(svgNS, 'text');
+    tags.setAttribute('class', 'npc-tags');
+    tags.setAttribute('y', 44);
+    // Env entities & generic role-NPCs (Town Crier) show their PLACE, since there
+    // are several of each scattered around the kingdom and the names repeat.
+    const isGeneric = n.type === 'env' || n.class === 'Town Crier';
+    tags.textContent = isGeneric ? n.place : `${n.species} · ${n.class}`;
+    g.appendChild(tags);
+
+    // Hover tooltip via <title>
+    const title = document.createElementNS(svgNS, 'title');
+    title.textContent = `${n.name}\n${n.species} ${n.class} at ${n.place}\nLanguages: ${n.languages.join(', ')}`;
+    g.appendChild(title);
+
+    npcLayer.appendChild(g);
+  });
+  map.appendChild(npcLayer);
+
+  // Walker layer — ambient pedestrians along the streets
+  const walkerLayer = document.createElementNS(svgNS, 'g');
+  walkerLayer.setAttribute('id', 'walkers');
+  map.appendChild(walkerLayer);
+
+  WALKERS.forEach(w => {
+    const wg = document.createElementNS(svgNS, 'g');
+    wg.setAttribute('class', 'walker');
+    wg.setAttribute('data-id', w.id);
+
+    const wc = document.createElementNS(svgNS, 'circle');
+    wc.setAttribute('r', 12);
+    wc.setAttribute('class', 'walker-circle');
+    wg.appendChild(wc);
+
+    const wgl = document.createElementNS(svgNS, 'text');
+    wgl.setAttribute('class', 'walker-glyph');
+    wgl.textContent = '•';
+    wg.appendChild(wgl);
+
+    walkerLayer.appendChild(wg);
+    w.el = wg;
+    w.infected = false;
+    w.lastX = 0;
+    w.lastY = 0;
+  });
+
+  // Traveler layer (above NPCs and walkers) — created once, animated every loop
+  const travelerLayer = document.createElementNS(svgNS, 'g');
+  travelerLayer.setAttribute('id', 'traveler-layer');
+  map.appendChild(travelerLayer);
+}
+
+// =====================================================================
+//  TRAVELER ANIMATION
+//  A wanderer enters from upper-left, crosses Durn's Hollow, exits
+//  center-right. NPCs within HEAR_NEAR overhear the gossip; each infected
+//  NPC then spreads to its own uninformed neighbors in a chain.
+// =====================================================================
+const TRAVEL_START      = { x: 30,  y: 50  };  // deep woods (top-left)
+const TRAVEL_END        = { x: 820, y: 300 };  // East Gate, end of High St
+const TRAVEL_MS         = 22500;    // duration of one traverse (slowed 25%)
+const TRAVEL_ENTRY_DELAY = 3000;    // hold at start for 3s before the traveler begins walking
+const TRAVEL_PAUSE      = 3500;     // pause before restart
+const CHAIN_HOP_MS      = 900;      // delay between chain hops
+const CHAIN_JITTER      = 400;      // random jitter per hop
+const TRAVEL_HEAR       = 41;       // traveler hear radius (+25% from 33)
+const CHAIN_HEAR        = 30;       // NPC-to-NPC hear radius for animation
+
+// Ambient street walkers — 2-3 per direction per street
+const WALKERS = [
+  // High Street — east-west
+  { id:'hw1', street:'high-street',  dir:+1, progress:0.05, speed:0.040 },
+  { id:'hw2', street:'high-street',  dir:+1, progress:0.35, speed:0.035 },
+  { id:'hw3', street:'high-street',  dir:-1, progress:0.22, speed:0.038 },
+  { id:'hw4', street:'high-street',  dir:-1, progress:0.80, speed:0.045 },
+  // Market Lane — north-south
+  { id:'mw1', street:'market-lane',  dir:+1, progress:0.12, speed:0.045 },
+  { id:'mw2', street:'market-lane',  dir:-1, progress:0.85, speed:0.042 },
+  // South Road — east-west, along the edge of town past the crypt
+  { id:'sw1', street:'south-road',   dir:+1, progress:0.08, speed:0.038 },
+  { id:'sw2', street:'south-road',   dir:+1, progress:0.55, speed:0.044 },
+  { id:'sw3', street:'south-road',   dir:-1, progress:0.70, speed:0.040 },
+];
+
+// Town criers amble along the streets rather than standing still.
+// They're proper NPCs (labels, gossip targets) but we tick their position
+// along a street path every frame, updating their x/y on the NPCS record.
+const CRIERS = [
+  { id: 'crier_a', street: 'market-lane', dir: +1, progress: 0.00, speed: 0.022 },
+];
+const TOWN_PAUSE_AT_T   = 0.40;     // pause when reaching the town wall
+const TOWN_PAUSE_MS     = 0;        // dwell time at town entry (disabled)
+
+let travelerAnimId = null;
+
+// -------- Pause state & pausable timers --------
+let animIsPaused = false;
+const pausableTimers = new Map(); // entryId -> { fn, remaining, scheduledAt, handle }
+
+function pausableSetTimeout(fn, delay) {
+  const entryId = Symbol('timer');
+  const entry = { fn, remaining: delay, scheduledAt: performance.now(), handle: null };
+  if (animIsPaused) {
+    // Queue it but don't start the timer until we resume
+    pausableTimers.set(entryId, entry);
+  } else {
+    entry.handle = setTimeout(() => {
+      pausableTimers.delete(entryId);
+      fn();
+    }, delay);
+    pausableTimers.set(entryId, entry);
+  }
+  return entryId;
+}
+
+function pauseAllTimers() {
+  const now = performance.now();
+  for (const entry of pausableTimers.values()) {
+    if (entry.handle !== null) {
+      clearTimeout(entry.handle);
+      entry.handle = null;
+      entry.remaining = Math.max(0, entry.remaining - (now - entry.scheduledAt));
+    }
+  }
+}
+
+function resumeAllTimers() {
+  const now = performance.now();
+  for (const [id, entry] of pausableTimers.entries()) {
+    if (entry.handle === null) {
+      entry.scheduledAt = now;
+      entry.handle = setTimeout(() => {
+        pausableTimers.delete(id);
+        entry.fn();
+      }, entry.remaining);
+    }
+  }
+}
+
+function clearPausableTimers() {
+  for (const entry of pausableTimers.values()) {
+    if (entry.handle !== null) clearTimeout(entry.handle);
+  }
+  pausableTimers.clear();
+}
+
+function toggleAnimationPause() {
+  const btn = document.getElementById('map-pause-btn');
+  if (!animIsPaused) {
+    animIsPaused = true;
+    pauseAllTimers();
+    if (btn) {
+      btn.querySelector('.pause-icon').textContent = '▶';
+      btn.querySelector('.pause-label').textContent = 'Play';
+      btn.setAttribute('aria-label', 'Resume animation');
+    }
+  } else {
+    animIsPaused = false;
+    resumeAllTimers();
+    if (btn) {
+      btn.querySelector('.pause-icon').textContent = '❚❚';
+      btn.querySelector('.pause-label').textContent = 'Pause';
+      btn.setAttribute('aria-label', 'Pause animation');
+    }
+  }
+}
+
+function createTraveler() {
+  const layer = document.getElementById('traveler-layer');
+  if (!layer) return null;
+  layer.innerHTML = '';
+
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('class', 'traveler');
+  g.setAttribute('transform', `translate(${TRAVEL_START.x},${TRAVEL_START.y})`);
+
+  // Traveling range ring (moves with the traveler)
+  const range = document.createElementNS(svgNS, 'circle');
+  range.setAttribute('class', 'range-ring traveler-range');
+  range.setAttribute('r', TRAVEL_HEAR);
+  g.appendChild(range);
+
+  const glow = document.createElementNS(svgNS, 'circle');
+  glow.setAttribute('class', 'traveler-glow');
+  glow.setAttribute('r', 24);
+  g.appendChild(glow);
+
+  const ring = document.createElementNS(svgNS, 'circle');
+  ring.setAttribute('class', 'traveler-ring');
+  ring.setAttribute('r', 16);
+  g.appendChild(ring);
+
+  const glyph = document.createElementNS(svgNS, 'text');
+  glyph.setAttribute('class', 'traveler-glyph');
+  glyph.textContent = '✦';
+  g.appendChild(glyph);
+
+  const label = document.createElementNS(svgNS, 'text');
+  label.setAttribute('class', 'traveler-label');
+  label.setAttribute('y', 32);
+  label.textContent = 'A Traveler';
+  g.appendChild(label);
+
+  layer.appendChild(g);
+  return g;
+}
+
+// Quadratic Bezier (upper-left → mid dip → center-right)
+function travelerPathAt(t) {
+  // Use the SVG traveler path (woods → High Street → East Gate).
+  // Fall back to a straight segment if the path element hasn't been drawn yet.
+  if (travelerPathEl && typeof travelerPathEl.getTotalLength === 'function') {
+    const len = travelerPathEl.getTotalLength();
+    if (len > 0) {
+      const pt = travelerPathEl.getPointAtLength(Math.max(0, Math.min(1, t)) * len);
+      return { x: pt.x, y: pt.y };
+    }
+  }
+  // Linear fallback
+  return {
+    x: TRAVEL_START.x + (TRAVEL_END.x - TRAVEL_START.x) * t,
+    y: TRAVEL_START.y + (TRAVEL_END.y - TRAVEL_START.y) * t,
+  };
+}
+
+// Track which sources each NPC has heard from, across this run of the animation.
+const npcSources = new Map(); // npc.id -> Set<source>
+// Track which NPCs have already fanned out the rumor this run (dedupes chains).
+const npcChained = new Set();
+
+const SOURCE_FALLBACKS = {
+  traveler: '#ff7a3d',
+  chain:    '#38bdf8',
+  crier:    '#fbbf24',
+  env:      '#4ade80',
+};
+
+function infectWithGossip(npc, tellerXY, source = 'traveler', depth = 0) {
+  const el = document.querySelector(`.npc-node[data-id="${npc.id}"]`);
+  if (!el) return;
+
+  if (!npcSources.has(npc.id)) npcSources.set(npc.id, new Set());
+  const sources = npcSources.get(npc.id);
+  if (sources.has(source)) return; // already heard THIS flavor
+
+  const isFirstSource = sources.size === 0;
+  sources.add(source);
+
+  const sourceClass    = `src-${source}`;
+  const sourceVar      = `--c-from-${source}`;
+  const sourceFallback = SOURCE_FALLBACKS[source] || '#ff7a3d';
+  const sourceColor    = getComputedStyle(document.documentElement)
+                           .getPropertyValue(sourceVar).trim() || sourceFallback;
+
+  // Mark the NPC as having heard at least one message (used by walker /
+  // chain logic elsewhere). The base circle stays neutral — every message
+  // shows up as its own colored ring, one ring per message received.
+  el.classList.add('receiver');
+  const ringR = 17 + (sources.size - 1) * 5; // 17, 22, 27, 32…
+  const ring = document.createElementNS(svgNS, 'circle');
+  ring.setAttribute('class', 'npc-knowledge-ring');
+  ring.setAttribute('data-source', source);
+  ring.setAttribute('r', ringR);
+  ring.setAttribute('stroke', sourceColor);
+  ring.setAttribute('stroke-width', '2');
+  ring.setAttribute('filter',
+    `drop-shadow(0 0 3px color-mix(in srgb, ${sourceColor} 55%, transparent))`);
+  // Insert behind the glyph/label text so names and symbols stay legible.
+  const firstText = el.querySelector('text');
+  if (firstText) el.insertBefore(ring, firstText); else el.appendChild(ring);
+
+  // Pulse ring
+  const pulses = document.getElementById('pulses');
+  if (pulses) {
+    const p = document.createElementNS(svgNS, 'circle');
+    p.setAttribute('cx', npc.x);
+    p.setAttribute('cy', npc.y);
+    p.setAttribute('r', 14);
+    p.setAttribute('class', 'pulse active');
+    p.setAttribute('stroke', getComputedStyle(document.documentElement)
+                               .getPropertyValue(sourceVar).trim() || sourceFallback);
+    p.setAttribute('fill', 'none');
+    pulses.appendChild(p);
+    pausableSetTimeout(() => p.remove(), 1600);
+  }
+
+  // Draw edge from teller to this NPC, tinted by source
+  if (tellerXY) {
+    const edges = document.getElementById('edges');
+    if (edges) {
+      const e = document.createElementNS(svgNS, 'line');
+      e.setAttribute('x1', tellerXY.x);
+      e.setAttribute('y1', tellerXY.y);
+      e.setAttribute('x2', npc.x);
+      e.setAttribute('y2', npc.y);
+      e.setAttribute('class', 'edge');
+      e.setAttribute('stroke', getComputedStyle(document.documentElement)
+                                 .getPropertyValue(sourceVar).trim() || sourceFallback);
+      edges.appendChild(e);
+      requestAnimationFrame(() => e.classList.add('active'));
+      pausableSetTimeout(() => { e.classList.remove('active'); e.classList.add('fade'); }, 3200);
+      pausableSetTimeout(() => e.remove(), 5000);
+    }
+  }
+
+  // Chain spread — each distinct message propagates in its own color, and
+  // each NPC retells each distinct source at most once per run.
+  if (npc.type === 'env' || depth >= 3) return;
+  const chainKey = `${npc.id}:${source}`;
+  if (npcChained.has(chainKey)) return;
+  npcChained.add(chainKey);
+
+  const neighbors = NPCS.filter(other =>
+    other.id !== npc.id &&
+    other.type !== 'env' &&
+    dist(npc, other) <= CHAIN_HEAR
+  );
+
+  // Pass to neighbors who haven't yet heard THIS specific message.
+  const targets = neighbors.filter(other => {
+    const srcs = npcSources.get(other.id);
+    return !(srcs && srcs.has(source));
+  });
+
+  // Only show a speaker's reach ring if they have someone to tell
+  let rangeEl = null;
+  if (targets.length > 0) {
+    const ranges = document.getElementById('ranges');
+    if (ranges) {
+      rangeEl = document.createElementNS(svgNS, 'circle');
+      rangeEl.setAttribute('cx', npc.x);
+      rangeEl.setAttribute('cy', npc.y);
+      rangeEl.setAttribute('r', CHAIN_HEAR);
+      rangeEl.setAttribute('class', 'range-ring chain-range');
+      ranges.appendChild(rangeEl);
+      requestAnimationFrame(() => rangeEl.classList.add('active'));
+    }
+  }
+
+  let maxDelay = 0;
+  targets.forEach((other, i) => {
+    const delay = CHAIN_HOP_MS + i * 220 + Math.random() * CHAIN_JITTER;
+    if (delay > maxDelay) maxDelay = delay;
+    pausableSetTimeout(() => infectWithGossip(other, { x: npc.x, y: npc.y }, source, depth + 1), delay);
+  });
+
+  // Fade the range ring after the last message has gone out
+  if (rangeEl) {
+    pausableSetTimeout(() => { rangeEl.classList.remove('active'); rangeEl.classList.add('fade'); }, maxDelay + 300);
+    pausableSetTimeout(() => rangeEl.remove(), maxDelay + 2000);
+  }
+}
+
+function clearGossipVisuals() {
+  document.querySelectorAll('.npc-node.receiver').forEach(el => {
+    el.classList.remove('receiver', 'src-traveler', 'src-chain', 'src-crier', 'src-env');
+    [...el.classList].filter(c => c.startsWith('channel-')).forEach(c => el.classList.remove(c));
+  });
+  document.querySelectorAll('.npc-knowledge-ring').forEach(el => el.remove());
+  npcSources.clear();
+  npcChained.clear();
+  const edges = document.getElementById('edges');
+  const pulses = document.getElementById('pulses');
+  const ranges = document.getElementById('ranges');
+  if (edges) edges.innerHTML = '';
+  if (pulses) pulses.innerHTML = '';
+  if (ranges) ranges.innerHTML = '';
+  // Restart the seeded messages (criers know yellow; statues/knockers know green).
+  seedMessageSources();
+}
+
+// Move walkers along their street path and have them carry gossip
+function tickWalkers(dt, travelerPos) {
+  if (dt <= 0) return;
+  for (const w of WALKERS) {
+    const pathEl = streetPathRefs[w.street];
+    if (!pathEl || typeof pathEl.getTotalLength !== 'function') continue;
+    const pathLen = pathEl.getTotalLength();
+    if (!pathLen) continue;
+
+    // Advance along path, bounce at ends
+    w.progress += w.dir * w.speed * dt / 1000;
+    if (w.progress > 1) { w.progress = 1; w.dir = -1; }
+    if (w.progress < 0) { w.progress = 0; w.dir = +1; }
+
+    const pt = pathEl.getPointAtLength(w.progress * pathLen);
+    w.el.setAttribute('transform', `translate(${pt.x},${pt.y})`);
+    w.lastX = pt.x;
+    w.lastY = pt.y;
+
+    // Infection check — walker adopts the source color of whoever they overhear.
+    if (!w.infected) {
+      // 1) overhears the traveler directly → carries the traveler's orange message
+      if (travelerPos) {
+        const d = Math.hypot(pt.x - travelerPos.x, pt.y - travelerPos.y);
+        if (d <= TRAVEL_HEAR) {
+          w.infected = true;
+          w.source = 'traveler';
+        }
+      }
+      // 2) overhears an infected NPC → adopts whatever they first heard
+      if (!w.infected) {
+        for (const npc of NPCS) {
+          const srcs = npcSources.get(npc.id);
+          if (!srcs || srcs.size === 0) continue;
+          const d = Math.hypot(pt.x - npc.x, pt.y - npc.y);
+          if (d <= CHAIN_HEAR) {
+            w.infected = true;
+            w.source = srcs.values().next().value;
+            break;
+          }
+        }
+      }
+      // 3) overhears another walker → inherits their carried message
+      if (!w.infected) {
+        for (const w2 of WALKERS) {
+          if (w2 === w || !w2.infected) continue;
+          const d = Math.hypot(pt.x - w2.lastX, pt.y - w2.lastY);
+          if (d <= CHAIN_HEAR) {
+            w.infected = true;
+            w.source = w2.source;
+            break;
+          }
+        }
+      }
+      if (w.infected && w.source) {
+        w.el.classList.add('infected', `src-${w.source}`);
+      }
+    }
+
+    // Infected walker spreads their carried message to NPCs who haven't
+    // heard that specific message yet — colored by the walker's source.
+    if (w.infected && w.source) {
+      for (const npc of NPCS) {
+        if (npc.type === 'env') continue;
+        const srcs = npcSources.get(npc.id);
+        if (srcs && srcs.has(w.source)) continue;
+        const d = Math.hypot(pt.x - npc.x, pt.y - npc.y);
+        if (d <= CHAIN_HEAR) {
+          infectWithGossip(npc, { x: pt.x, y: pt.y }, w.source, 0);
+        }
+      }
+    }
+  }
+}
+
+function resetWalkers() {
+  for (const w of WALKERS) {
+    w.infected = false;
+    w.source = null;
+    if (w.el) w.el.classList.remove(
+      'infected', 'src-traveler', 'src-chain', 'src-crier', 'src-env'
+    );
+  }
+}
+
+// Move the town criers along their streets and keep their NPC records in sync.
+// They also broadcast their yellow "town cry" to anyone in range as they walk.
+const CRY_HEAR = 34;   // radius at which a crier's shout reaches an NPC
+function tickCriers(dt) {
+  if (dt <= 0) return;
+  for (const c of CRIERS) {
+    const pathEl = streetPathRefs[c.street];
+    if (!pathEl || typeof pathEl.getTotalLength !== 'function') continue;
+    const pathLen = pathEl.getTotalLength();
+    if (!pathLen) continue;
+    const npc = NPCS.find(n => n.id === c.id);
+    if (!npc) continue;
+    if (!c.el) c.el = document.querySelector(`.npc-node[data-id="${c.id}"]`);
+    if (!c.el) continue;
+
+    c.progress += c.dir * c.speed * dt / 1000;
+    if (c.progress > 1) { c.progress = 1; c.dir = -1; }
+    if (c.progress < 0) { c.progress = 0; c.dir = +1; }
+
+    const pt = pathEl.getPointAtLength(c.progress * pathLen);
+    npc.x = pt.x;
+    npc.y = pt.y;
+    c.el.setAttribute('transform', `translate(${pt.x},${pt.y})`);
+
+    // Shout the yellow message at any non-env NPC within earshot.
+    for (const other of NPCS) {
+      if (other.id === npc.id) continue;
+      if (other.type === 'env') continue;
+      const d = Math.hypot(pt.x - other.x, pt.y - other.y);
+      if (d <= CRY_HEAR) {
+        infectWithGossip(other, { x: pt.x, y: pt.y }, 'crier', 0);
+      }
+    }
+  }
+}
+
+// Doorknockers and speaking statues are passive green broadcasters.
+// They murmur their own message to anyone who stands near them.
+const ENV_BROADCASTERS = ['statue_b', 'knocker_a'];
+const ENV_HEAR = 36;
+function tickEnvBroadcasters() {
+  for (const id of ENV_BROADCASTERS) {
+    const env = NPCS.find(n => n.id === id);
+    if (!env) continue;
+    for (const other of NPCS) {
+      if (other.id === env.id) continue;
+      if (other.type === 'env') continue;
+      const d = Math.hypot(env.x - other.x, env.y - other.y);
+      if (d <= ENV_HEAR) {
+        infectWithGossip(other, { x: env.x, y: env.y }, 'env', 0);
+      }
+    }
+  }
+}
+
+// Give source NPCs their flagship colors from the start of each run:
+// criers already know their yellow cry; statues/knockers already glow green.
+function seedMessageSources() {
+  for (const c of CRIERS) {
+    const npc = NPCS.find(n => n.id === c.id);
+    if (npc) infectWithGossip(npc, null, 'crier', 0);
+  }
+  for (const id of ENV_BROADCASTERS) {
+    const env = NPCS.find(n => n.id === id);
+    if (env) infectWithGossip(env, null, 'env', 0);
+  }
+}
+
+function animateTraveler() {
+  const traveler = createTraveler();
+  if (!traveler) return;
+
+  const heardThisRun = new Set();
+  let start = null;
+  let pauseStartTs = null;         // when the town-entry pause began
+  let pauseConsumed = 0;           // total ms subtracted from elapsed
+  let pauseDone = false;           // whether we've already paused this run
+  let entryDelayConsumed = false;  // whether we've finished the 3s entry hold
+  let lastTickTs = null;           // for tracking user-pause offset
+  let walkerPrevTs = null;         // for computing walker dt between frames
+
+  function frame(ts) {
+    // If the user has paused, hold position and shift start forward
+    if (animIsPaused) {
+      if (lastTickTs !== null && start !== null) start += (ts - lastTickTs);
+      if (pauseStartTs !== null) pauseStartTs += (ts - (lastTickTs ?? ts));
+      lastTickTs = ts;
+      walkerPrevTs = null;
+      travelerAnimId = requestAnimationFrame(frame);
+      return;
+    }
+    lastTickTs = ts;
+
+    const walkerDt = walkerPrevTs !== null ? Math.min(ts - walkerPrevTs, 100) : 16;
+    walkerPrevTs = ts;
+
+    if (start === null) start = ts;
+    const rawElapsed = ts - start;
+
+    // Hold at the start point for TRAVEL_ENTRY_DELAY ms so the scene can breathe
+    // before the traveler steps out of the woods. Walkers/criers keep moving.
+    if (rawElapsed < TRAVEL_ENTRY_DELAY) {
+      const startPos = travelerPathAt(0);
+      traveler.setAttribute('transform', `translate(${startPos.x},${startPos.y})`);
+      tickCriers(walkerDt);
+      tickEnvBroadcasters();
+      tickWalkers(walkerDt, null);
+      travelerAnimId = requestAnimationFrame(frame);
+      return;
+    }
+    // Shift start so the traveler's progress begins from t=0 now that the delay
+    // is over. This only runs once per run, the first frame past the delay.
+    if (!entryDelayConsumed) {
+      start += TRAVEL_ENTRY_DELAY;
+      entryDelayConsumed = true;
+      travelerAnimId = requestAnimationFrame(frame);
+      return;
+    }
+
+    // Progress BEFORE applying pause — used to detect when to trigger it
+    const preT = Math.min(1, (rawElapsed - pauseConsumed) / TRAVEL_MS);
+
+    // Trigger pause when we first reach the town wall
+    if (!pauseDone && preT >= TOWN_PAUSE_AT_T) {
+      if (pauseStartTs === null) pauseStartTs = ts;
+      const pauseElapsed = ts - pauseStartTs;
+      if (pauseElapsed < TOWN_PAUSE_MS) {
+        // Hold at the pause point
+        const pos = travelerPathAt(TOWN_PAUSE_AT_T);
+        traveler.setAttribute('transform', `translate(${pos.x},${pos.y})`);
+        // Still check proximity while paused (so anyone we just stepped next to hears)
+        tickCriers(walkerDt);
+        tickEnvBroadcasters();
+        for (const npc of NPCS) {
+          if (heardThisRun.has(npc.id)) continue;
+          const d = Math.hypot(pos.x - npc.x, pos.y - npc.y);
+          if (d <= TRAVEL_HEAR) {
+            heardThisRun.add(npc.id);
+            infectWithGossip(npc, { x: pos.x, y: pos.y }, 'traveler', 0);
+          }
+        }
+        tickWalkers(walkerDt, pos);
+        travelerAnimId = requestAnimationFrame(frame);
+        return;
+      } else {
+        // Pause over — record consumed time and continue
+        pauseConsumed = pauseElapsed;
+        pauseDone = true;
+      }
+    }
+
+    const effectiveElapsed = rawElapsed - pauseConsumed;
+    const t = Math.min(1, effectiveElapsed / TRAVEL_MS);
+    const pos = travelerPathAt(t);
+    traveler.setAttribute('transform', `translate(${pos.x},${pos.y})`);
+
+    tickCriers(walkerDt);
+    tickEnvBroadcasters();
+
+    // Check who overhears
+    for (const npc of NPCS) {
+      if (heardThisRun.has(npc.id)) continue;
+      const d = Math.hypot(pos.x - npc.x, pos.y - npc.y);
+      if (d <= TRAVEL_HEAR) {
+        heardThisRun.add(npc.id);
+        infectWithGossip(npc, { x: pos.x, y: pos.y }, 'traveler', 0);
+      }
+    }
+
+    tickWalkers(walkerDt, pos);
+
+    if (t < 1) {
+      travelerAnimId = requestAnimationFrame(frame);
+    } else {
+      // Pause, then reset & loop
+      pausableSetTimeout(() => {
+        clearGossipVisuals();
+        resetWalkers();
+        heardThisRun.clear();
+        start = null;
+        pauseStartTs = null;
+        pauseConsumed = 0;
+        pauseDone = false;
+        entryDelayConsumed = false;
+        lastTickTs = null;
+        walkerPrevTs = null;
+        traveler.setAttribute('transform', `translate(${TRAVEL_START.x},${TRAVEL_START.y})`);
+        travelerAnimId = requestAnimationFrame(frame);
+      }, TRAVEL_PAUSE);
+    }
+  }
+
+  travelerAnimId = requestAnimationFrame(frame);
+}
+
+function clearPropagation() {
+  document.querySelectorAll('.npc-node').forEach(g => {
+    g.classList.remove('sender', 'receiver');
+    // Remove any "channel-*" classes
+    [...g.classList].filter(c => c.startsWith('channel-')).forEach(c => g.classList.remove(c));
+  });
+  const edges = document.getElementById('edges');
+  const pulses = document.getElementById('pulses');
+  if (edges) edges.innerHTML = '';
+  if (pulses) pulses.innerHTML = '';
+}
+
+function markSender(senderId) {
+  const el = document.querySelector(`.npc-node[data-id="${senderId}"]`);
+  if (el) el.classList.add('sender');
+  // pulse
+  const pulses = document.getElementById('pulses');
+  const s = byId[senderId];
+  const p = document.createElementNS(svgNS, 'circle');
+  p.setAttribute('cx', s.x); p.setAttribute('cy', s.y);
+  p.setAttribute('r', 14);
+  p.setAttribute('class', 'pulse active');
+  p.setAttribute('stroke', '#8b1a1a');
+  p.setAttribute('fill', 'none');
+  pulses.appendChild(p);
+}
+
+function drawEdge(from, to, channelKey, delay = 0) {
+  const edges = document.getElementById('edges');
+  const e = document.createElementNS(svgNS, 'line');
+  e.setAttribute('x1', from.x); e.setAttribute('y1', from.y);
+  e.setAttribute('x2', to.x); e.setAttribute('y2', to.y);
+  e.setAttribute('class', 'edge');
+  e.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--c-' + channelKey).trim() || '#2b1810');
+  edges.appendChild(e);
+  setTimeout(() => e.classList.add('active'), delay);
+}
+
+function markReceiver(npcId, channelKey, delay = 0) {
+  setTimeout(() => {
+    const el = document.querySelector(`.npc-node[data-id="${npcId}"]`);
+    if (!el) return;
+    el.classList.add('receiver');
+    el.classList.add('channel-' + channelKey);
+    const pulses = document.getElementById('pulses');
+    const n = byId[npcId];
+    const p = document.createElementNS(svgNS, 'circle');
+    p.setAttribute('cx', n.x); p.setAttribute('cy', n.y);
+    p.setAttribute('r', 14);
+    p.setAttribute('class', 'pulse active');
+    p.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--c-' + channelKey).trim() || '#2b1810');
+    p.setAttribute('fill', 'none');
+    pulses.appendChild(p);
+  }, delay);
+}
+
+// =====================================================================
+//  LOG
+// =====================================================================
+const logEl = document.getElementById('log');
+
+function addLog(html, cls='') {
+  const d = document.createElement('div');
+  d.className = 'log-entry ' + cls;
+  d.innerHTML = html;
+  logEl.prepend(d);
+}
+
+function clearLog() { logEl.innerHTML = ''; }
+
+// =====================================================================
+//  UI WIRING
+// =====================================================================
+function populateNpcSelects() {
+  const sender = document.getElementById('sender');
+  const target = document.getElementById('target');
+  sender.innerHTML = ''; target.innerHTML = '';
+  NPCS.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n.id;
+    const isGeneric = n.type === 'env' || n.class === 'Town Crier';
+    opt.textContent = isGeneric
+      ? `${n.name} — ${n.place}`
+      : `${n.name} (${n.species} ${n.class})`;
+    sender.appendChild(opt);
+    target.appendChild(opt.cloneNode(true));
+  });
+  target.value = NPCS[1].id;
+}
+
+function updateTargetVisibility() {
+  const commKey = document.getElementById('comm').value;
+  const ch = CHANNELS[commKey];
+  const label = document.getElementById('target-label');
+  const sel = document.getElementById('target');
+  const needed = ch.targeted;
+  sel.style.display = needed ? '' : 'none';
+  label.style.display = needed ? '' : 'none';
+  document.getElementById('channel-hint').innerHTML =
+    `<strong style="color:var(--accent,${getComputedStyle(document.documentElement).getPropertyValue('--c-' + commKey).trim()});font-family:'Cinzel',serif;letter-spacing:.06em;">${ch.name}</strong> — ${ch.method}. ${ch.wordBudget ? '<em>Budget: ' + ch.wordBudget + ' words.</em>' : ''}`;
+
+  // Mood panel (Temperature + Freshness) is only meaningful for oral gossip
+  const moodPanel = document.getElementById('mood-panel');
+  moodPanel.classList.toggle('visible', commKey === 'gossip');
+  updateMoodHint();
+}
+
+const MOOD_HINTS = {
+  'hot/fresh':   "On everyone's lips today. Runs 4 days; each carrier tells up to 3 new folk per day. Saturates town fast.",
+  'hot/aging':   "A few days old but still hot. Carriers still keen to tell — reaches most of the nearby streets.",
+  'hot/stale':   "The fever is breaking. Still passed along in close quarters, but not for long.",
+  'warm/fresh':  "Normal daily gossip — the tavern will know by supper. Modest reach, good retention.",
+  'warm/aging':  "Yesterday's news, worth a mention. Only the close crowd picks it up now.",
+  'warm/stale':  "Old rumor — a single mention, and only if someone's nearby.",
+  'cold/fresh':  "A whisper you have to lean in for. Small reach, but it does move.",
+  'cold/aging':  "Fading talk — one or two more ears, then silence.",
+  'cold/stale':  "The rumor is dying. The sender's closest neighbor may hear; no one else."
+};
+function updateMoodHint() {
+  const mood = readMood();
+  const key = `${mood.temperature}/${mood.freshness}`;
+  document.getElementById('mood-hint').textContent = MOOD_HINTS[key] || '';
+}
+
+function wireMoodChips() {
+  document.querySelectorAll('#temp-row .mood-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#temp-row .mood-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      updateMoodHint();
+    });
+  });
+  document.querySelectorAll('#fresh-row .mood-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#fresh-row .mood-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      updateMoodHint();
+    });
+  });
+}
+
+function updateWordCount() {
+  const text = document.getElementById('message').value.trim();
+  const words = text ? text.split(/\s+/).length : 0;
+  const ch = CHANNELS[document.getElementById('comm').value];
+  const el = document.getElementById('word-count');
+  el.textContent = `${words} word${words===1?'':'s'}` + (ch.wordBudget ? ` / ${ch.wordBudget} budget` : '');
+  el.classList.toggle('over', !!(ch.wordBudget && words > ch.wordBudget));
+}
+
+function readMood() {
+  const temp  = document.querySelector('#temp-row .mood-chip.active')?.dataset.temp   || 'warm';
+  const fresh = document.querySelector('#fresh-row .mood-chip.active')?.dataset.fresh || 'fresh';
+  return { temperature: temp, freshness: fresh };
+}
+
+function castNow() {
+  clearPropagation();
+  const senderId = document.getElementById('sender').value;
+  const commKey = document.getElementById('comm').value;
+  const targetId = document.getElementById('target').value;
+  const message = document.getElementById('message').value.trim();
+  const ch = CHANNELS[commKey];
+
+  markSender(senderId);
+  const sender = byId[senderId];
+
+  // Cast header — include mood badges for gossip
+  const mood = readMood();
+  const moodBadges = (commKey === 'gossip')
+    ? `<div class="why">Temperature: <strong>${mood.temperature.toUpperCase()}</strong> · Freshness: <strong>${mood.freshness.toUpperCase()}</strong></div>`
+    : '';
+  addLog(`
+    <div class="who">${sender.name} casts ${ch.name}</div>
+    <div class="why">${ch.method}</div>
+    ${moodBadges}
+    ${message ? `<div class="msg">“${message}”</div>` : ''}
+  `, 'cast-header');
+
+  const result = propagate(senderId, commKey, targetId, message, mood);
+
+  if (!result.ok) {
+    addLog(`<div class="why"><strong>No delivery:</strong> ${result.note}</div>`, 'none');
+    return;
+  }
+
+  if (result.note) {
+    addLog(`<div class="why">${result.note}</div>`);
+  }
+
+  if (!result.recipients.length && !result.note) {
+    addLog(`<div class="why">No one hears. The channel is closed; the filter admits no listener in this town.</div>`, 'none');
+    return;
+  }
+
+  // Animate recipients — group by day for gossip so the chain is visible
+  result.recipients.forEach((r, i) => {
+    const delay = 200 + i * 160;
+    drawEdge(r.edgeFrom, r.npc, commKey, delay);
+    markReceiver(r.npc.id, commKey, delay + 200);
+    const dayBadge = r.day ? `<span class="day-badge">DAY ${r.day}</span>` : '';
+    setTimeout(() => {
+      addLog(`
+        <div class="who">${dayBadge}${r.npc.name} <span style="font-weight:400;color:var(--ink-soft);font-family:'IM Fell English',serif;font-size:12px;">(${r.npc.species} ${r.npc.class})</span></div>
+        <div class="why">${r.reason}</div>
+      `);
+    }, delay + 250);
+  });
+}
+
+// =====================================================================
+//  CHANNELS — drop-list + detail panel (master–detail)
+// =====================================================================
+function renderChannelList() {
+  const list = document.getElementById('channel-list');
+  list.innerHTML = Object.entries(CHANNELS).map(([key, c]) => `
+    <li class="channel-item ${c.className}" data-ch="${key}" tabindex="0" role="button" aria-label="${c.name}">
+      <div class="channel-drop" data-ch="${key}">
+        <span class="drop-placeholder">${c.icon || ''}</span>
+      </div>
+      <div class="channel-name">${c.name}</div>
+    </li>
+  `).join('');
+
+  const handler = (el) => {
+    const key = el.dataset.ch;
+    document.querySelectorAll('.channel-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+    renderChannelDetail(key);
+  };
+  list.querySelectorAll('.channel-item').forEach(li => {
+    li.addEventListener('click', () => handler(li));
+    li.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(li); }
+    });
+  });
+}
+
+function renderChannelDetail(key) {
+  const c = CHANNELS[key];
+  const panel = document.getElementById('channel-detail');
+  panel.className = 'channel-detail ' + c.className;
+  panel.innerHTML = `
+    <h3>${c.name}</h3>
+    <div class="channel-detail-sub">${c.sub}</div>
+    <dl>
+      <dt>RANGE</dt><dd>${c.range}</dd>
+      <dt>DURATION</dt><dd>${c.duration}</dd>
+      <dt>LANGUAGE</dt><dd>${c.languageGate}</dd>
+    </dl>
+  `;
+}
+
+// =====================================================================
+//  MATRIX
+// =====================================================================
+function renderMatrix() {
+  const table = document.getElementById('matrix');
+  const cols = ['Range', 'Duration', 'Language gate', 'Class / Training', 'Targeted?'];
+  const head = `<thead><tr><th>Channel</th>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>`;
+  const body = '<tbody>' + Object.entries(CHANNELS).map(([k,c]) => `
+    <tr>
+      <th style="color:var(--c-${k});">${c.name}</th>
+      <td>${c.range}</td>
+      <td>${c.duration}</td>
+      <td>${c.languageGate}</td>
+      <td>${c.classGate}</td>
+      <td>${c.targeted ? 'Yes — one target' : 'No — broadcast'}</td>
+    </tr>
+  `).join('') + '</tbody>';
+  table.innerHTML = head + body;
+}
+
+// =====================================================================
+//  INIT
+// =====================================================================
+function init() {
+  drawMap();
+  renderChannelList();
+  // Preselect the Gossip channel as the default
+  const gossipItem = document.querySelector('.channel-item[data-ch="gossip"]');
+  if (gossipItem) {
+    gossipItem.classList.add('active');
+    renderChannelDetail('gossip');
+  }
+  // Pause/play button
+  const pauseBtn = document.getElementById('map-pause-btn');
+  if (pauseBtn) pauseBtn.addEventListener('click', toggleAnimationPause);
+  // Seed the ongoing messages that already live in the town (crier's yellow
+  // cry; statues' and doorknockers' green broadcast) before the run starts.
+  seedMessageSources();
+  // Kick off the ambient traveler animation after the map is painted
+  requestAnimationFrame(() => animateTraveler());
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

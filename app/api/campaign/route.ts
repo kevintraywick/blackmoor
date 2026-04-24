@@ -62,6 +62,11 @@ export async function PATCH(req: Request) {
       vals.push(body.narrative_notes.trim());
     }
 
+    if (typeof body.audio_url === 'string') {
+      sets.push(`audio_url = $${vals.length + 1}`);
+      vals.push(body.audio_url.trim().slice(0, 500));
+    }
+
     if (sets.length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }

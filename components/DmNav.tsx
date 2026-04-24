@@ -8,7 +8,7 @@ export type NavSection =
   | 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative'
   | 'world' | 'map-builder'
   | 'magic' | 'marketplace' | 'poisons' | 'inventory'
-  | 'boons' | 'journey' | 'journal' | 'ar' | 'raven-post';
+  | 'boons' | 'journey' | 'journal' | 'ar' | 'raven-post' | 'help';
 
 interface PlayerChangeRow {
   player_id: string;
@@ -188,8 +188,28 @@ export default function DmNav({ current, sessionId, poisonCount: initialPoisonCo
             })}
           </div>
         </div>
+        {/* Help link — right end of nav */}
+        <Link
+          href="/help"
+          title="Help — DM reference library"
+          className="flex-shrink-0 flex items-center justify-center rounded-full transition-colors no-underline"
+          style={{
+            width: 24,
+            height: 24,
+            marginLeft: 16,
+            border: '1px solid rgba(154,142,126,0.5)',
+            color: current === 'help' ? '#e8dcc8' : '#9a8e7e',
+            fontFamily: 'serif',
+            fontSize: '0.85rem',
+            lineHeight: 1,
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#d4c8b8')}
+          onMouseLeave={e => (e.currentTarget.style.color = current === 'help' ? '#e8dcc8' : '#9a8e7e')}
+        >
+          ?
+        </Link>
         {/* Change notification dot — right end of nav */}
-        <div className="flex-shrink-0" style={{ marginLeft: 16 }}>
+        <div className="flex-shrink-0" style={{ marginLeft: 12 }}>
           {changeCount > 0 ? (
             <div onClick={toggleChanges} className="animate-pulse cursor-pointer" title={`${changeCount} player change${changeCount > 1 ? 's' : ''}`}>
               <div style={{ width: 16, height: 16, backgroundColor: '#dc2626', borderRadius: '50%' }} />
