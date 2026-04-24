@@ -706,10 +706,9 @@ const LOCAL_TILE_TINT = '#ffffff'; // watercolor is already earth-toned; no tint
 const LOCAL_TILE_RADIUS = GLOBE_RADIUS * 1.0008; // slightly above the Earth patches
 
 function terrainTileUrl(z: number, x: number, y: number): string {
-  // Stadia-hosted Stamen Watercolor. Works from localhost without an API
-  // key (Stadia allows low-volume dev traffic by Referer). For production
-  // we'll need a free Stadia key added via .env + URL param.
-  return `https://tiles.stadiamaps.com/tiles/stamen_watercolor/${z}/${x}/${y}.jpg`;
+  // OpenTopoMap — community-run hiking-map style with contour lines and
+  // shaded relief. CC-BY-SA. No API key. Subdomains a/b/c round-robin.
+  return `https://a.tile.opentopomap.org/${z}/${x}/${y}.png`;
 }
 
 // Three.js default sphere UV mapping expressed as a lat/lng function. Lets
@@ -1314,7 +1313,7 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
           </div>
           {cameraDistance <= LOCAL_TILE_MAX_DISTANCE && (
             <div className="text-[0.6rem] opacity-50" style={{ lineHeight: 1.4 }}>
-              Tiles © Stamen Design · Stadia Maps · OSM contributors
+              Tiles © OpenTopoMap (CC-BY-SA) · OSM contributors
             </div>
           )}
         </div>
