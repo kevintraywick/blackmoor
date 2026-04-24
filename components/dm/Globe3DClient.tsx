@@ -704,7 +704,7 @@ const LOCAL_TILE_ZOOM = 9;
 const LOCAL_TILE_RING = 1; // 1 = 3x3 = 9 tiles around the anchor
 const LOCAL_TILE_TINT = '#c8a878'; // warm parchment — multiplies the texture
 const LOCAL_TILE_SUBDIVISIONS = 16; // mesh density per patch
-const LOCAL_TILE_RADIUS = GLOBE_RADIUS * 1.003; // just above Blue Marble
+const LOCAL_TILE_RADIUS = GLOBE_RADIUS * 1.0005; // hugs the Blue Marble sphere (ocean geo is at 0.999)
 
 function esriTopoUrl(z: number, x: number, y: number): string {
   // ESRI uses z/y/x order in the REST path (not z/x/y like OSM/Stamen).
