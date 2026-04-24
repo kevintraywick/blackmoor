@@ -1307,7 +1307,7 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
       {/* Canvas fills the rest */}
       <div style={{ flex: 1, position: 'relative' }}>
         <Canvas
-          camera={{ position: initialCameraPos, fov: 35, near: 0.1, far: 100 }}
+          camera={{ position: initialCameraPos, fov: 35, near: 0.005, far: 100 }}
           gl={{ antialias: true }}
           style={{ background: COLOR_CANVAS_BG }}
         >
