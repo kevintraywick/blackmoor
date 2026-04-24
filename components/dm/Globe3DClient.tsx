@@ -707,9 +707,11 @@ const LOCAL_TILE_TINT = '#ffffff'; // watercolor is already earth-toned; no tint
 const LOCAL_TILE_RADIUS = GLOBE_RADIUS * 1.0008; // slightly above the Earth patches
 
 function terrainTileUrl(z: number, x: number, y: number): string {
-  // OpenTopoMap — community-run hiking-map style with contour lines and
-  // shaded relief. CC-BY-SA. No API key. Subdomains a/b/c round-robin.
-  return `https://a.tile.opentopomap.org/${z}/${x}/${y}.png`;
+  // ESRI World Shaded Relief — pure topographic shading, no labels or
+  // roads. Layers over Blue Marble to add terrain depth without
+  // recoloring the natural land/water palette underneath.
+  // ESRI URL order is z/y/x (not z/x/y like OSM/OpenTopo).
+  return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/${z}/${y}/${x}`;
 }
 
 // Three.js default sphere UV mapping expressed as a lat/lng function. Lets
@@ -821,7 +823,7 @@ function ShadowTerrainHex({ cellData }: { cellData: PreparedCell }) {
   useEffect(() => () => geom.dispose(), [geom]);
   return (
     <mesh geometry={geom}>
-      <meshBasicMaterial map={texture} color={LOCAL_TILE_TINT} transparent opacity={0.5} toneMapped={false} depthWrite={false} />
+      <meshBasicMaterial map={texture} color={LOCAL_TILE_TINT} transparent opacity={0.4} toneMapped={false} depthWrite={false} blending={THREE.MultiplyBlending} />
     </mesh>
   );
 }
@@ -1337,7 +1339,7 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
           </div>
           {cameraDistance <= LOCAL_TILE_MAX_DISTANCE && (
             <div className="text-[0.6rem] opacity-50" style={{ lineHeight: 1.4 }}>
-              Tiles © OpenTopoMap (CC-BY-SA) · OSM contributors
+              Shaded relief © Esri · World Shaded Relief
             </div>
           )}
         </div>
