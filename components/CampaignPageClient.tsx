@@ -150,6 +150,19 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
             <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans">Ajax</span>
           </div>
 
+          {/* Help — DM reference library */}
+          <div className="flex flex-col items-center gap-1.5">
+            <a
+              href="/help"
+              className="rounded-full flex items-center justify-center transition-transform hover:scale-105"
+              style={{ width: 64, height: 64, border: '2px solid rgba(201,168,76,0.4)', background: '#2e2825' }}
+              title="Help — DM reference library"
+            >
+              <span className="text-[var(--color-gold)] text-2xl leading-none font-serif">?</span>
+            </a>
+            <span className="text-[0.7rem] uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-sans">Help</span>
+          </div>
+
           {/* New Invitation */}
           <div className="flex flex-col items-center gap-1.5">
             <button
