@@ -8,17 +8,18 @@ import type { Availability } from '@/lib/types';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-/** Next 3 Saturdays, skipping any less than 2 days away. */
+/** Next 3 Saturdays, starting from today (inclusive). A Saturday rolls off
+ *  the list only after it has passed — so Friday still shows tomorrow's game. */
 function getNextSaturdays(): string[] {
   const result: string[] = [];
-  const today = new Date();
-  // Start from tomorrow to ensure at least 1 full day of lead time
-  const cursor = new Date(today);
-  cursor.setDate(cursor.getDate() + 2); // at least 2 days out
-  // Find next Saturday
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
   while (cursor.getDay() !== 6) cursor.setDate(cursor.getDate() + 1);
   for (let i = 0; i < 3; i++) {
-    result.push(cursor.toISOString().slice(0, 10));
+    const y = cursor.getFullYear();
+    const m = String(cursor.getMonth() + 1).padStart(2, '0');
+    const d = String(cursor.getDate()).padStart(2, '0');
+    result.push(`${y}-${m}-${d}`);
     cursor.setDate(cursor.getDate() + 7);
   }
   return result;
