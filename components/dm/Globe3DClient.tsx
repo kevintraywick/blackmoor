@@ -702,11 +702,14 @@ const SLATE_COLOR = '#14171d';
 const SHADOW_EARTH_RADIUS = GLOBE_RADIUS * 1.0; // just above the slate sphere (0.999)
 const LOCAL_TILE_MAX_DISTANCE = 1.5;
 const LOCAL_TILE_ZOOM = 9;
-const LOCAL_TILE_TINT = '#c8a878';
+const LOCAL_TILE_TINT = '#ffffff'; // watercolor is already earth-toned; no tint
 const LOCAL_TILE_RADIUS = GLOBE_RADIUS * 1.0008; // slightly above the Earth patches
 
-function esriTopoUrl(z: number, x: number, y: number): string {
-  return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`;
+function terrainTileUrl(z: number, x: number, y: number): string {
+  // Stadia-hosted Stamen Watercolor. Works from localhost without an API
+  // key (Stadia allows low-volume dev traffic by Referer). For production
+  // we'll need a free Stadia key added via .env + URL param.
+  return `https://tiles.stadiamaps.com/tiles/stamen_watercolor/${z}/${x}/${y}.jpg`;
 }
 
 // Three.js default sphere UV mapping expressed as a lat/lng function. Lets
@@ -782,7 +785,7 @@ function ShadowTerrainHex({ cellData }: { cellData: PreparedCell }) {
   const [lat, lng] = cellData.center;
   const tileX = lngToTileX(lng, LOCAL_TILE_ZOOM);
   const tileY = latToTileY(lat, LOCAL_TILE_ZOOM);
-  const texture = useTexture(esriTopoUrl(LOCAL_TILE_ZOOM, tileX, tileY));
+  const texture = useTexture(terrainTileUrl(LOCAL_TILE_ZOOM, tileX, tileY));
   const geom = useMemo(() => {
     const bounds = tileBoundsLatLng(LOCAL_TILE_ZOOM, tileX, tileY);
     const uvFn = (la: number, ln: number): [number, number] => {
@@ -1103,6 +1106,20 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
     });
   }, [worldEvents, anchorCell]);
 
+  // Shadow's Earth / terrain patches cover both the 7-hex campaign and the
+  // eligible-origin halo. Deduped since the campaign hexes are often a
+  // subset of eligibles in the generator output.
+  const shadowVisibleCells = useMemo<PreparedCell[]>(() => {
+    const seen = new Set<string>();
+    const out: PreparedCell[] = [];
+    for (const c of [...res4CampaignCells, ...res4EligibleCells]) {
+      if (seen.has(c.cell)) continue;
+      seen.add(c.cell);
+      out.push(c);
+    }
+    return out;
+  }, [res4CampaignCells, res4EligibleCells]);
+
   const eventCountsByType = useMemo(() => {
     const m = new Map<string, number>();
     for (const e of shadowNearbyEvents) m.set(e.type, (m.get(e.type) ?? 0) + 1);
@@ -1295,7 +1312,7 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
           </div>
           {cameraDistance <= LOCAL_TILE_MAX_DISTANCE && (
             <div className="text-[0.6rem] opacity-50" style={{ lineHeight: 1.4 }}>
-              Tiles © Esri World Topo · OSM contributors
+              Tiles © Stamen Design · Stadia Maps · OSM contributors
             </div>
           )}
         </div>
@@ -1322,7 +1339,7 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
 
         <div className="flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid #2a3a5e' }}>
           <LegendChip fill="#ff7a2a" label="Shadow" />
-          <LegendChip fill="#ffffff" label="Eligible origin" />
+          <LegendChip fill="#ffffff" label="Eligible" />
           <LegendChip fill="#6e7480" label="Astral void" />
           <LegendChip fill="#7a9ed0" label="Res-2 outline" />
           <LegendChip fill="#a8c0ea" label="Res-3 outline" />
@@ -1360,12 +1377,12 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
           )}
           {geoVisible && (
             <Suspense fallback={null}>
-              <ShadowEarthPatches cells={res4CampaignCells} />
+              <ShadowEarthPatches cells={shadowVisibleCells} />
             </Suspense>
           )}
           {geoVisible && (
             <ShadowTerrainPatches
-              cells={res4CampaignCells}
+              cells={shadowVisibleCells}
               cameraDistance={cameraDistance}
             />
           )}
