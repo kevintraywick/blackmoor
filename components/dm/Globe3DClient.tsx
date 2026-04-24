@@ -695,45 +695,103 @@ function EventMarkers({ events }: { events: EventMarker[] }) {
   );
 }
 
-// Tier 3: local terrain tiles. One ring of 9 ESRI World Topo tiles at
-// z=9 around Shadow's anchor, rendered as curved patches on the sphere
-// with a warm sepia tint. Hard-switches off above LOCAL_TILE_MAX_DISTANCE
-// to keep the planetary view uncluttered.
+// Earth texture + local terrain tiles are both clipped to Shadow's 7
+// res-4 campaign hexes. Outside those hexes, the globe is slate — the
+// world exists, but you only see the territory that "belongs" to Shadow.
+const SLATE_COLOR = '#14171d';
+const SHADOW_EARTH_RADIUS = GLOBE_RADIUS * 1.0; // just above the slate sphere (0.999)
 const LOCAL_TILE_MAX_DISTANCE = 1.5;
 const LOCAL_TILE_ZOOM = 9;
-const LOCAL_TILE_RING = 1; // 1 = 3x3 = 9 tiles around the anchor
-const LOCAL_TILE_TINT = '#c8a878'; // warm parchment — multiplies the texture
-const LOCAL_TILE_SUBDIVISIONS = 16; // mesh density per patch
-const LOCAL_TILE_RADIUS = GLOBE_RADIUS * 1.0005; // hugs the Blue Marble sphere (ocean geo is at 0.999)
+const LOCAL_TILE_TINT = '#c8a878';
+const LOCAL_TILE_RADIUS = GLOBE_RADIUS * 1.0008; // slightly above the Earth patches
 
 function esriTopoUrl(z: number, x: number, y: number): string {
-  // ESRI uses z/y/x order in the REST path (not z/x/y like OSM/Stamen).
   return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`;
 }
 
-// Builds a curved patch geometry: a grid of vertices inside a tile's
-// lat/lng bounds, reprojected onto the sphere. UVs match the tile image
-// (origin top-left, v flipped).
-function buildTilePatchGeometry(z: number, x: number, y: number, subdivisions: number): THREE.BufferGeometry {
-  const bounds = tileBoundsLatLng(z, x, y);
-  const geom = new THREE.PlaneGeometry(1, 1, subdivisions, subdivisions);
-  const posAttr = geom.attributes.position;
-  for (let i = 0; i < posAttr.count; i++) {
-    const u = posAttr.getX(i) + 0.5;
-    const v = 1 - (posAttr.getY(i) + 0.5);
-    const lng = bounds.w + u * (bounds.e - bounds.w);
-    const lat = bounds.n + v * (bounds.s - bounds.n);
-    const p = latLngToVec3(lat, lng, LOCAL_TILE_RADIUS);
-    posAttr.setXYZ(i, p.x, p.y, p.z);
+// Three.js default sphere UV mapping expressed as a lat/lng function. Lets
+// us sample the Blue Marble jpg at any point without going through the
+// full sphereGeometry.
+function equirectUV(lat: number, lng: number): [number, number] {
+  const pos = latLngToVec3(lat, lng, 1);
+  const u = 0.5 - Math.atan2(pos.z, pos.x) / (2 * Math.PI);
+  const v = 0.5 - Math.asin(pos.y) / Math.PI;
+  return [u, v];
+}
+
+// Builds a fan-triangulated hex patch: centroid + 6 boundary vertices,
+// 6 triangles. UVs come from the provided uvFn so the same geometry can
+// be textured from Blue Marble OR a slippy-map tile.
+function buildHexPatchGeometry(
+  boundary: Array<[number, number]>,
+  center: [number, number],
+  radius: number,
+  uvFn: (lat: number, lng: number) => [number, number],
+): THREE.BufferGeometry {
+  const geom = new THREE.BufferGeometry();
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  // Vertex 0 = centroid
+  const cp = latLngToVec3(center[0], center[1], radius);
+  positions.push(cp.x, cp.y, cp.z);
+  const [cu, cv] = uvFn(center[0], center[1]);
+  uvs.push(cu, cv);
+
+  // Vertices 1..n = boundary
+  for (const [lat, lng] of boundary) {
+    const p = latLngToVec3(lat, lng, radius);
+    positions.push(p.x, p.y, p.z);
+    const [u, v] = uvFn(lat, lng);
+    uvs.push(u, v);
   }
-  posAttr.needsUpdate = true;
-  geom.computeVertexNormals();
+
+  const n = boundary.length;
+  for (let i = 0; i < n; i++) {
+    indices.push(0, i + 1, ((i + 1) % n) + 1);
+  }
+
+  geom.setIndex(indices);
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   return geom;
 }
 
-function TerrainTile({ z, x, y }: { z: number; x: number; y: number }) {
-  const texture = useTexture(esriTopoUrl(z, x, y));
-  const geom = useMemo(() => buildTilePatchGeometry(z, x, y, LOCAL_TILE_SUBDIVISIONS), [z, x, y]);
+function ShadowEarthPatches({ cells }: { cells: PreparedCell[] }) {
+  const map = useTexture('/textures/earth_4096.jpg');
+  const patches = useMemo(() => {
+    return cells.map(c => ({
+      cell: c.cell,
+      geom: buildHexPatchGeometry(c.boundary, c.center, SHADOW_EARTH_RADIUS, equirectUV),
+    }));
+  }, [cells]);
+  useEffect(() => () => patches.forEach(p => p.geom.dispose()), [patches]);
+  return (
+    <>
+      {patches.map(p => (
+        <mesh key={p.cell} geometry={p.geom}>
+          <meshBasicMaterial map={map} />
+        </mesh>
+      ))}
+    </>
+  );
+}
+
+function ShadowTerrainHex({ cellData }: { cellData: PreparedCell }) {
+  const [lat, lng] = cellData.center;
+  const tileX = lngToTileX(lng, LOCAL_TILE_ZOOM);
+  const tileY = latToTileY(lat, LOCAL_TILE_ZOOM);
+  const texture = useTexture(esriTopoUrl(LOCAL_TILE_ZOOM, tileX, tileY));
+  const geom = useMemo(() => {
+    const bounds = tileBoundsLatLng(LOCAL_TILE_ZOOM, tileX, tileY);
+    const uvFn = (la: number, ln: number): [number, number] => {
+      const u = (ln - bounds.w) / (bounds.e - bounds.w);
+      const v = (bounds.n - la) / (bounds.n - bounds.s);
+      return [u, v];
+    };
+    return buildHexPatchGeometry(cellData.boundary, cellData.center, LOCAL_TILE_RADIUS, uvFn);
+  }, [cellData, tileX, tileY]);
   useEffect(() => () => geom.dispose(), [geom]);
   return (
     <mesh geometry={geom}>
@@ -742,23 +800,11 @@ function TerrainTile({ z, x, y }: { z: number; x: number; y: number }) {
   );
 }
 
-function LocalTilesLayer({ anchorLat, anchorLng, cameraDistance }: { anchorLat: number; anchorLng: number; cameraDistance: number }) {
-  const tiles = useMemo(() => {
-    const z = LOCAL_TILE_ZOOM;
-    const cx = lngToTileX(anchorLng, z);
-    const cy = latToTileY(anchorLat, z);
-    const out: { z: number; x: number; y: number }[] = [];
-    for (let dy = -LOCAL_TILE_RING; dy <= LOCAL_TILE_RING; dy++) {
-      for (let dx = -LOCAL_TILE_RING; dx <= LOCAL_TILE_RING; dx++) {
-        out.push({ z, x: cx + dx, y: cy + dy });
-      }
-    }
-    return out;
-  }, [anchorLat, anchorLng]);
+function ShadowTerrainPatches({ cells, cameraDistance }: { cells: PreparedCell[]; cameraDistance: number }) {
   if (cameraDistance > LOCAL_TILE_MAX_DISTANCE) return null;
   return (
     <Suspense fallback={null}>
-      {tiles.map(t => <TerrainTile key={`${t.z}/${t.x}/${t.y}`} z={t.z} x={t.x} y={t.y} />)}
+      {cells.map(c => <ShadowTerrainHex key={c.cell} cellData={c} />)}
     </Suspense>
   );
 }
@@ -828,12 +874,9 @@ function AnchorMarker({ lat, lng, opacity }: { lat: number; lng: number; opacity
 }
 
 function OceanSphere({ onSurfaceClick }: { onSurfaceClick?: (lat: number, lng: number) => void }) {
-  // NASA Blue Marble (public domain). Equirectangular, 4096×2048 — crisp
-  // enough that the sphere holds up at minDistance 1.25. Sphere UVs in
-  // three.js map the texture's horizontal center (u=0.5) to +X world axis.
-  // Our latLngToVec3 uses λ = -lng, which places Greenwich (lng=0) along +X
-  // as expected — so no extra rotation/flip is needed.
-  const map = useTexture('/textures/earth_4096.jpg');
+  // Slate void. Earth texture + terrain tiles only render inside Shadow's
+  // 7 res-4 hexes via ShadowEarthPatches / ShadowTerrainPatches. The rest
+  // of the globe reads as "unknown territory."
   return (
     <mesh
       onClick={onSurfaceClick ? (e) => {
@@ -843,7 +886,7 @@ function OceanSphere({ onSurfaceClick }: { onSurfaceClick?: (lat: number, lng: n
       } : undefined}
     >
       <sphereGeometry args={[GLOBE_RADIUS * 0.999, 96, 64]} />
-      <meshBasicMaterial map={map} />
+      <meshBasicMaterial color={SLATE_COLOR} />
     </mesh>
   );
 }
@@ -1313,14 +1356,16 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
         >
           <ambientLight intensity={1} />
           {geoVisible && (
+            <OceanSphere onSurfaceClick={handleSurfaceClick} />
+          )}
+          {geoVisible && (
             <Suspense fallback={null}>
-              <OceanSphere onSurfaceClick={handleSurfaceClick} />
+              <ShadowEarthPatches cells={res4CampaignCells} />
             </Suspense>
           )}
           {geoVisible && (
-            <LocalTilesLayer
-              anchorLat={anchorLat}
-              anchorLng={anchorLng}
+            <ShadowTerrainPatches
+              cells={res4CampaignCells}
               cameraDistance={cameraDistance}
             />
           )}
