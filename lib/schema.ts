@@ -347,7 +347,7 @@ async function _initSchema() {
 
   // Quorum threshold on campaign row
   await pool.query(`
-    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS quorum INTEGER NOT NULL DEFAULT 5
+    ALTER TABLE campaign ADD COLUMN IF NOT EXISTS quorum INTEGER NOT NULL DEFAULT 4
   `).catch(() => {});
 
   // DM email for quorum notifications
