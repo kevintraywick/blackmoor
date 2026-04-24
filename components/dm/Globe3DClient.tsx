@@ -701,7 +701,8 @@ function EventMarkers({ events }: { events: EventMarker[] }) {
 const SLATE_COLOR = '#14171d';
 const SHADOW_EARTH_RADIUS = GLOBE_RADIUS * 1.0; // just above the slate sphere (0.999)
 const LOCAL_TILE_MAX_DISTANCE = 1.5;
-const LOCAL_TILE_ZOOM = 9;
+// Zoom is now picked per-hex in pickTileForHex so each hex's bounding
+// box fits inside a single tile (no edge-clamp streaks).
 const LOCAL_TILE_TINT = '#ffffff'; // watercolor is already earth-toned; no tint
 const LOCAL_TILE_RADIUS = GLOBE_RADIUS * 1.0008; // slightly above the Earth patches
 
@@ -780,20 +781,43 @@ function ShadowEarthPatches({ cells }: { cells: PreparedCell[] }) {
   );
 }
 
+// Picks the highest-zoom tile that fully contains the hex's lat/lng
+// bounding box. Different hexes may resolve to different zoom levels —
+// that's fine and prevents UV spill (no edge-clamp streaks).
+function pickTileForHex(cellData: PreparedCell, maxZoom = 10, minZoom = 5): { z: number; x: number; y: number } {
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  for (const [la, ln] of [...cellData.boundary, cellData.center]) {
+    if (la < minLat) minLat = la;
+    if (la > maxLat) maxLat = la;
+    if (ln < minLng) minLng = ln;
+    if (ln > maxLng) maxLng = ln;
+  }
+  for (let z = maxZoom; z >= minZoom; z--) {
+    const x = lngToTileX((minLng + maxLng) / 2, z);
+    const y = latToTileY((minLat + maxLat) / 2, z);
+    const b = tileBoundsLatLng(z, x, y);
+    if (b.w <= minLng && b.e >= maxLng && b.s <= minLat && b.n >= maxLat) {
+      return { z, x, y };
+    }
+  }
+  const z = minZoom;
+  return { z, x: lngToTileX(cellData.center[1], z), y: latToTileY(cellData.center[0], z) };
+}
+
 function ShadowTerrainHex({ cellData }: { cellData: PreparedCell }) {
-  const [lat, lng] = cellData.center;
-  const tileX = lngToTileX(lng, LOCAL_TILE_ZOOM);
-  const tileY = latToTileY(lat, LOCAL_TILE_ZOOM);
-  const texture = useTexture(terrainTileUrl(LOCAL_TILE_ZOOM, tileX, tileY));
+  const tile = useMemo(() => pickTileForHex(cellData), [cellData]);
+  const texture = useTexture(terrainTileUrl(tile.z, tile.x, tile.y));
   const geom = useMemo(() => {
-    const bounds = tileBoundsLatLng(LOCAL_TILE_ZOOM, tileX, tileY);
+    const bounds = tileBoundsLatLng(tile.z, tile.x, tile.y);
     const uvFn = (la: number, ln: number): [number, number] => {
       const u = (ln - bounds.w) / (bounds.e - bounds.w);
-      const v = (bounds.n - la) / (bounds.n - bounds.s);
+      // V=1 is north (top of tile image, since drei's useTexture loads
+      // with flipY: true). V=0 is south.
+      const v = (la - bounds.s) / (bounds.n - bounds.s);
       return [u, v];
     };
     return buildHexPatchGeometry(cellData.boundary, cellData.center, LOCAL_TILE_RADIUS, uvFn);
-  }, [cellData, tileX, tileY]);
+  }, [cellData, tile]);
   useEffect(() => () => geom.dispose(), [geom]);
   return (
     <mesh geometry={geom}>
