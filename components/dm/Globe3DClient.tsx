@@ -877,9 +877,11 @@ function AnchorMarker({ lat, lng, opacity }: { lat: number; lng: number; opacity
 }
 
 function OceanSphere({ onSurfaceClick }: { onSurfaceClick?: (lat: number, lng: number) => void }) {
-  // Slate void. Earth texture + terrain tiles only render inside Shadow's
-  // 7 res-4 hexes via ShadowEarthPatches / ShadowTerrainPatches. The rest
-  // of the globe reads as "unknown territory."
+  // NASA Blue Marble across the whole globe. Shadow's campaign +
+  // eligible hexes get Watercolor terrain tiles on top at close zoom
+  // via ShadowTerrainPatches; outside those hexes Blue Marble stays
+  // visible at every zoom.
+  const map = useTexture('/textures/earth_4096.jpg');
   return (
     <mesh
       onClick={onSurfaceClick ? (e) => {
@@ -889,7 +891,7 @@ function OceanSphere({ onSurfaceClick }: { onSurfaceClick?: (lat: number, lng: n
       } : undefined}
     >
       <sphereGeometry args={[GLOBE_RADIUS * 0.999, 96, 64]} />
-      <meshBasicMaterial color={SLATE_COLOR} />
+      <meshBasicMaterial map={map} />
     </mesh>
   );
 }
@@ -1373,11 +1375,8 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
         >
           <ambientLight intensity={1} />
           {geoVisible && (
-            <OceanSphere onSurfaceClick={handleSurfaceClick} />
-          )}
-          {geoVisible && (
             <Suspense fallback={null}>
-              <ShadowEarthPatches cells={shadowVisibleCells} />
+              <OceanSphere onSurfaceClick={handleSurfaceClick} />
             </Suspense>
           )}
           {geoVisible && (
