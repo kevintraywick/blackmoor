@@ -814,6 +814,7 @@ const CameraController = forwardRef<
   const anim = useRef<{
     startPos: THREE.Vector3;
     targetPos: THREE.Vector3;
+    lookTarget: THREE.Vector3;
     startTime: number | null;
     duration: number;
   } | null>(null);
@@ -824,9 +825,9 @@ const CameraController = forwardRef<
     const t = Math.min(1, (clock.elapsedTime - anim.current.startTime) / anim.current.duration);
     const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
     camera.position.lerpVectors(anim.current.startPos, anim.current.targetPos, eased);
-    camera.lookAt(0, 0, 0);
+    camera.lookAt(anim.current.lookTarget);
     if (controlsRef.current) {
-      controlsRef.current.target.set(0, 0, 0);
+      controlsRef.current.target.copy(anim.current.lookTarget);
       controlsRef.current.update();
     }
     if (t >= 1) anim.current = null;
@@ -839,6 +840,7 @@ const CameraController = forwardRef<
       camera.lookAt(0, 0, 0);
       if (controlsRef.current) {
         controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.minDistance = 1.25;
         controlsRef.current.update();
       }
     },
@@ -847,18 +849,43 @@ const CameraController = forwardRef<
       camera.position.copy(dir.multiplyScalar(d));
       if (controlsRef.current) {
         controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.minDistance = 1.25;
         controlsRef.current.update();
       }
     },
-    flyToAnchor(distance: number) {
-      // Tween the camera from its current orbit to a "looking-down" pose
-      // above the anchor hex at the requested distance.
+    flyToAnchor(originDistance: number) {
+      // Oblique view: camera sits south of the anchor at 40° elevation,
+      // looking at the anchor. `originDistance` is the desired camera-to-
+      // Earth-center distance at the end of the tween (matches the HUD
+      // readout). Solves for anchor-offset `d` at the given pitch.
+      const P = latLngToVec3(anchorLat, anchorLng, GLOBE_RADIUS);
+      const up = P.clone().normalize();
+      const globalNorth = new THREE.Vector3(0, 1, 0);
+      const north = globalNorth.clone()
+        .sub(up.clone().multiplyScalar(globalNorth.dot(up)))
+        .normalize();
+      const elevationRad = 40 * Math.PI / 180;
+      const sinA = Math.sin(elevationRad);
+      const cosA = Math.cos(elevationRad);
+      // |P + d*(up*sinA - north*cosA)|² = originDistance²
+      // → d² + 2*sinA*d + (1 - originDistance²) = 0
+      const disc = sinA * sinA + (originDistance * originDistance - 1);
+      const d = disc > 0 ? -sinA + Math.sqrt(disc) : 0.1;
+      const offset = up.clone().multiplyScalar(sinA * d)
+        .add(north.clone().multiplyScalar(-cosA * d));
       anim.current = {
         startPos: camera.position.clone(),
-        targetPos: latLngToVec3(anchorLat, anchorLng, distance),
+        targetPos: P.clone().add(offset),
+        lookTarget: P,
         startTime: null,
         duration: 1.2,
       };
+      // Target is on the surface now — let zoom go closer than the
+      // planet-scale 1.25 floor. A floor of 0.1 keeps the camera outside
+      // the Earth surface at any orbit angle around the anchor.
+      if (controlsRef.current) {
+        controlsRef.current.minDistance = 0.1;
+      }
     },
   }));
   return null;
@@ -1235,7 +1262,7 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
               <group
                 onClick={e => {
                   e.stopPropagation();
-                  controllerRef.current?.flyToAnchor(1.5);
+                  controllerRef.current?.flyToAnchor(1.1);
                 }}
                 onPointerOver={e => {
                   e.stopPropagation();
