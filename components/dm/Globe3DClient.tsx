@@ -71,6 +71,11 @@ const WOLF_FADE_NEAR = 1.25;
 const ANCHOR_FADE_FAR = 1.4;
 const ANCHOR_FADE_NEAR = 1.0;
 
+// Territory wolf: sized to fill the origin res-4 hex, fades in as the
+// camera drops toward 1.25 (the camera minDistance).
+const TERRITORY_WOLF_FADE_FAR = 1.5;
+const TERRITORY_WOLF_FADE_NEAR = 1.25;
+
 // Radii for the cell-fill layers. Later-rendered layers sit slightly above
 // earlier ones so opacity stacking is deterministic and z-fight is avoided.
 const RES1_FILL_RADIUS = 1.000;
@@ -300,7 +305,7 @@ function HexPin({
  * Loads `/tokens/wolf.glb` and renders Shadow's campaign token. Idle rotation
  * gives it a bit of life so the wolf reads as a character, not a statue.
  */
-function WolfToken({ opacity }: { opacity: number }) {
+function WolfToken({ opacity, scale = 0.000512 }: { opacity: number; scale?: number }) {
   const { scene } = useGLTF('/tokens/wolf.glb');
   const cloned = useMemo(() => {
     const c = scene.clone(true);
@@ -321,9 +326,47 @@ function WolfToken({ opacity }: { opacity: number }) {
     });
   }, [cloned, opacity]);
   if (opacity <= 0.001) return null;
-  return <primitive object={cloned} scale={0.000512} />;
+  return <primitive object={cloned} scale={scale} />;
 }
 useGLTF.preload('/tokens/wolf.glb');
+
+/**
+ * Wolf token sized to fill a res-4 hex. Res-4 edge ~22.6 km, diameter
+ * (vertex-to-vertex) ~45 km; Earth radius in world units = 1 = 6371 km,
+ * so hex diameter ≈ 0.0071 world units. We auto-measure the GLB's bounding
+ * box and scale to that target so the token reads as "this hex is Shadow's".
+ */
+function TerritoryWolfToken({ opacity }: { opacity: number }) {
+  const { scene } = useGLTF('/tokens/wolf.glb');
+  const cloned = useMemo(() => {
+    const c = scene.clone(true);
+    c.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.isMesh) {
+        mesh.material = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true });
+      }
+    });
+    return c;
+  }, [scene]);
+  const scale = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(cloned);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const native = Math.max(size.x, size.z, 0.0001);
+    const targetSize = 0.006;
+    return targetSize / native;
+  }, [cloned]);
+  useEffect(() => {
+    cloned.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.isMesh && mesh.material && !Array.isArray(mesh.material)) {
+        (mesh.material as THREE.Material).opacity = opacity;
+      }
+    });
+  }, [cloned, opacity]);
+  if (opacity <= 0.001) return null;
+  return <primitive object={cloned} scale={scale} />;
+}
 
 function AnchorMarker({ lat, lng, opacity }: { lat: number; lng: number; opacity: number }) {
   const pos = useMemo(() => latLngToVec3(lat, lng, GLOBE_RADIUS * 1.01), [lat, lng]);
@@ -440,6 +483,7 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
   const fillFade = fadeAmount(cameraDistance, FILL_FADE_FAR, FILL_FADE_NEAR);
   const res3Fade = fadeAmount(cameraDistance, RES3_FADE_FAR, RES3_FADE_NEAR);
   const wolfOpacity = 1 - fadeAmount(cameraDistance, WOLF_FADE_FAR, WOLF_FADE_NEAR);
+  const territoryWolfOpacity = fadeAmount(cameraDistance, TERRITORY_WOLF_FADE_FAR, TERRITORY_WOLF_FADE_NEAR);
   const anchorOpacity = 1 - fadeAmount(cameraDistance, ANCHOR_FADE_FAR, ANCHOR_FADE_NEAR);
   const dominantRes = 3;
   const dominantCellCount = res3Cells.length;
@@ -591,6 +635,13 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
               >
                 <WolfToken opacity={wolfOpacity} />
               </group>
+            </HexPin>
+          </Suspense>
+
+          {/* Territory wolf — hex-sized, fades in at close zoom. */}
+          <Suspense fallback={null}>
+            <HexPin lat={anchorLat} lng={anchorLng} radiusScale={1.0005}>
+              <TerritoryWolfToken opacity={territoryWolfOpacity} />
             </HexPin>
           </Suspense>
 
