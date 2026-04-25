@@ -40,6 +40,37 @@ export default async function Globe3DPage() {
     anchor.cell,
   );
 
+  // Placed map builds — DM-dropped maps anchored to res-4 hexes via the
+  // /globe-placement route. Renders as gold-outlined "mapped" hexes that
+  // navigate back into the builder when clicked.
+  const placedRows = await query<{
+    id: string;
+    name: string;
+    h3_cell: string | null;
+    placement_offset_col: number;
+    placement_offset_row: number;
+  }>(
+    `SELECT id, name, h3_cell::text AS h3_cell, placement_offset_col, placement_offset_row
+     FROM map_builds
+     WHERE h3_cell IS NOT NULL AND h3_res = 4
+     ORDER BY updated_at DESC`,
+  );
+  const placedMaps = placedRows
+    .map(r => ({
+      id: r.id,
+      name: r.name,
+      cell: r.h3_cell ? BigInt(r.h3_cell).toString(16).padStart(15, '0') : '',
+      offsetCol: r.placement_offset_col ?? 0,
+      offsetRow: r.placement_offset_row ?? 0,
+    }))
+    .filter(p => p.cell);
+  const placedMapCells = prepareCells(
+    Array.from(new Set(placedMaps.map(p => p.cell))),
+    4,
+    shadowRes6Cells,
+    anchor.cell,
+  );
+
   // Numbered labels for res-2 hexes around Shadow's anchor — center hex (#1)
   // plus 7 grid rings outward (1+6+12+18+24+30+36+42 = 169 hexes). Numbered
   // ring-by-ring, then by H3 index for ties — so #1 is always the center.
@@ -81,6 +112,8 @@ export default async function Globe3DPage() {
         res3Cells={res3Cells}
         res4CampaignCells={res4CampaignCells}
         res4EligibleCells={res4EligibleCells}
+        placedMaps={placedMaps}
+        placedMapCells={placedMapCells}
         labeledRes2Cells={labeledRes2Cells}
         liveCloudCellsPrecip={liveCloudCellsPrecip}
         anchorCell={anchor.cell}

@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic';
 import Image from 'next/image';
 import DmNav from '@/components/DmNav';
 import CampaignPageClient from '@/components/CampaignPageClient';
+import CampaignSpendTracker from '@/components/CampaignSpendTracker';
+import TerritoriesSection from '@/components/dm/TerritoriesSection';
 import { query } from '@/lib/db';
 import { ensureSchema } from '@/lib/schema';
 import type { Campaign } from '@/lib/types';
@@ -38,6 +40,8 @@ export default async function CampaignPage() {
         )}
       </div>
       <CampaignPageClient initial={campaign ?? { id: 'default', name: '', world: '' }} />
+      <TerritoriesSection />
+      <CampaignSpendTracker />
     </div>
   );
 }

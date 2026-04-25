@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Campaign, Invitation } from '@/lib/types';
 import HomeArtDropCircle from './HomeArtDropCircle';
-import CampaignSpendTracker from './CampaignSpendTracker';
 
 // ── Calendar helpers ────────────────────────────────────────────────────────
 
@@ -276,7 +275,6 @@ export default function CampaignPageClient({ initial }: { initial: Campaign }) {
           </div>
         </div>
       </div>
-      <CampaignSpendTracker />
     </div>
   );
 }

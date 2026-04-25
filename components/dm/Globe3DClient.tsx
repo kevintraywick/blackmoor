@@ -35,6 +35,14 @@ const CLOUD_NUMBERS_EXACT: number[] = [163, 168, 169];
 // Ship placement — exact hex numbers only (no neighbor expansion).
 const SHIP_NUMBERS_EXACT: number[] = [41, 70, 91, 117, 158];
 
+interface PlacedMap {
+  id: string;
+  name: string;
+  cell: string;
+  offsetCol: number;
+  offsetRow: number;
+}
+
 interface Props {
   res0Cells: PreparedCell[];
   res1Cells: PreparedCell[];
@@ -42,6 +50,8 @@ interface Props {
   res3Cells: PreparedCell[];
   res4CampaignCells: PreparedCell[];
   res4EligibleCells: PreparedCell[];
+  placedMaps: PlacedMap[];
+  placedMapCells: PreparedCell[];
   labeledRes2Cells: LabeledRes2Cell[];
   liveCloudCellsPrecip: CloudCell[];
   anchorCell: string;
@@ -323,6 +333,70 @@ function OutlineLayer({ cells, radius, color, opacity }: {
     <lineSegments geometry={geom}>
       <lineBasicMaterial color={color} transparent opacity={opacity} />
     </lineSegments>
+  );
+}
+
+/**
+ * One clickable transparent fan-mesh per cell. Used so each placed-map hex
+ * can carry its own onClick handler without splitting the geometry-batched
+ * CellLayer. Geometry is the same triangle-fan as the fill, sized just
+ * above so it sits on top.
+ */
+function ClickableCells({
+  cells,
+  radius,
+  onCellClick,
+  onCellHover,
+}: {
+  cells: PreparedCell[];
+  radius: number;
+  onCellClick: (cell: string) => void;
+  onCellHover: (cell: string | null) => void;
+}) {
+  const meshes = useMemo(() => {
+    return cells.map(c => {
+      const positions: number[] = [];
+      const indices: number[] = [];
+      const [cLat, cLng] = c.center;
+      const cp = latLngToVec3(cLat, cLng, radius);
+      positions.push(cp.x, cp.y, cp.z);
+      for (const [lat, lng] of c.boundary) {
+        const p = latLngToVec3(lat, lng, radius);
+        positions.push(p.x, p.y, p.z);
+      }
+      const n = c.boundary.length;
+      for (let i = 0; i < n; i++) indices.push(0, i + 1, ((i + 1) % n) + 1);
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geom.setIndex(indices);
+      return { cell: c.cell, geom };
+    });
+  }, [cells, radius]);
+  useEffect(() => () => meshes.forEach(m => m.geom.dispose()), [meshes]);
+  return (
+    <>
+      {meshes.map(m => (
+        <mesh
+          key={m.cell}
+          geometry={m.geom}
+          onClick={(e) => {
+            e.stopPropagation();
+            onCellClick(m.cell);
+          }}
+          onPointerOver={(e) => {
+            e.stopPropagation();
+            document.body.style.cursor = 'pointer';
+            onCellHover(m.cell);
+          }}
+          onPointerOut={() => {
+            document.body.style.cursor = '';
+            onCellHover(null);
+          }}
+        >
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
+    </>
   );
 }
 
@@ -1122,7 +1196,7 @@ function pixelToLatLng(
   return vec3ToLatLng(hit);
 }
 
-export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells, res4EligibleCells, labeledRes2Cells, liveCloudCellsPrecip, anchorCell, anchorLat, anchorLng }: Props) {
+export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells, res4EligibleCells, placedMaps, placedMapCells, labeledRes2Cells, liveCloudCellsPrecip, anchorCell, anchorLat, anchorLng }: Props) {
   const router = useRouter();
   const [cameraDistance, setCameraDistance] = useState(2.5);
   const fillFade = fadeAmount(cameraDistance, FILL_FADE_FAR, FILL_FADE_NEAR);
@@ -1162,6 +1236,7 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dropHoverCell, setDropHoverCell] = useState<string | null>(null);
   const [dropStatus, setDropStatus] = useState<string | null>(null);
+  const [mappedHoverCell, setMappedHoverCell] = useState<string | null>(null);
 
   // Cells the DM can drop a map on: Shadow's 7 campaign hexes + eligible halo.
   const placeableCellSet = useMemo(() => {
@@ -1170,6 +1245,17 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
     for (const c of res4EligibleCells) s.add(c.cell);
     return s;
   }, [res4CampaignCells, res4EligibleCells]);
+
+  // First placed map per cell — clicking the gold "mapped" hex opens its
+  // builder. If a hex has multiple maps the most-recent (server orders by
+  // updated_at DESC) wins for click; surfacing the rest is a TODO.
+  const firstMapByCell = useMemo(() => {
+    const m = new Map<string, PlacedMap>();
+    for (const p of placedMaps) {
+      if (!m.has(p.cell)) m.set(p.cell, p);
+    }
+    return m;
+  }, [placedMaps]);
 
   const placeableCellByCell = useMemo(() => {
     const m = new Map<string, PreparedCell>();
@@ -1500,6 +1586,7 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
         <div className="flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid #2a3a5e' }}>
           <LegendChip fill="#ff7a2a" label="Shadow" />
           <LegendChip fill="#ffffff" label="Eligible" />
+          <LegendChip fill="#c9a84c" label={`Mapped (${placedMaps.length})`} />
           <LegendChip fill="#6e7480" label="Astral void" />
           <LegendChip fill="#7a9ed0" label="Res-2 outline" />
           <LegendChip fill="#a8c0ea" label="Res-3 outline" />
@@ -1631,6 +1718,35 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
             color="#ffffff"
             opacity={0.7}
           />
+          {/* Mapped hexes — DM has dropped a map onto these. Gold outline,
+              brightens on hover, click opens the builder. */}
+          {placedMapCells.length > 0 && (
+            <>
+              <OutlineLayer
+                cells={placedMapCells}
+                radius={RES3_OUTLINE_RADIUS * 1.0006}
+                color="#c9a84c"
+                opacity={0.95}
+              />
+              {mappedHoverCell && firstMapByCell.has(mappedHoverCell) && (
+                <OutlineLayer
+                  cells={[placedMapCells.find(c => c.cell === mappedHoverCell)!]}
+                  radius={RES3_OUTLINE_RADIUS * 1.0012}
+                  color="#ffd479"
+                  opacity={1}
+                />
+              )}
+              <ClickableCells
+                cells={placedMapCells}
+                radius={RES3_FILL_RADIUS * 1.0004}
+                onCellClick={(cell) => {
+                  const map = firstMapByCell.get(cell);
+                  if (map) router.push(`/dm/map-builder?build=${map.id}&placement=1`);
+                }}
+                onCellHover={setMappedHoverCell}
+              />
+            </>
+          )}
           {/* Brighten the cell currently under the dragged file. */}
           {dropHoverCell && placeableCellByCell.get(dropHoverCell) && (
             <OutlineLayer
@@ -1714,6 +1830,32 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
             }}
           >
             {dropStatus}
+          </div>
+        )}
+        {mappedHoverCell && firstMapByCell.get(mappedHoverCell) && (
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              bottom: 24,
+              transform: 'translateX(-50%)',
+              background: 'rgba(20,15,10,0.92)',
+              color: '#f3e7cd',
+              fontFamily: "'EB Garamond', ui-serif, Georgia, serif",
+              fontSize: 14,
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+              padding: '6px 14px',
+              border: '1px solid rgba(201,168,76,0.6)',
+              borderRadius: 2,
+              pointerEvents: 'none',
+              zIndex: 50,
+            }}
+          >
+            {firstMapByCell.get(mappedHoverCell)!.name}
+            <span style={{ marginLeft: 8, opacity: 0.55, fontStyle: 'normal', fontSize: 11 }}>
+              click to open
+            </span>
           </div>
         )}
       </div>
