@@ -41,6 +41,7 @@ export async function POST(
         `UPDATE map_builds
          SET h3_cell = NULL, h3_res = NULL,
              placement_offset_col = 0, placement_offset_row = 0,
+             placement_offset_km_x = 0, placement_offset_km_y = 0, placement_scale = 1,
              updated_at = EXTRACT(EPOCH FROM now())::bigint
          WHERE id = $1`,
         [id],
@@ -48,12 +49,29 @@ export async function POST(
       return NextResponse.json({ ok: true });
     }
 
-    const { cell, offset_col = 0, offset_row = 0 } = body;
+    const {
+      cell,
+      offset_col = 0,
+      offset_row = 0,
+      offset_km_x = 0,
+      offset_km_y = 0,
+      scale = 1,
+    } = body;
     if (typeof cell !== 'string' || !isValidCell(cell)) {
       return NextResponse.json({ error: 'cell must be a valid H3 cell' }, { status: 400 });
     }
     if (typeof offset_col !== 'number' || typeof offset_row !== 'number') {
       return NextResponse.json({ error: 'offsets must be numbers' }, { status: 400 });
+    }
+    if (
+      typeof offset_km_x !== 'number' ||
+      typeof offset_km_y !== 'number' ||
+      typeof scale !== 'number'
+    ) {
+      return NextResponse.json({ error: 'km offsets and scale must be numbers' }, { status: 400 });
+    }
+    if (!isFinite(offset_km_x) || !isFinite(offset_km_y) || !isFinite(scale) || scale <= 0) {
+      return NextResponse.json({ error: 'km offsets and scale must be finite; scale > 0' }, { status: 400 });
     }
     const res = getResolution(cell);
 
@@ -64,9 +82,10 @@ export async function POST(
       `UPDATE map_builds
        SET h3_cell = $1, h3_res = $2,
            placement_offset_col = $3, placement_offset_row = $4,
+           placement_offset_km_x = $5, placement_offset_km_y = $6, placement_scale = $7,
            updated_at = EXTRACT(EPOCH FROM now())::bigint
-       WHERE id = $5`,
-      [cellBig, res, Math.round(offset_col), Math.round(offset_row), id],
+       WHERE id = $8`,
+      [cellBig, res, Math.round(offset_col), Math.round(offset_row), offset_km_x, offset_km_y, scale, id],
     );
 
     return NextResponse.json({
@@ -75,6 +94,9 @@ export async function POST(
       h3_res: res,
       offset_col: Math.round(offset_col),
       offset_row: Math.round(offset_row),
+      offset_km_x,
+      offset_km_y,
+      scale,
     });
   } catch (err) {
     console.error('POST /api/map-builder/[id]/globe-placement', err);

@@ -299,6 +299,12 @@ export interface MapBuild {
   // Globe placement (snap-grid offset within the anchor hex). 0/0 = centered.
   placement_offset_col: number;
   placement_offset_row: number;
+  // Hex-shaped placement at true km extent (v3 #2). km_x/y is signed offset
+  // from hex centroid in km; placement_scale is the image's size multiplier
+  // (1.0 = native km extent derived from cell_size_px + scale_value_ft).
+  placement_offset_km_x: number;
+  placement_offset_km_y: number;
+  placement_scale: number;
 }
 
 export interface MapBuildLevel {

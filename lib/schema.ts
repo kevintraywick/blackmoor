@@ -559,6 +559,18 @@ async function _initSchema() {
   await pool.query(
     `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS placement_offset_row INTEGER NOT NULL DEFAULT 0`
   ).catch(() => {});
+  // v3 #2 — hex-shaped placement at true km extent. Replaces the legacy
+  // 30×30 snap grid with continuous km offsets from the hex centroid plus
+  // a per-image scale multiplier (defaults to 1.0 = native km extent).
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS placement_offset_km_x DOUBLE PRECISION NOT NULL DEFAULT 0`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS placement_offset_km_y DOUBLE PRECISION NOT NULL DEFAULT 0`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS placement_scale DOUBLE PRECISION NOT NULL DEFAULT 1`
+  ).catch(() => {});
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS map_build_levels (
