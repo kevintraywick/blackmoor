@@ -1,16 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MapBuild } from '@/lib/types';
-import { hexSvgPath, projectHex } from '@/lib/hex-projection';
-import { h3AnchorFitCheckByCell } from '@/lib/map-scale';
-import ScaleBar from '@/components/ScaleBar';
 
-const FT_PER_KM = 3280.84;
+const GRID_COLS = 30;
+const GRID_ROWS = 30;
 const VIEWPORT_PX = 720;
-const VIEWPORT_RADIUS_PX = (VIEWPORT_PX / 2) * 0.92; // 8% inset for breathing room
-const HEX_STROKE = '#ffffff';
-const HEX_FILL = 'rgba(60, 130, 200, 0.10)'; // soft blue wash, vivid register
+const CELL_PX = VIEWPORT_PX / GRID_COLS;
 
 interface Props {
   build: MapBuild;
@@ -20,68 +16,29 @@ interface Props {
 }
 
 /**
- * Hex-shaped placement view — opens after a DM drops a map onto a globe hex.
+ * Top-down placement view shown after a DM drops a map onto a globe hex.
  *
- * The canvas is the **actual H3 hex polygon** projected to a local 2D plane
- * centered on its centroid (great-circle bearing × distance from center). For
- * res-4 cells that's a near-regular hexagon ≈ 45 km vertex-to-vertex. The
- * dropped image renders inside the hex at its **true km extent** (derived
- * from `cell_size_px + scale_value_ft + image dimensions` when available, or
- * a default fraction of the hex when not). Drag to position; scroll/pinch to
- * scale; ScaleBar in the corner shows km-per-pixel; live fit badge classifies
- * the result.
+ * The map renders centered inside a 30×30 snap grid that represents the hex's
+ * territory. Dragging snaps to grid squares with a click for each square
+ * crossed; releasing settles the map into place and persists the offset.
  *
- * Replaces the legacy 30×30 snap grid. The 30×30 was decorative — it mapped
- * to neither km nor ft, so a 5-ft battle map and a 6-mi region looked
- * visually identical at 720×720. The hex view is honest geometry.
+ * Sounds are synthesized via WebAudio (no asset to commit). Pitch is tuned to
+ * read as a small wooden tick on each step plus a softer "settle" thud on
+ * release — a satisfying physical confirmation rather than a UI beep.
  */
 export default function MapPlacementOverlay({ build, onClose }: Props) {
-  // The hex projection — pure function of build.h3_cell.
-  const projection = useMemo(() => {
-    if (!build.h3_cell) return null;
-    const cellHex = BigInt(build.h3_cell).toString(16).padStart(15, '0');
-    return projectHex(cellHex);
-  }, [build.h3_cell]);
-
-  const pxPerKm = projection ? VIEWPORT_RADIUS_PX / projection.outerRadiusKm : 0;
-  const kmPerPx = pxPerKm > 0 ? 1 / pxPerKm : 0;
-
-  // Image native km extent — derived from scale metadata. Falls back to a
-  // sensible default (~30% of the hex's radius) so blank maps still appear.
-  const nativeImageKm = useMemo(() => {
-    if (!projection) return null;
-    const w = build.image_width_px ?? 0;
-    const h = build.image_height_px ?? 0;
-    const cellSizePx = build.cell_size_px ?? 0;
-    const scaleValueFt = build.scale_value_ft ?? 0;
-    if (w > 0 && h > 0 && cellSizePx > 0 && scaleValueFt > 0) {
-      const widthKm = (w / cellSizePx) * scaleValueFt / FT_PER_KM;
-      const heightKm = (h / cellSizePx) * scaleValueFt / FT_PER_KM;
-      return { widthKm, heightKm, derived: true as const };
-    }
-    if (w > 0 && h > 0) {
-      const aspect = w / h;
-      const widthKm = projection.outerRadiusKm * 0.6 * Math.min(1, aspect);
-      const heightKm = widthKm / aspect;
-      return { widthKm, heightKm, derived: false as const };
-    }
-    return null;
-  }, [build.image_width_px, build.image_height_px, build.cell_size_px, build.scale_value_ft, projection]);
-
-  // Live placement state.
-  const [offsetKm, setOffsetKm] = useState({
-    x: build.placement_offset_km_x ?? 0,
-    y: build.placement_offset_km_y ?? 0,
-  });
-  const [scale, setScale] = useState(build.placement_scale ?? 1);
+  const [offsetCol, setOffsetCol] = useState(build.placement_offset_col ?? 0);
+  const [offsetRow, setOffsetRow] = useState(build.placement_offset_row ?? 0);
   const [drag, setDrag] = useState<{
     startX: number;
     startY: number;
-    startKmX: number;
-    startKmY: number;
+    startCol: number;
+    startRow: number;
   } | null>(null);
   const [saving, setSaving] = useState(false);
+
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const lastTickRef = useRef<{ col: number; row: number }>({ col: offsetCol, row: offsetRow });
 
   function ensureCtx(): AudioContext | null {
     if (typeof window === 'undefined') return null;
@@ -95,6 +52,23 @@ export default function MapPlacementOverlay({ build, onClose }: Props) {
     return audioCtxRef.current;
   }
 
+  function playTick() {
+    const ctx = ensureCtx();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(900, t);
+    osc.frequency.exponentialRampToValueAtTime(420, t + 0.04);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.18, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.06);
+  }
+
   function playSettle() {
     const ctx = ensureCtx();
     if (!ctx) return;
@@ -102,103 +76,87 @@ export default function MapPlacementOverlay({ build, onClose }: Props) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(540, t);
-    osc.frequency.exponentialRampToValueAtTime(360, t + 0.18);
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(140, t + 0.18);
     gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.22, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.28, t + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
     osc.connect(gain).connect(ctx.destination);
     osc.start(t);
     osc.stop(t + 0.24);
   }
 
-  // Pixel sizes derived from km × pxPerKm × current scale.
-  const imgScreenWidth = nativeImageKm ? nativeImageKm.widthKm * scale * pxPerKm : 0;
-  const imgScreenHeight = nativeImageKm ? nativeImageKm.heightKm * scale * pxPerKm : 0;
-  const imgScreenX = VIEWPORT_PX / 2 + offsetKm.x * pxPerKm - imgScreenWidth / 2;
-  const imgScreenY = VIEWPORT_PX / 2 - offsetKm.y * pxPerKm - imgScreenHeight / 2;
+  // Image sizing — fit to ~60% of viewport so there's room to drag without
+  // clipping the hex bounds in either axis.
+  const naturalW = build.image_width_px ?? 0;
+  const naturalH = build.image_height_px ?? 0;
+  const imageScale = (() => {
+    if (!naturalW || !naturalH) return 1;
+    const target = VIEWPORT_PX * 0.6;
+    return target / Math.max(naturalW, naturalH);
+  })();
+  const imgW = naturalW * imageScale;
+  const imgH = naturalH * imageScale;
 
   function handlePointerDown(e: React.PointerEvent) {
     if (saving) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    setDrag({ startX: e.clientX, startY: e.clientY, startKmX: offsetKm.x, startKmY: offsetKm.y });
+    setDrag({ startX: e.clientX, startY: e.clientY, startCol: offsetCol, startRow: offsetRow });
+    lastTickRef.current = { col: offsetCol, row: offsetRow };
   }
 
   function handlePointerMove(e: React.PointerEvent) {
-    if (!drag || pxPerKm === 0) return;
-    const dxPx = e.clientX - drag.startX;
-    const dyPx = e.clientY - drag.startY;
-    const dxKm = dxPx / pxPerKm;
-    const dyKm = -dyPx / pxPerKm; // screen Y is down; km Y is north
-    setOffsetKm({ x: drag.startKmX + dxKm, y: drag.startKmY + dyKm });
+    if (!drag) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    const newCol = drag.startCol + Math.round(dx / CELL_PX);
+    const newRow = drag.startRow + Math.round(dy / CELL_PX);
+
+    // Clamp so the image's center stays inside the grid.
+    const halfCols = GRID_COLS / 2;
+    const halfRows = GRID_ROWS / 2;
+    const clampedCol = Math.max(-halfCols + 1, Math.min(halfCols - 1, newCol));
+    const clampedRow = Math.max(-halfRows + 1, Math.min(halfRows - 1, newRow));
+
+    if (clampedCol !== offsetCol || clampedRow !== offsetRow) {
+      const stepped =
+        Math.abs(clampedCol - lastTickRef.current.col) +
+        Math.abs(clampedRow - lastTickRef.current.row);
+      if (stepped > 0) {
+        playTick();
+        lastTickRef.current = { col: clampedCol, row: clampedRow };
+      }
+      setOffsetCol(clampedCol);
+      setOffsetRow(clampedRow);
+    }
   }
 
   async function handlePointerUp() {
     if (!drag) return;
     setDrag(null);
     playSettle();
-    await persist();
-  }
-
-  function handleWheel(e: React.WheelEvent) {
-    if (saving || !nativeImageKm) return;
-    // Trackpad-friendly: smaller deltaY → small scale change.
-    const factor = Math.exp(-e.deltaY * 0.0015);
-    setScale(prev => Math.max(0.05, Math.min(40, prev * factor)));
-  }
-
-  // Debounced persist on scale changes — fires 250 ms after the last wheel event.
-  const scaleSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (scaleSaveTimer.current) clearTimeout(scaleSaveTimer.current);
-    scaleSaveTimer.current = setTimeout(() => {
-      void persist();
-    }, 250);
-    return () => {
-      if (scaleSaveTimer.current) clearTimeout(scaleSaveTimer.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scale]);
-
-  async function persist() {
-    if (!build.h3_cell) return;
     setSaving(true);
     try {
-      const cellHex = BigInt(build.h3_cell).toString(16).padStart(15, '0');
-      await fetch(`/api/map-builder/${build.id}/globe-placement`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cell: cellHex,
-          offset_km_x: offsetKm.x,
-          offset_km_y: offsetKm.y,
-          scale,
-        }),
-      });
+      // Anchor cell isn't changing — we only update the offset within it.
+      // The /globe-placement route accepts a cell + offsets; we re-send the
+      // current cell from the build so the route can validate.
+      // h3_cell on the build is a Postgres BIGINT — convert back to hex string.
+      const cellHex = build.h3_cell
+        ? BigInt(build.h3_cell).toString(16).padStart(15, '0')
+        : null;
+      if (cellHex) {
+        await fetch(`/api/map-builder/${build.id}/globe-placement`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cell: cellHex, offset_col: offsetCol, offset_row: offsetRow }),
+        });
+      }
     } finally {
       setSaving(false);
     }
   }
 
-  // Live fit check — uses the *scaled* image's km width as if the DM had
-  // chosen scale_value_ft accordingly. We feed the synthetic widths through
-  // h3AnchorFitCheckByCell with cellSizePx=imageWidthPx so it computes
-  // widthKm directly from a 1:1 ratio — easier than reverse-engineering ft.
-  const fit = useMemo(() => {
-    if (!projection || !nativeImageKm) return null;
-    const widthKm = nativeImageKm.widthKm * scale;
-    const heightKm = nativeImageKm.heightKm * scale;
-    // Synthesize cell_size_px so widthKm passes through unchanged.
-    return h3AnchorFitCheckByCell({
-      imageNaturalWidth: widthKm,
-      imageNaturalHeight: heightKm,
-      cellSizePx: 1,
-      scaleValueFt: FT_PER_KM,
-      anchorCell: build.h3_cell,
-    });
-  }, [projection, nativeImageKm, scale, build.h3_cell]);
-
-  // Esc closes (offsets/scale already persisted on each release / wheel).
+  // Esc closes (offset is already persisted on each drag-release).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
@@ -207,29 +165,30 @@ export default function MapPlacementOverlay({ build, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  if (!projection) {
-    return (
-      <div style={overlayStyle}>
-        <div style={{ color: '#cfe6ff' }}>This build isn&apos;t anchored to a hex yet.</div>
-        <button type="button" onClick={onClose} style={doneButtonStyle}>Done</button>
-      </div>
-    );
-  }
-
-  const hexD = hexSvgPath(projection, pxPerKm, VIEWPORT_PX / 2, VIEWPORT_PX / 2);
-
   return (
-    <div style={overlayStyle}>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.78)',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+      }}
+    >
       <div
         style={{
-          color: '#cfe6ff',
+          color: '#d0e0ff',
           fontSize: 13,
-          fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-          letterSpacing: '0.06em',
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          letterSpacing: '0.08em',
           textAlign: 'center',
         }}
       >
-        Drag the map to position it inside the hex · scroll to scale · release to save
+        Drag the map to position it on the hex · release to place
       </div>
 
       <div
@@ -237,161 +196,130 @@ export default function MapPlacementOverlay({ build, onClose }: Props) {
           width: VIEWPORT_PX,
           height: VIEWPORT_PX,
           position: 'relative',
-          background: 'linear-gradient(180deg, #0c1428 0%, #0a1020 100%)',
+          background: '#1a1a1f',
           border: '1px solid #2a3a5e',
           borderRadius: 4,
           overflow: 'hidden',
           touchAction: 'none',
           cursor: drag ? 'grabbing' : 'grab',
         }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onWheel={handleWheel}
       >
-        {/* Hex outline + clip mask in one SVG */}
+        {/* Snap grid */}
         <svg
           width={VIEWPORT_PX}
           height={VIEWPORT_PX}
           style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
         >
           <defs>
-            <clipPath id="placement-hex-clip">
-              <path d={hexD} />
-            </clipPath>
+            <pattern id="snap-grid" width={CELL_PX} height={CELL_PX} patternUnits="userSpaceOnUse">
+              <path
+                d={`M ${CELL_PX} 0 L 0 0 0 ${CELL_PX}`}
+                fill="none"
+                stroke="#2c3550"
+                strokeWidth={1}
+              />
+            </pattern>
           </defs>
-          {/* Soft fill so the hex interior reads as a distinct region */}
-          <path d={hexD} fill={HEX_FILL} stroke="none" />
+          <rect width={VIEWPORT_PX} height={VIEWPORT_PX} fill="url(#snap-grid)" />
+          {/* Center cross — visible reference for "centered" */}
+          <line
+            x1={VIEWPORT_PX / 2 - 8}
+            x2={VIEWPORT_PX / 2 + 8}
+            y1={VIEWPORT_PX / 2}
+            y2={VIEWPORT_PX / 2}
+            stroke="#3a4a70"
+          />
+          <line
+            x1={VIEWPORT_PX / 2}
+            x2={VIEWPORT_PX / 2}
+            y1={VIEWPORT_PX / 2 - 8}
+            y2={VIEWPORT_PX / 2 + 8}
+            stroke="#3a4a70"
+          />
         </svg>
 
-        {/* Image — clipped to hex via CSS */}
-        {build.image_path && nativeImageKm && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={`/api/map-builder/${build.id}/image`}
-            alt={build.name}
-            draggable={false}
+        {/* Draggable image */}
+        {build.image_path ? (
+          <div
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
             style={{
               position: 'absolute',
-              left: imgScreenX,
-              top: imgScreenY,
-              width: imgScreenWidth,
-              height: imgScreenHeight,
-              clipPath: 'url(#placement-hex-clip)',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              boxShadow: drag ? '0 6px 24px rgba(0,0,0,0.55)' : '0 3px 12px rgba(0,0,0,0.4)',
+              left: VIEWPORT_PX / 2 + offsetCol * CELL_PX - imgW / 2,
+              top: VIEWPORT_PX / 2 + offsetRow * CELL_PX - imgH / 2,
+              width: imgW || 240,
+              height: imgH || 240,
+              border: '2px solid #c9a84c',
+              boxShadow: '0 0 0 1px rgba(0,0,0,0.6), 0 8px 32px rgba(0,0,0,0.6)',
+              background: '#222',
+              touchAction: 'none',
               transition: drag ? 'none' : 'left 0.12s ease-out, top 0.12s ease-out',
             }}
-          />
-        )}
-
-        {/* Hex stroke on top so it sits over the image */}
-        <svg
-          width={VIEWPORT_PX}
-          height={VIEWPORT_PX}
-          style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
-        >
-          <path d={hexD} fill="none" stroke={HEX_STROKE} strokeWidth={2} opacity={0.95} />
-          {/* Center dot for "centered" reference */}
-          <circle
-            cx={VIEWPORT_PX / 2}
-            cy={VIEWPORT_PX / 2}
-            r={2}
-            fill="#ffffff"
-            opacity={0.55}
-          />
-        </svg>
-
-        {/* Scale bar — bottom-left, km mode */}
-        {kmPerPx > 0 && (
-          <div style={{ position: 'absolute', left: 14, bottom: 14, zIndex: 5 }}>
-            <ScaleBar mode="globe" kmPerPx={kmPerPx} targetWidthPx={140} />
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/map-builder/${build.id}/image`}
+              alt={build.name}
+              draggable={false}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'fill',
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }}
+            />
           </div>
-        )}
-
-        {/* Fit badge — top-right */}
-        {fit && (
+        ) : (
           <div
             style={{
               position: 'absolute',
-              right: 14,
-              top: 14,
-              padding: '6px 10px',
-              borderRadius: 3,
-              border: '1px solid',
-              borderColor:
-                fit.severity === 'ok' ? 'rgba(122,194,138,0.7)' :
-                fit.severity === 'warn' ? 'rgba(255,205,90,0.7)' :
-                'rgba(220,90,90,0.7)',
-              background:
-                fit.severity === 'ok' ? 'rgba(46,90,60,0.55)' :
-                fit.severity === 'warn' ? 'rgba(110,80,30,0.55)' :
-                'rgba(110,40,40,0.55)',
-              color: '#ffffff',
-              fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-              fontSize: 11,
-              letterSpacing: '0.04em',
-              maxWidth: 280,
-              lineHeight: 1.4,
-              pointerEvents: 'none',
-              zIndex: 5,
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#6b7a98',
+              fontSize: 13,
             }}
           >
-            {fit.message}
+            No image on this build
           </div>
         )}
       </div>
 
       <div
         style={{
-          color: '#9fb3d8',
+          color: '#8aa0c8',
           fontSize: 11,
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-          display: 'flex',
-          gap: 18,
         }}
       >
-        <span>offset: {offsetKm.x.toFixed(2)} km E, {offsetKm.y.toFixed(2)} km N</span>
-        <span>scale: {scale.toFixed(2)}×</span>
-        {nativeImageKm && (
-          <span>
-            image: {(nativeImageKm.widthKm * scale).toFixed(2)} × {(nativeImageKm.heightKm * scale).toFixed(2)} km
-            {!nativeImageKm.derived && ' (no scale metadata — estimated)'}
-          </span>
-        )}
-        {saving && <span style={{ color: '#7ac2c0' }}>saving…</span>}
+        offset: ({offsetCol}, {offsetRow})
+        {saving && '  ·  saving…'}
       </div>
 
       <div style={{ display: 'flex', gap: 12 }}>
-        <button type="button" onClick={onClose} style={doneButtonStyle}>Done</button>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            background: 'transparent',
+            border: '1px solid #3e5683',
+            color: '#8aa0c8',
+            padding: '8px 16px',
+            fontSize: 11,
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            fontFamily: 'ui-sans-serif, system-ui',
+            borderRadius: 2,
+            cursor: 'pointer',
+          }}
+        >
+          Done
+        </button>
       </div>
     </div>
   );
 }
-
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'radial-gradient(circle at center, rgba(15,30,55,0.86), rgba(0,0,0,0.92))',
-  zIndex: 1000,
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 16,
-};
-
-const doneButtonStyle: React.CSSProperties = {
-  background: 'rgba(60,130,200,0.18)',
-  border: '1px solid rgba(120,180,230,0.65)',
-  color: '#e8f1ff',
-  padding: '8px 18px',
-  fontSize: 11,
-  letterSpacing: '0.18em',
-  textTransform: 'uppercase',
-  fontFamily: 'ui-sans-serif, system-ui',
-  borderRadius: 2,
-  cursor: 'pointer',
-};
