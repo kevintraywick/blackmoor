@@ -551,6 +551,15 @@ async function _initSchema() {
     `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS world_hex_r INTEGER`
   ).catch(() => {});
 
+  // Globe placement (snap-grid offset within the anchor hex). h3_cell holds
+  // the anchor; offsets are signed integer grid units from hex center.
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS placement_offset_col INTEGER NOT NULL DEFAULT 0`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS placement_offset_row INTEGER NOT NULL DEFAULT 0`
+  ).catch(() => {});
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS map_build_levels (
       id          TEXT PRIMARY KEY,

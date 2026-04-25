@@ -1,12 +1,14 @@
 'use client';
 
 import { forwardRef, Suspense, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls, useGLTF, useTexture } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { PreparedCell } from '@/lib/h3-world-data';
 import { CARTOGRAPHY, type Location } from '@/lib/cartography';
+import { readImageDimensions } from '@/lib/image-dims';
 import { latToTileY, lngToTileX, tileBoundsLatLng } from '@/lib/tile-math';
 import { cellToLatLng, cellToParent, getHexagonEdgeLengthAvg, gridDisk, latLngToCell } from 'h3-js';
 
@@ -823,7 +825,7 @@ function ShadowTerrainHex({ cellData }: { cellData: PreparedCell }) {
   useEffect(() => () => geom.dispose(), [geom]);
   return (
     <mesh geometry={geom}>
-      <meshBasicMaterial map={texture} color={LOCAL_TILE_TINT} transparent opacity={0.2} toneMapped={false} depthWrite={false} blending={THREE.MultiplyBlending} />
+      <meshBasicMaterial map={texture} color={LOCAL_TILE_TINT} transparent opacity={0.2} toneMapped={false} depthWrite={false} blending={THREE.MultiplyBlending} premultipliedAlpha />
     </mesh>
   );
 }
@@ -1076,7 +1078,52 @@ const CameraController = forwardRef<
   return null;
 });
 
+/**
+ * Captures the live R3F camera into a parent-owned ref so DOM-level
+ * drag-and-drop handlers (which sit outside the Canvas tree) can raycast
+ * from screen pixels back into 3D world space.
+ */
+function CameraCapture({ cameraRef }: { cameraRef: React.MutableRefObject<THREE.Camera | null> }) {
+  const { camera } = useThree();
+  useEffect(() => {
+    cameraRef.current = camera;
+    return () => {
+      cameraRef.current = null;
+    };
+  }, [camera, cameraRef]);
+  return null;
+}
+
+/**
+ * Closed-form ray-vs-unit-sphere intersection from a screen pixel.
+ * Returns the [lat, lng] of the front-face hit, or null if the ray misses.
+ * Works correctly under camera.setViewOffset because unproject reads the
+ * post-offset projection matrix.
+ */
+function pixelToLatLng(
+  camera: THREE.Camera,
+  rect: DOMRect,
+  clientX: number,
+  clientY: number,
+): [number, number] | null {
+  const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  const y = -(((clientY - rect.top) / rect.height) * 2 - 1);
+  const ndc = new THREE.Vector3(x, y, 0.5);
+  ndc.unproject(camera);
+  const dir = ndc.sub(camera.position).normalize();
+  const O = camera.position;
+  const b = 2 * O.dot(dir);
+  const c = O.dot(O) - 1;
+  const disc = b * b - 4 * c;
+  if (disc < 0) return null;
+  const t = (-b - Math.sqrt(disc)) / 2;
+  if (t < 0) return null;
+  const hit = O.clone().add(dir.multiplyScalar(t));
+  return vec3ToLatLng(hit);
+}
+
 export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells, res4EligibleCells, labeledRes2Cells, liveCloudCellsPrecip, anchorCell, anchorLat, anchorLng }: Props) {
+  const router = useRouter();
   const [cameraDistance, setCameraDistance] = useState(2.5);
   const fillFade = fadeAmount(cameraDistance, FILL_FADE_FAR, FILL_FADE_NEAR);
   const res3Fade = fadeAmount(cameraDistance, RES3_FADE_FAR, RES3_FADE_NEAR);
@@ -1109,6 +1156,92 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
   const [geoVisible, setGeoVisible] = useState(true);
   const [weatherVisible, setWeatherVisible] = useState(true);
   const [eventsVisible, setEventsVisible] = useState(true);
+
+  // ── Drag-and-drop a map onto a placeable hex ──────────────────────────────
+  const cameraRef = useRef<THREE.Camera | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [dropHoverCell, setDropHoverCell] = useState<string | null>(null);
+  const [dropStatus, setDropStatus] = useState<string | null>(null);
+
+  // Cells the DM can drop a map on: Shadow's 7 campaign hexes + eligible halo.
+  const placeableCellSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of res4CampaignCells) s.add(c.cell);
+    for (const c of res4EligibleCells) s.add(c.cell);
+    return s;
+  }, [res4CampaignCells, res4EligibleCells]);
+
+  const placeableCellByCell = useMemo(() => {
+    const m = new Map<string, PreparedCell>();
+    for (const c of res4CampaignCells) m.set(c.cell, c);
+    for (const c of res4EligibleCells) if (!m.has(c.cell)) m.set(c.cell, c);
+    return m;
+  }, [res4CampaignCells, res4EligibleCells]);
+
+  function cellUnderPointer(clientX: number, clientY: number): string | null {
+    const cam = cameraRef.current;
+    const el = containerRef.current;
+    if (!cam || !el) return null;
+    const hit = pixelToLatLng(cam, el.getBoundingClientRect(), clientX, clientY);
+    if (!hit) return null;
+    const cell = latLngToCell(hit[0], hit[1], 4);
+    return placeableCellSet.has(cell) ? cell : null;
+  }
+
+  async function placeMapOnCell(file: File, cell: string) {
+    setDropStatus(`Uploading ${file.name}…`);
+    try {
+      const baseName =
+        file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'Untitled Map';
+
+      const createRes = await fetch('/api/map-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: baseName, map_role: 'local_map' }),
+      });
+      if (!createRes.ok) throw new Error('Could not create map');
+      const build = await createRes.json();
+
+      // Upload the bytes + read natural dimensions in parallel.
+      const dimsPromise = readImageDimensions(file).catch(() => ({ width: 0, height: 0 }));
+      const fd = new FormData();
+      fd.append('file', file);
+      const upRes = await fetch(`/api/map-builder/${build.id}/image`, {
+        method: 'POST',
+        body: fd,
+      });
+      const upJson = await upRes.json();
+      if (!upRes.ok || !upJson.ok) throw new Error('Upload failed');
+
+      const dims = await dimsPromise;
+
+      // Persist image metadata onto the build (skipping the Mappy grid analyzer
+      // — placement mode doesn't need a grid yet).
+      await fetch(`/api/map-builder/${build.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_path: upJson.image_path,
+          image_width_px: dims.width || null,
+          image_height_px: dims.height || null,
+        }),
+      });
+
+      // Anchor on the globe hex.
+      await fetch(`/api/map-builder/${build.id}/globe-placement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cell, offset_col: 0, offset_row: 0 }),
+      });
+
+      setDropStatus('Opening map builder…');
+      router.push(`/dm/map-builder?build=${build.id}&placement=1`);
+    } catch (err) {
+      console.error(err);
+      setDropStatus('Upload failed — try again');
+      setTimeout(() => setDropStatus(null), 2500);
+    }
+  }
 
   const [worldEvents, setWorldEvents] = useState<EventMarker[]>([]);
   useEffect(() => {
@@ -1392,13 +1525,46 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
       </aside>
 
       {/* Canvas fills the rest */}
-      <div style={{ flex: 1, position: 'relative' }}>
+      <div
+        ref={containerRef}
+        style={{ flex: 1, position: 'relative' }}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes('Files')) return;
+          e.preventDefault();
+          const cell = cellUnderPointer(e.clientX, e.clientY);
+          e.dataTransfer.dropEffect = cell ? 'copy' : 'none';
+          setDropHoverCell(cell);
+        }}
+        onDragLeave={(e) => {
+          // Only clear when leaving the container itself, not entering a child.
+          if (e.currentTarget === e.target) setDropHoverCell(null);
+        }}
+        onDrop={(e) => {
+          if (!e.dataTransfer.types.includes('Files')) return;
+          e.preventDefault();
+          const cell = cellUnderPointer(e.clientX, e.clientY);
+          setDropHoverCell(null);
+          if (!cell) {
+            setDropStatus('Drop on a Shadow or eligible hex');
+            setTimeout(() => setDropStatus(null), 2000);
+            return;
+          }
+          const file = e.dataTransfer.files?.[0];
+          if (!file || !file.type.startsWith('image/')) {
+            setDropStatus('Drop a PNG or JPEG');
+            setTimeout(() => setDropStatus(null), 2000);
+            return;
+          }
+          placeMapOnCell(file, cell);
+        }}
+      >
         <Canvas
           camera={{ position: initialCameraPos, fov: 35, near: 0.005, far: 100 }}
           gl={{ antialias: true }}
           style={{ background: COLOR_CANVAS_BG }}
         >
           <ambientLight intensity={1} />
+          <CameraCapture cameraRef={cameraRef} />
           {geoVisible && (
             <Suspense fallback={null}>
               <OceanSphere onSurfaceClick={handleSurfaceClick} />
@@ -1465,6 +1631,15 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
             color="#ffffff"
             opacity={0.7}
           />
+          {/* Brighten the cell currently under the dragged file. */}
+          {dropHoverCell && placeableCellByCell.get(dropHoverCell) && (
+            <OutlineLayer
+              cells={[placeableCellByCell.get(dropHoverCell)!]}
+              radius={RES3_OUTLINE_RADIUS * 1.0008}
+              color="#7ac28a"
+              opacity={1}
+            />
+          )}
           <AnchorMarker lat={anchorLat} lng={anchorLng} opacity={anchorOpacity} />
 
           {/* Planetary wolf token — visible at planetary zoom, fades out
@@ -1521,6 +1696,26 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
             controlsRef={controlsRef}
           />
         </Canvas>
+        {dropStatus && (
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: 16,
+              transform: 'translateX(-50%)',
+              background: 'rgba(0,0,0,0.8)',
+              color: '#d0e0ff',
+              fontSize: 12,
+              padding: '8px 14px',
+              borderRadius: 4,
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              pointerEvents: 'none',
+              zIndex: 50,
+            }}
+          >
+            {dropStatus}
+          </div>
+        )}
       </div>
     </div>
   );

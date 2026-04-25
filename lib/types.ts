@@ -291,6 +291,14 @@ export interface MapBuild {
   // World hex anchor (only set for local maps placed via the world hex picker)
   world_hex_q: number | null;
   world_hex_r: number | null;
+  // H3 cell anchor (BIGINT in Postgres → string when serialized to JSON).
+  // Set by either /world-location (res-6, legacy axial flow) or
+  // /globe-placement (res-4, Globe3D drop flow).
+  h3_cell: string | null;
+  h3_res: number | null;
+  // Globe placement (snap-grid offset within the anchor hex). 0/0 = centered.
+  placement_offset_col: number;
+  placement_offset_row: number;
 }
 
 export interface MapBuildLevel {
