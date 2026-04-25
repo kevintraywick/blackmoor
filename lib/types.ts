@@ -265,7 +265,20 @@ export type GridDetectType = 'square' | 'hex' | 'none';
 export type ScaleMode = 'combat' | 'overland' | 'none';
 export type MapKind = 'interior' | 'exterior' | 'dungeon' | 'town' | 'overland' | 'other';
 
-export type MapRole = 'local_map' | 'world_addition';
+export type MapRole = 'local_map' | 'world_addition' | 'regional';
+
+export interface RegionalMapAnchor {
+  id: string;
+  build_id: string;
+  feature_name: string;
+  /** Pixel position on the source image. Null until the DM clicks to set it. */
+  image_px_x: number | null;
+  image_px_y: number | null;
+  real_lat: number;
+  real_lng: number;
+  sort_order: number;
+  created_at: number;
+}
 
 export interface MapBuild {
   id: string;
@@ -305,6 +318,8 @@ export interface MapBuild {
   placement_offset_km_x: number;
   placement_offset_km_y: number;
   placement_scale: number;
+  /** Regional maps only — flip image x → west (so N stays N but E↔W mirror). */
+  mirror_horizontal: boolean;
 }
 
 export interface MapBuildLevel {
