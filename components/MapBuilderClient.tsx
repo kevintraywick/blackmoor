@@ -12,6 +12,7 @@ import { useUndoRedo } from '@/lib/useUndoRedo';
 import { hexCenter, hexPath } from '@/lib/hex-math';
 import { readImageDimensions as readImageDims } from '@/lib/image-dims';
 import MapPlacementOverlay from '@/components/dm/MapPlacementOverlay';
+import ScaleBar from '@/components/ScaleBar';
 
 interface Props {
   initialBuilds: MapBuild[];
@@ -1364,6 +1365,29 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
               <span className="font-serif text-lg text-[var(--color-gold)]">Drop map image here</span>
             </div>
           )}
+
+          {/* Persistent scale bar — combat or overland based on the build's
+              scale_mode. Skipped when the build has no scale yet (legacy
+              rows / blank maps that haven't been classified). */}
+          {(() => {
+            const b = builds.find(x => x.id === activeBuildId);
+            if (!b) return null;
+            if (b.scale_mode === 'combat') {
+              return (
+                <div style={{ position: 'absolute', left: 16, bottom: 16, zIndex: 30 }}>
+                  <ScaleBar mode="combat" targetWidthPx={120} />
+                </div>
+              );
+            }
+            if (b.scale_mode === 'overland') {
+              return (
+                <div style={{ position: 'absolute', left: 16, bottom: 16, zIndex: 30 }}>
+                  <ScaleBar mode="overland" targetWidthPx={140} />
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {/* Image overlay controls */}
           {overlay && (

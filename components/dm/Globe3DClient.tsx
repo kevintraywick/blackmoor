@@ -10,6 +10,8 @@ import type { PreparedCell } from '@/lib/h3-world-data';
 import { CARTOGRAPHY, type Location } from '@/lib/cartography';
 import { readImageDimensions } from '@/lib/image-dims';
 import { latToTileY, lngToTileX, tileBoundsLatLng } from '@/lib/tile-math';
+import { kmPerScreenPxAtSurface } from '@/lib/screen-scale';
+import ScaleBar from '@/components/ScaleBar';
 import { cellToLatLng, cellToParent, getHexagonEdgeLengthAvg, gridDisk, latLngToCell } from 'h3-js';
 
 interface LabeledRes2Cell {
@@ -1237,6 +1239,26 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
   const [dropHoverCell, setDropHoverCell] = useState<string | null>(null);
   const [dropStatus, setDropStatus] = useState<string | null>(null);
   const [mappedHoverCell, setMappedHoverCell] = useState<string | null>(null);
+  const [viewportHeight, setViewportHeight] = useState(0);
+
+  // Track the canvas wrapper's height so the ScaleBar HUD can compute the
+  // current km/px from camera distance + the actual viewport (not window).
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const e = entries[0];
+      if (e) setViewportHeight(e.contentRect.height);
+    });
+    ro.observe(el);
+    setViewportHeight(el.clientHeight);
+    return () => ro.disconnect();
+  }, []);
+
+  const kmPerPx = useMemo(
+    () => kmPerScreenPxAtSurface({ cameraDistance, fovDeg: 35, viewportHeightPx: viewportHeight }),
+    [cameraDistance, viewportHeight],
+  );
 
   // Cells the DM can drop a map on: Shadow's 7 campaign hexes + eligible halo.
   const placeableCellSet = useMemo(() => {
@@ -1812,6 +1834,18 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
             controlsRef={controlsRef}
           />
         </Canvas>
+        {kmPerPx > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              left: 16,
+              bottom: 16,
+              zIndex: 40,
+            }}
+          >
+            <ScaleBar mode="globe" kmPerPx={kmPerPx} targetWidthPx={140} />
+          </div>
+        )}
         {dropStatus && (
           <div
             style={{
