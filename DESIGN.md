@@ -121,16 +121,18 @@ The DM's view of the Raven Post is a multi-pane curation surface, similar in spi
 
 ## Color
 
-- **App palette**: Warm browns (`#1a1614` base) with gold accent (`#c9a84c`).
+> Brand direction (CLAUDE.md → Design Context) leads with **vivid, saturated, alive** — Journey Map is the reference register for new surfaces. The per-feature palettes below describe **what's currently shipped**, not what every new feature must adopt. Push new surfaces brighter and more colorful by default; quiet, dim, or low-saturation choices need a reason.
+
+- **Currently shipped base**: dark warm tone (`#1a1614`) with gold accent (`#c9a84c`). Used across DM and player chrome today; not a constraint on new features.
+- **Reference register (preferred for new surfaces)**: Journey Map — saturated soft blues, white circles (`rgba(255,255,255,0.9)`), light text.
 - **DM context**: Forest green (`#4a7a5a` bg, white text) for the DM nav bar and DM-only UI surfaces.
 - **Magic categories**: Gold (spell), brown (scroll), purple (magic item), green (other).
 - **Poison context**: Green (`#4a7a5a` for active indicators, `#7ac28a` for text). Nav tab pulses green when active.
 - **DM message dot**: Bright red `#dc2626` dot, no label. DM sees sent message history in the red pane with read/unread indicators (red dot = unread `#dc2626`, dimmed dot = read `#3a2e2e`).
 - **Boon dot**: White `#ffffff` with subtle glow (`boxShadow: 0 0 6px rgba(255,255,255,0.5)`). Pulses until player opens it, then stays solid until expired/cancelled.
 - **Indicator layout**: All three indicators (boon, poison, DM) in a flex container at `right: 16` in the header. Order left-to-right: boon (white) | poison (🤢) | DM (red). Dots only, no text labels.
-- **Combat panes** (Weapons, Cantrips/Spells): Warmer background `#282220` to visually elevate above other panes.
-- **Journey Map**: Exception — cheerful saturated soft blues, white circles (`rgba(255,255,255,0.9)`), light path.
-- **AI accent**: `#4a8ab0` — muted aged-ink blue, warm-palette friendly. Use for any UI affordance driven by AI (the "brain" draft button, AI suggestion pills, AI-generated content indicators). Not for links, state, or non-AI chrome. Exported as `AI_BLUE` from `components/dm/raven-editor/EditableProse.tsx`.
+- **Combat panes** (Weapons, Cantrips/Spells): elevated background `#282220` to visually lift above other panes.
+- **AI accent**: `#4a8ab0` — soft mid-blue. Use for any UI affordance driven by AI (the "brain" draft button, AI suggestion pills, AI-generated content indicators). Not for links, state, or non-AI chrome. Exported as `AI_BLUE` from `components/dm/raven-editor/EditableProse.tsx`.
 - **CYP availability dots**: Red (`#8b1a1a`) and green (`#2d8a4e`) dots per player row, `3.5×3.5` on mobile / `3×3` on desktop. Active dot gets `boxShadow: 0 0 6px` glow. Both empty = unseen (player dimmed). Row tap cycles: unseen → in (green) → out (red) → in...
 - **CYP date circles**: 77px with inline sizing (`style={{ width: 77, height: 77 }}`), not Tailwind arbitrary values. Gold border `rgba(201,168,76,0.3)`.
 - **CYP sound effects**: `swords.mp3` on "in", `run_away.mp3` on "out", `maybe.mp3` on "maybe". Volume 0.5, `.catch(() => {})` for autoplay restrictions.
