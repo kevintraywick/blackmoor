@@ -10,6 +10,9 @@ import type { BuilderTool } from '@/components/BuilderCanvas';
 import type { MapBuild, MapBuildLevel, MapBuildBookmark, TileState, Session, BuilderAsset, PlacedAsset } from '@/lib/types';
 import { useUndoRedo } from '@/lib/useUndoRedo';
 import { hexCenter, hexPath } from '@/lib/hex-math';
+import { readImageDimensions as readImageDims } from '@/lib/image-dims';
+import MapPlacementOverlay from '@/components/dm/MapPlacementOverlay';
+import ScaleBar from '@/components/ScaleBar';
 
 interface Props {
   initialBuilds: MapBuild[];
@@ -110,6 +113,15 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   const searchParams = useSearchParams();
   const returnToWorld = searchParams.get('returnToWorld');
   const incomingBuildId = searchParams.get('build');
+  const incomingPlacement = searchParams.get('placement') === '1';
+
+  // Globe-drop landed here in placement mode — show overlay until DM confirms.
+  // Cleared by either the overlay's onSaved or onCancel; user can re-trigger
+  // by re-dropping a map on the globe.
+  const [placementActive, setPlacementActive] = useState(false);
+  useEffect(() => {
+    if (incomingPlacement) setPlacementActive(true);
+  }, [incomingPlacement]);
 
   // Auto-open a build when arriving via ?build=<id>. Runs once per incoming id.
   const hasAutoOpenedRef = useRef<string | null>(null);
@@ -217,19 +229,7 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
 
   // Decode image dimensions client-side from a File without uploading.
   function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
-    return new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(file);
-      const img = new window.Image();
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      };
-      img.onerror = e => {
-        URL.revokeObjectURL(url);
-        reject(e);
-      };
-      img.src = url;
-    });
+    return readImageDims(file);
   }
 
   // Create a build from an image file (used by both file picker and drop circle).
@@ -1109,6 +1109,12 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
   }
 
   // ── Build editor view ──────────────────────────────────────────────────────
+  // Find the active build for the placement overlay (renders only when the
+  // build has fully loaded into builds[] — set by the auto-open effect).
+  const placementBuild = placementActive
+    ? builds.find((b) => b.id === incomingBuildId) ?? null
+    : null;
+
   return (
     <div
       className="flex flex-col"
@@ -1116,6 +1122,12 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
+      {placementBuild && (
+        <MapPlacementOverlay
+          build={placementBuild}
+          onClose={() => setPlacementActive(false)}
+        />
+      )}
       {/* Toolbar row */}
       <div className="flex items-center gap-3 px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
         {/* Back button */}
@@ -1353,6 +1365,29 @@ export default function MapBuilderClient({ initialBuilds }: Props) {
               <span className="font-serif text-lg text-[var(--color-gold)]">Drop map image here</span>
             </div>
           )}
+
+          {/* Persistent scale bar — combat or overland based on the build's
+              scale_mode. Skipped when the build has no scale yet (legacy
+              rows / blank maps that haven't been classified). */}
+          {(() => {
+            const b = builds.find(x => x.id === activeBuildId);
+            if (!b) return null;
+            if (b.scale_mode === 'combat') {
+              return (
+                <div style={{ position: 'absolute', left: 16, bottom: 16, zIndex: 30 }}>
+                  <ScaleBar mode="combat" targetWidthPx={120} />
+                </div>
+              );
+            }
+            if (b.scale_mode === 'overland') {
+              return (
+                <div style={{ position: 'absolute', left: 16, bottom: 16, zIndex: 30 }}>
+                  <ScaleBar mode="overland" targetWidthPx={140} />
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {/* Image overlay controls */}
           {overlay && (

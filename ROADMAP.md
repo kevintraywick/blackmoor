@@ -43,7 +43,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [x] Terrain painting mode on world map (paint mode, palette, Baumgart sprite rendering, cursor fix) <!-- common-v4 -->
 - [ ] Three.js hex renderer for world map (3D tiles, elevation, lighting, water) <!-- common-v4 -->
 - [ ] Scale reference tools (d6 anchor, ruler-in-image, template overlay) <!-- common-v4 -->
-- [x] World — 3D globe at `/dm/globe-3d` (react-three-fiber, rotatable, res-1/res-2 swap, Shadow presence overlay, astral-void markers) <!-- common-v4 -->
+- [x] World — 3D globe at `/dm/globe` (react-three-fiber, rotatable, res-1/res-2 swap, Shadow presence overlay, astral-void markers) <!-- common-v4 -->
 
 ### v5 — Housekeeping + ops
 
@@ -164,6 +164,7 @@ Archived 2026-04-16. Item rows live in the `roadmap_items` table and still rende
 - [ ] NOAA SWPC aurora/solar-flare feed → sky-danced events <!-- common-v15 -->
 - [ ] Trust tiers on items (Official / Whispered / Rumored / Prophesied) <!-- common-v15 -->
 - [ ] Earth-region remap engine — per-world rotation/mirror/shuffle of real geography <!-- common-v15 -->
+- [ ] Look-dev pass: Open-Meteo heatmap overlay — sample cloud_cover on a regular lat/lng grid, paint to canvas, wrap as transparent sphere texture (alternative path to NASA GIBS; full control + uses integration we already run) <!-- common-v15 -->
 
 ### v16 — Steampunk + airships
 

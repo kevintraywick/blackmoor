@@ -6,7 +6,7 @@ import Image from 'next/image';
 
 export type NavSection =
   | 'campaign' | 'sessions' | 'players' | 'npcs' | 'initiative'
-  | 'world' | 'map-builder'
+  | 'world' | 'map-builder' | 'regional-maps'
   | 'magic' | 'marketplace' | 'poisons' | 'inventory'
   | 'boons' | 'journey' | 'journal' | 'ar' | 'raven-post' | 'help';
 
@@ -46,6 +46,7 @@ const LINKS: { key: NavSection; label: string; href: string; kind: 'session' | '
   { key: 'initiative',  label: 'Initiative',      href: '/dm/initiative',  kind: 'session' },
   { key: 'world',       label: 'World',           href: '/dm/world',       kind: 'build' },
   { key: 'map-builder', label: 'Map Builder',     href: '/dm/map-builder', kind: 'build' },
+  { key: 'regional-maps', label: 'Regional',      href: '/dm/regional-maps', kind: 'build' },
   { key: 'magic',       label: 'Magic',           href: '/dm/magic',       kind: 'build' },
   { key: 'marketplace', label: 'Marketplace',     href: '/dm/marketplace', kind: 'build' },
   { key: 'inventory',   label: 'Inventory',       href: '/dm/inventory',   kind: 'build' },

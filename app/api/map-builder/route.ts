@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     if (session_id !== null && typeof session_id !== 'string') {
       return NextResponse.json({ error: 'Invalid session_id' }, { status: 400 });
     }
-    if (map_role !== 'local_map' && map_role !== 'world_addition') {
+    if (map_role !== 'local_map' && map_role !== 'world_addition' && map_role !== 'regional') {
       return NextResponse.json({ error: 'Invalid map_role' }, { status: 400 });
     }
 

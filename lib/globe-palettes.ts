@@ -1,5 +1,5 @@
 /**
- * Named color palettes for the /dm/globe-3d view.
+ * Named color palettes for the /dm/globe view.
  *
  * Kevin saves candidate palettes here by name so we can A/B them in the
  * globe client without re-litigating color choices in chat. Bring a

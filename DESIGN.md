@@ -121,16 +121,18 @@ The DM's view of the Raven Post is a multi-pane curation surface, similar in spi
 
 ## Color
 
-- **App palette**: Warm browns (`#1a1614` base) with gold accent (`#c9a84c`).
+> Brand direction (CLAUDE.md → Design Context) leads with **vivid, saturated, alive** — Journey Map is the reference register for new surfaces. The per-feature palettes below describe **what's currently shipped**, not what every new feature must adopt. Push new surfaces brighter and more colorful by default; quiet, dim, or low-saturation choices need a reason.
+
+- **Currently shipped base**: dark warm tone (`#1a1614`) with gold accent (`#c9a84c`). Used across DM and player chrome today; not a constraint on new features.
+- **Reference register (preferred for new surfaces)**: Journey Map — saturated soft blues, white circles (`rgba(255,255,255,0.9)`), light text.
 - **DM context**: Forest green (`#4a7a5a` bg, white text) for the DM nav bar and DM-only UI surfaces.
 - **Magic categories**: Gold (spell), brown (scroll), purple (magic item), green (other).
 - **Poison context**: Green (`#4a7a5a` for active indicators, `#7ac28a` for text). Nav tab pulses green when active.
 - **DM message dot**: Bright red `#dc2626` dot, no label. DM sees sent message history in the red pane with read/unread indicators (red dot = unread `#dc2626`, dimmed dot = read `#3a2e2e`).
 - **Boon dot**: White `#ffffff` with subtle glow (`boxShadow: 0 0 6px rgba(255,255,255,0.5)`). Pulses until player opens it, then stays solid until expired/cancelled.
 - **Indicator layout**: All three indicators (boon, poison, DM) in a flex container at `right: 16` in the header. Order left-to-right: boon (white) | poison (🤢) | DM (red). Dots only, no text labels.
-- **Combat panes** (Weapons, Cantrips/Spells): Warmer background `#282220` to visually elevate above other panes.
-- **Journey Map**: Exception — cheerful saturated soft blues, white circles (`rgba(255,255,255,0.9)`), light path.
-- **AI accent**: `#4a8ab0` — muted aged-ink blue, warm-palette friendly. Use for any UI affordance driven by AI (the "brain" draft button, AI suggestion pills, AI-generated content indicators). Not for links, state, or non-AI chrome. Exported as `AI_BLUE` from `components/dm/raven-editor/EditableProse.tsx`.
+- **Combat panes** (Weapons, Cantrips/Spells): elevated background `#282220` to visually lift above other panes.
+- **AI accent**: `#4a8ab0` — soft mid-blue. Use for any UI affordance driven by AI (the "brain" draft button, AI suggestion pills, AI-generated content indicators). Not for links, state, or non-AI chrome. Exported as `AI_BLUE` from `components/dm/raven-editor/EditableProse.tsx`.
 - **CYP availability dots**: Red (`#8b1a1a`) and green (`#2d8a4e`) dots per player row, `3.5×3.5` on mobile / `3×3` on desktop. Active dot gets `boxShadow: 0 0 6px` glow. Both empty = unseen (player dimmed). Row tap cycles: unseen → in (green) → out (red) → in...
 - **CYP date circles**: 77px with inline sizing (`style={{ width: 77, height: 77 }}`), not Tailwind arbitrary values. Gold border `rgba(201,168,76,0.3)`.
 - **CYP sound effects**: `swords.mp3` on "in", `run_away.mp3` on "out", `maybe.mp3` on "maybe". Volume 0.5, `.catch(() => {})` for autoplay restrictions.
@@ -304,6 +306,46 @@ All list panes (Weapons, Gear, Cantrips, Magic Items) use an inline `[+] Add ite
 - **Ground truth is the database**, not `ROADMAP.md`. The `roadmap_items` table is seeded from `ROADMAP.md` on first access (if empty), but after that the DB is authoritative. Edits on prod persist across deploys.
 - **`ROADMAP.md` is a generated artifact.** Call `POST /api/roadmap/sync` to regenerate `ROADMAP.md` from the current DB state. Keep it in git as a human-readable snapshot, not as the source of truth.
 - **Add, remove, toggle** all write to the DB via `/api/roadmap/{add,remove,toggle}`. No filesystem writes.
+
+## Globe (`/dm/globe`)
+
+The 3D globe is the Common World's master map. H3 hex grids at multiple resolutions crossfade by camera distance over a NASA Blue Marble texture.
+
+### Core conventions
+
+- **Res-0/1 outlines** fade out at close zoom (floors = 0). Res-2 and res-3 fade in as the camera approaches.
+- **Res-4 is the "campaign-scale" resolution.** One res-4 hex ≈ 1,770 km² (edge ~22.6 km, vertex-to-vertex ~45 km — a small US county / day's-walk region). Every campaign is anchored to one res-4 origin hex.
+- **Campaign footprint = origin + 6 adjacent hexes (7 total).** This is the starting territory for any campaign. Implemented as `campaignCells(originCell)` = `gridDisk(originCell, 1)`.
+- **Eligible origin candidates** are the res-4 children of the res-2 hex containing an existing origin (49 children minus that campaign's 7). White fill, 22% opacity. New campaigns land inside this halo.
+- **Shadow is the GPS-selected exception.** Its origin is the res-4 parent of Blaen Hafren (the anchor cell at the Severn headwaters in Wales). Every other campaign origin is DM-selected.
+- **Never prep res-4 globally** — 288k cells is too heavy for the RSC payload (~40 MB, 70s SSR). Use sparse prep via `prepareCells(ids, ...)` with ids derived from `gridDisk`, `cellToChildren`, etc.
+
+### Camera conventions
+
+- **Initial position**: equator plane (y=0), longitudinally aligned with Shadow's anchor, distance 3.0. Guarantees the N-pole cone points vertically straight up on first load.
+- **minDistance = 1.25, maxDistance = 5.** Below 1.25 the res-3 grid becomes too pixelated to read; above 5 the globe is uselessly small.
+- **Panning enabled** (`enablePan` + `screenSpacePanning`). Right-click/two-finger drag pans.
+- **Reset and Go-to-anchor buttons** explicitly reset `controls.target = (0,0,0)` after moving the camera.
+- **Fly-to animation**: camera tweens with ease-out cubic over 1.2s. Triggered via `CameraController.flyToAnchor(distance)` imperative handle. Used by the wolf token's click.
+
+### Palette
+
+- `globe_col_A`: warm cream backdrop (`#f0e0c8`), dark slate cells (`#2b3e67`), orange Shadow highlight (`#ff7a2a` — matches N-pole cone).
+- White for eligible-origin fill and campaign outlines.
+- Pentagon / astral void cells: grey (`#6e7480`).
+- Anchor marker (pulsing "you are here"): pink (`#ffb5c5`), radius 0.0012, fades out 1.4 → 1.0.
+
+### Tokens
+
+- **Campaign token** (wolf for Shadow) has two LOD variants:
+  - **Planetary wolf**: small (`scale=0.000512`), visible at planetary zoom, fades out as you zoom in (1.75 → 1.25). Clickable — fires a fly-to at the anchor.
+  - **Territory wolf**: auto-sized via `new THREE.Box3().setFromObject()` to fill the origin res-4 hex (~0.006 world units on the unit sphere). Fades in at close zoom (1.5 → 1.25).
+- Assets live under `public/tokens/`. Must be committed or Railway 404s at runtime. Run the `ar-asset-optimizer` skill on new `.glb` uploads.
+
+### Earth texture
+
+- Source: NASA Blue Marble Next Gen + topo + bathy from `neo.gsfc.nasa.gov/archive/bluemarble/bmng/world_8km/`. Downloaded as 5400×2700, resized with `magick -resize 4096x2048 -quality 88`. Stored as `public/textures/earth_4096.jpg` (1.2 MB).
+- Opaque with `depthWrite` on. No transparency — texture paints cleanly over cell layers below.
 
 ## Raven Post Broadsheet — Layout 1 v1
 

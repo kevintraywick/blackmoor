@@ -44,6 +44,7 @@ next-env.d.ts
 
 # scratch / local artifacts
 *.af
+scripts/render-log.txt
 
 # Source 3D assets (large, not needed in production)
 /maps/

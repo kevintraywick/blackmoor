@@ -538,7 +538,15 @@ async function _initSchema() {
   // 'local_map' for legacy rows.
   await pool.query(
     `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS map_role TEXT
-     CHECK (map_role IN ('local_map', 'world_addition'))`
+     CHECK (map_role IN ('local_map', 'world_addition', 'regional'))`
+  ).catch(() => {});
+  // If the constraint was created before 'regional' was added, swap it in.
+  await pool.query(
+    `ALTER TABLE map_builds DROP CONSTRAINT IF EXISTS map_builds_map_role_check`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE map_builds ADD CONSTRAINT map_builds_map_role_check
+     CHECK (map_role IN ('local_map', 'world_addition', 'regional'))`
   ).catch(() => {});
 
   // World location anchor for local maps. NULL until the DM places the build
@@ -549,6 +557,54 @@ async function _initSchema() {
   ).catch(() => {});
   await pool.query(
     `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS world_hex_r INTEGER`
+  ).catch(() => {});
+
+  // Globe placement (snap-grid offset within the anchor hex). h3_cell holds
+  // the anchor; offsets are signed integer grid units from hex center.
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS placement_offset_col INTEGER NOT NULL DEFAULT 0`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS placement_offset_row INTEGER NOT NULL DEFAULT 0`
+  ).catch(() => {});
+  // v3 #2 — hex-shaped placement at true km extent. Replaces the legacy
+  // 30×30 snap grid with continuous km offsets from the hex centroid plus
+  // a per-image scale multiplier (defaults to 1.0 = native km extent).
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS placement_offset_km_x DOUBLE PRECISION NOT NULL DEFAULT 0`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS placement_offset_km_y DOUBLE PRECISION NOT NULL DEFAULT 0`
+  ).catch(() => {});
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS placement_scale DOUBLE PRECISION NOT NULL DEFAULT 1`
+  ).catch(() => {});
+  // Regional-map anchoring: when true, the image's x-axis mirrors before
+  // projecting to lat/lng (so the cartographer's east on the page maps to
+  // real-world west — used for fictional Wales-overlays). North stays north.
+  await pool.query(
+    `ALTER TABLE map_builds ADD COLUMN IF NOT EXISTS mirror_horizontal BOOLEAN NOT NULL DEFAULT false`
+  ).catch(() => {});
+
+  // Regional map anchors — one row per named feature pinned to a real-world
+  // lat/lng. Two anchors are sufficient for a no-rotation linear projection
+  // (we only allow E/W mirror, not arbitrary rotation, so x and y axes are
+  // independent and a 2-point fit is determined).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS regional_map_anchors (
+      id            TEXT PRIMARY KEY,
+      build_id      TEXT NOT NULL REFERENCES map_builds(id) ON DELETE CASCADE,
+      feature_name  TEXT NOT NULL,
+      image_px_x    INTEGER,
+      image_px_y    INTEGER,
+      real_lat      DOUBLE PRECISION NOT NULL,
+      real_lng      DOUBLE PRECISION NOT NULL,
+      sort_order    INTEGER NOT NULL DEFAULT 0,
+      created_at    BIGINT NOT NULL
+    )
+  `).catch(() => {});
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS regional_map_anchors_build_idx ON regional_map_anchors (build_id)`
   ).catch(() => {});
 
   await pool.query(`

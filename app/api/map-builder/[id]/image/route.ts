@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureSchema } from '@/lib/schema';
-import { writeFile, mkdir } from 'fs/promises';
+import { query } from '@/lib/db';
+import { writeFile, mkdir, readFile } from 'fs/promises';
 import { join } from 'path';
 
-const BUILDER_IMAGES_DIR = process.env.BUILDER_IMAGES_DIR ?? '/data/builder-images';
+// Honors the project-wide DATA_DIR convention (set in .env.local for dev,
+// `/data` on Railway). Legacy BUILDER_IMAGES_DIR override still wins if set.
+const BUILDER_IMAGES_DIR =
+  process.env.BUILDER_IMAGES_DIR ?? `${process.env.DATA_DIR ?? '/data'}/builder-images`;
+const CONTENT_TYPE_BY_EXT: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+};
 const MAX_SIZE = 20 * 1024 * 1024; // 20MB
 const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const EXT_MAP: Record<string, string> = {
@@ -11,6 +21,39 @@ const EXT_MAP: Record<string, string> = {
   'image/jpeg': '.jpg',
   'image/webp': '.webp',
 };
+
+// GET /api/map-builder/[id]/image — serve the uploaded map image bytes.
+// Looks up the build's image_path then streams the file from disk.
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await ensureSchema();
+    const { id } = await params;
+    const [row] = await query<{ image_path: string | null }>(
+      'SELECT image_path FROM map_builds WHERE id = $1',
+      [id],
+    );
+    if (!row?.image_path) {
+      return NextResponse.json({ error: 'No image' }, { status: 404 });
+    }
+    const filename = row.image_path;
+    if (filename.includes('/') || filename.includes('..')) {
+      return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
+    }
+    const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase();
+    const contentType = CONTENT_TYPE_BY_EXT[ext] ?? 'application/octet-stream';
+    const buffer = await readFile(join(BUILDER_IMAGES_DIR, filename));
+    return new NextResponse(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'private, max-age=3600',
+      },
+    });
+  } catch (err) {
+    console.error('GET /api/map-builder/[id]/image', err);
+    return NextResponse.json({ error: 'Read failed' }, { status: 500 });
+  }
+}
 
 // POST /api/map-builder/[id]/image — upload a map image for the builder
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

@@ -8,33 +8,36 @@
 DM and players use this tool at the table during sessions (players on phones/tablets, DM on desktop/laptop) and between sessions for prep and reference. The DM manages sessions, maps, fog-of-war, notes, and inventory. Players check their character sheets and see live map updates. Latency and clarity matter — players glance at this mid-conversation, the DM uses it while running the game.
 
 ### Brand Personality
-**Mythic · Warm · Alive**
+**Mythic · Vivid · Alive**
 
-This is a tool for heroes and the people who run their world. It should feel like sitting around a fire with a story unfolding — not like opening an app. Warmth over coldness, legend over polish, presence over perfection.
+This is a tool for heroes and the people who run their world. It should feel vivid, surprising, and welcoming — like the lights coming up on a stage, not like opening an app. Color over muted, motion over stillness, presence over polish.
 
 ### Aesthetic Direction
-**Physical artifact, not a screen.** The interface should evoke old books, worn leather, hand-drawn maps, and candlelight — not D&D Beyond's branded app polish, not a generic dark-mode SaaS dashboard.
+**Lead with color, motion, and life.** Default to bright, saturated, confident palettes. The Journey page (saturated soft blues, white circles, light text) is the energy register the rest of the app should aim for. Surfaces earn the right to go quieter or darker when the content demands it — but the *first* design move is vivid.
 
-- **DO**: Rich warm browns, amber gold, aged parchment tones, deep crimson. Textures that suggest wear and use.
-- **DO**: Typography that feels crafted — EB Garamond (already in use) for body; display type should feel like a title page or carved stone, not a logo.
-- **DO**: Interfaces that feel like physical objects — a session log is a field journal, a character sheet is a filled-out form, a map is a map.
-- **DON'T**: Glassmorphism, neon, gradients, glowing UI elements, rounded-corner cards with drop shadows.
-- **DON'T**: Polished/branded fantasy (D&D Beyond, video game HUD aesthetic).
-- **DON'T**: Clean modern dark mode (slate/indigo/neutral palette, geometric sans-serif everywhere).
+- **DO**: Saturated color blocks. Confident contrast. Cheerful blues, vivid amber, bright whites, lively reds and greens. Color used as structure, not decoration.
+- **DO**: Motion that delights — a sparkle burst, a soft chime, a hex blooming when you drop a map onto it. Used sparingly so each one lands.
+- **DO**: Typography with personality — EB Garamond for body (warm, readable); display type can be playful, bold, characterful.
+- **DO**: Each surface earns its own visual identity — a map is a map, a character sheet is full of color and life, a globe is a planet. Don't force one texture across the whole app.
+- **DON'T**: Lead with parchment, aged-paper, worn-leather, candlelight, ink-bleed, page-turn, "physical artifact" or any other stale-aged-document register. Available as supporting texture for a specific surface that genuinely needs it (e.g. shipped Raven Post broadsheet) — never as the default move.
+- **DON'T**: Glassmorphism, hollow gradients, generic neon, decorative drop shadows.
+- **DON'T**: Polished/branded fantasy (D&D Beyond, video-game HUD aesthetic).
+- **DON'T**: Corporate dark-mode (slate/indigo/neutral palette, geometric sans-serif everywhere).
 
 ### Design Principles
-1. **Firelight, not fluorescent** — warmth is the dominant mood. Every surface should feel like it was made near a fire, not under office lights.
-2. **Worn, not broken** — the interface suggests use and history. Subtle imperfections, aged textures, and uneven weight feel intentional, not sloppy.
-3. **Clarity at a glance** — players check their sheets mid-game. The DM reads session notes while talking. Information must be scannable under pressure.
-4. **Physical object logic** — design as if each page is a real thing (a ledger, a scroll, a map). Typography, layout, and spacing should reinforce that mental model.
-5. **Alive but not loud** — motion and interaction should feel organic (a page turning, ink settling) not performative (bounces, pulses, glow effects).
+1. **Vivid, not muted** — saturated color and clear contrast win. If a surface looks dim and brown by default, push it brighter and see what the design wants to be.
+2. **Alive, not still** — small motion and feedback signal that the world is moving. Pulses, sparkles, weather on a banner, a hex blooming after a drop. Earned, not decorative.
+3. **Clarity at a glance** — players check their sheets mid-game. The DM reads notes while talking. Information must be scannable under pressure.
+4. **Each surface gets to be itself** — design every page as the thing it is. Don't impose a single visual register across the whole app.
+5. **Joyful, not performative** — motion is for moments worth marking (commit, win, arrival), not every hover. Ask "does this make the user smile?" before adding it.
 
 ### UI Preferences
 - **No hidden-choice controls without asking first.** Before implementing a `<select>` dropdown, `<datalist>`, or any pull-down menu, ask the user — they prefer options to be visible on the page (radio buttons, button groups, segmented controls, etc.). Only use a dropdown if the user explicitly approves it after seeing the alternatives.
 - **No scrollable containers by default.** Do not use `overflow-y-auto`, `max-h-*`, or any scroll-constrained container unless the user specifically requests it. Show all content at full height. Only suggest a scrollable container if it is clearly the superior solution, and get approval first.
 
 ### Page-Specific Aesthetics
-- **Journey Map** is an exception to the warm/dark aesthetic — it should feel **cheerful and light**. Saturated soft blues, white circles, light text. Unlike the rest of Shadow of the Wolf.
+- **Journey Map** sets the tone the rest of the app should grow toward — saturated soft blues, white circles, light text. When in doubt about a new surface's register, this is the reference.
+- **Existing warm-brown / gold surfaces** (player sheet, DM pages, Raven Post broadsheet, etc.) are shipped artifacts and stay as-is unless deliberately redesigned. The brand direction above governs *new* design decisions, not retroactive reskinning.
 
 ## Gotchas
 
@@ -55,6 +58,12 @@ This is a tool for heroes and the people who run their world. It should feel lik
 - **Scope-trimming feature units.** When a planned implementation unit turns out to be two features hiding inside one (e.g., "apply canonical scale to the builder" turned into "also render images in the builder for the first time"), trim scope and defer the larger piece with a plan note. Deliver user value in the current commit; don't pretend the scope was always smaller.
 - **Client components can't transitively import `lib/db.ts`.** A `'use client'` component that imports a helper which itself imports from `lib/db.ts` will drag `pg` into the client bundle and Turbopack will fail with "Module not found: Can't resolve 'tls'". Split pure helpers (formatters, type guards) into a separate file with no DB imports — see `lib/game-clock-format.ts` next to the server-only `lib/game-clock.ts`.
 - **JavaScript `%` is remainder, not modulo.** `(-1) % 2 === -1`, so `col % 2 === 1` misclassifies every negative odd column as even. For sign-safe odd tests use `((col % 2) + 2) % 2 === 1`. This bit `lib/hex-math.ts::hexCenter` and `hexNeighbors` once the world map started using negative hex coordinates (existing builder canvases never hit it because they use `col >= 0`).
+- **Turbopack bundles go stale on new prop additions.** Whenever you add a new prop to a client component that's hydrated from a server component (e.g. GlobeClient), the client bundle picks up the new prop name but the server-rendered HTML still uses the old tree. Result: runtime `undefined is not an object` or hydration mismatch on the new field. Fix: `lsof -ti :3000 | xargs kill -9 && rm -rf .next/cache && npx next dev -p 3000`. HMR alone won't fix it.
+- **H3 res-4 globally is too heavy for the RSC payload.** 288,122 cells × boundary arrays ≈ 40 MB JSON. SSR takes 70+ seconds and first paint is blocked. For high-res H3 work, never call `prepareResolution(4, ...)` (or higher). Use sparse prep: `prepareCells(ids, ...)` with the handful of cells you actually need (e.g. `gridDisk(origin, k)` or `cellToChildren(parent, 4)`). Res 0/1/2/3 are fine at global scale (≤41k cells).
+- **R3F onClick needs a concrete mesh under the hood.** `<group onClick={...}>` works because raycasting hits the child meshes and the event bubbles. On `<primitive>` from a loaded GLB, wrap it in a `<group>` and put the handlers there. Add `onPointerOver`/`onPointerOut` to swap `document.body.style.cursor` for affordance — drei/R3F doesn't do this automatically.
+- **GLB opacity must be applied to each mesh's material.** `<primitive>` has no opacity prop — traverse `.scene` (or a clone), set `material.transparent = true` at clone time, then update `material.opacity` in a `useEffect` keyed on the opacity value. Return `null` when opacity is below ~0.001 to skip the draw call entirely.
+- **Camera on the equator plane (y=0) guarantees vertical world +Y on screen.** If you place the camera anywhere off-equator and look at origin, `camera.up = (0,1,0)` still projects world +Y *close to* screen-up but not exactly — you'll see the axis canted. For any "pole-is-vertical" view, set camera position with `y = 0` explicitly; pick longitude by the lat/lng you want framed above the horizon.
+- **Auto-scale GLB models by bounding box, not hard-coded scale.** `new THREE.Box3().setFromObject(clone)` + `box.getSize()` gives native dims. Compute `scale = targetSize / native` — avoids scale magic numbers that break when the model is re-exported at different units. Pattern used in `TerritoryWolfToken` for hex-sized rendering.
 
 ## Output conventions
 

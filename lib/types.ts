@@ -265,7 +265,20 @@ export type GridDetectType = 'square' | 'hex' | 'none';
 export type ScaleMode = 'combat' | 'overland' | 'none';
 export type MapKind = 'interior' | 'exterior' | 'dungeon' | 'town' | 'overland' | 'other';
 
-export type MapRole = 'local_map' | 'world_addition';
+export type MapRole = 'local_map' | 'world_addition' | 'regional';
+
+export interface RegionalMapAnchor {
+  id: string;
+  build_id: string;
+  feature_name: string;
+  /** Pixel position on the source image. Null until the DM clicks to set it. */
+  image_px_x: number | null;
+  image_px_y: number | null;
+  real_lat: number;
+  real_lng: number;
+  sort_order: number;
+  created_at: number;
+}
 
 export interface MapBuild {
   id: string;
@@ -291,6 +304,22 @@ export interface MapBuild {
   // World hex anchor (only set for local maps placed via the world hex picker)
   world_hex_q: number | null;
   world_hex_r: number | null;
+  // H3 cell anchor (BIGINT in Postgres → string when serialized to JSON).
+  // Set by either /world-location (res-6, legacy axial flow) or
+  // /globe-placement (res-4, Globe drop flow).
+  h3_cell: string | null;
+  h3_res: number | null;
+  // Globe placement (snap-grid offset within the anchor hex). 0/0 = centered.
+  placement_offset_col: number;
+  placement_offset_row: number;
+  // Hex-shaped placement at true km extent (v3 #2). km_x/y is signed offset
+  // from hex centroid in km; placement_scale is the image's size multiplier
+  // (1.0 = native km extent derived from cell_size_px + scale_value_ft).
+  placement_offset_km_x: number;
+  placement_offset_km_y: number;
+  placement_scale: number;
+  /** Regional maps only — flip image x → west (so N stays N but E↔W mirror). */
+  mirror_horizontal: boolean;
 }
 
 export interface MapBuildLevel {
