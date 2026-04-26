@@ -307,7 +307,7 @@ All list panes (Weapons, Gear, Cantrips, Magic Items) use an inline `[+] Add ite
 - **`ROADMAP.md` is a generated artifact.** Call `POST /api/roadmap/sync` to regenerate `ROADMAP.md` from the current DB state. Keep it in git as a human-readable snapshot, not as the source of truth.
 - **Add, remove, toggle** all write to the DB via `/api/roadmap/{add,remove,toggle}`. No filesystem writes.
 
-## Globe (`/dm/globe-3d`)
+## Globe (`/dm/globe`)
 
 The 3D globe is the Common World's master map. H3 hex grids at multiple resolutions crossfade by camera distance over a NASA Blue Marble texture.
 

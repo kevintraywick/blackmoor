@@ -7,7 +7,7 @@ import { isValidCell, getResolution } from 'h3-js';
  * POST /api/map-builder/[id]/globe-placement
  *
  * Anchors a map build to an H3 cell on the globe (typically res-4 — the
- * Globe3D's "campaign hex" tier) and records the snap-grid offset within
+ * Globe's "campaign hex" tier) and records the snap-grid offset within
  * that hex.
  *
  * Body: { cell: string, offset_col?: number, offset_row?: number, clear?: boolean }

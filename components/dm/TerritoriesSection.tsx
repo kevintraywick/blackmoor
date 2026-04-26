@@ -35,7 +35,7 @@ export default async function TerritoriesSection() {
           style={{ color: 'var(--color-text-muted)' }}
         >
           No maps placed on the world yet. Drag a map onto a hex on the{' '}
-          <Link href="/dm/globe-3d" style={{ color: '#c9a84c', textDecoration: 'underline' }}>
+          <Link href="/dm/globe" style={{ color: '#c9a84c', textDecoration: 'underline' }}>
             globe
           </Link>
           .

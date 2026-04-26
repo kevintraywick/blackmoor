@@ -8,7 +8,7 @@
  * world-unit size is that span ÷ viewport height — multiply by 6371 to
  * get km/px.
  *
- * Used by the persistent ScaleBar HUD on Globe3DClient so the bar reflects
+ * Used by the persistent ScaleBar HUD on GlobeClient so the bar reflects
  * the *actual* on-screen scale at the front of the planet, not a globe-wide
  * average.
  */

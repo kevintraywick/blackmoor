@@ -8,7 +8,7 @@ focus: smoothing the user's transition from the 3D globe (H3 res-4 hex, ~45 km) 
 
 ## Codebase Context
 
-**Project shape.** Next.js 16 + React + TypeScript + Three.js (R3F + drei) + h3-js + Postgres. Globe view at `/dm/globe-3d` uses orbit camera (1.25–5.0 unit distance; 1 unit = 6371 km), H3 grids at res 0–4. Map editor at `/dm/map-builder` is DOM/SVG at canonical `PX_PER_FT = 12` (60 px = 5 ft).
+**Project shape.** Next.js 16 + React + TypeScript + Three.js (R3F + drei) + h3-js + Postgres. Globe view at `/dm/globe` uses orbit camera (1.25–5.0 unit distance; 1 unit = 6371 km), H3 grids at res 0–4. Map editor at `/dm/map-builder` is DOM/SVG at canonical `PX_PER_FT = 12` (60 px = 5 ft).
 
 **The jolt — three discontinuities today:**
 1. **3D → 2D with no motion bridge.** Drop on hex → `router.push('/dm/map-builder?build=...&placement=1')` → black-78% modal scrim opens. Hard cut.
@@ -16,7 +16,7 @@ focus: smoothing the user's transition from the 3D globe (H3 res-4 hex, ~45 km) 
 3. **Hex → square → square-or-hex.** The hex's geometry is lost in the placement step.
 
 **Existing precedents to leverage (don't reinvent):**
-- `CameraController.flyToAnchor` (R3F, 1.2 s ease-out cubic) wired in `Globe3DClient.tsx`.
+- `CameraController.flyToAnchor` (R3F, 1.2 s ease-out cubic) wired in `GlobeClient.tsx`.
 - LOD crossfade pattern: planetary→territory wolf token fades 1.75 → 1.25 camera distance.
 - `PX_PER_FT = 12` site-wide canonical scale (`lib/map-scale.ts`); helpers `cellScreenPx(ft)`, `imageDisplaySize(...)`.
 - `h3AnchorFitCheck()` already computes whether a map's km extent fits its H3 anchor cell — currently unused in placement UI.

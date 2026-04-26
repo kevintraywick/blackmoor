@@ -45,6 +45,16 @@ interface PlacedMap {
   offsetRow: number;
 }
 
+export interface RegionalMapPatchData {
+  id: string;
+  imageUrl: string;
+  imageWidth: number;
+  imageHeight: number;
+  anchorPx: { x: number; y: number };
+  anchorLatLng: { lat: number; lng: number };
+  kmPerPx: number;
+}
+
 interface Props {
   res0Cells: PreparedCell[];
   res1Cells: PreparedCell[];
@@ -54,6 +64,7 @@ interface Props {
   res4EligibleCells: PreparedCell[];
   placedMaps: PlacedMap[];
   placedMapCells: PreparedCell[];
+  regionalMap: RegionalMapPatchData | null;
   labeledRes2Cells: LabeledRes2Cell[];
   liveCloudCellsPrecip: CloudCell[];
   anchorCell: string;
@@ -135,6 +146,11 @@ const TERRITORY_WOLF_FADE_NEAR = 1.25;
 const RES1_FILL_RADIUS = 1.000;
 const RES2_FILL_RADIUS = 0.9995;
 const RES3_FILL_RADIUS = 1.0002;
+// Regional fiction map patch sits at 1.0008 (see RegionalMapPatch). Anything
+// that needs to render *above* it (Shadow's orange territory, mapped-hex
+// outlines, click targets) lives here:
+const ABOVE_REGIONAL_FILL_RADIUS = 1.0014;
+const ABOVE_REGIONAL_OUTLINE_RADIUS = 1.0017;
 
 function fadeAmount(distance: number, farEnd: number, nearEnd: number): number {
   // 0 when at/beyond FAR, 1 when at/below NEAR, linear in between.
@@ -980,11 +996,10 @@ function AnchorMarker({ lat, lng, opacity }: { lat: number; lng: number; opacity
 }
 
 function OceanSphere({ onSurfaceClick }: { onSurfaceClick?: (lat: number, lng: number) => void }) {
-  // NASA Blue Marble across the whole globe. Shadow's campaign +
-  // eligible hexes get Watercolor terrain tiles on top at close zoom
-  // via ShadowTerrainPatches; outside those hexes Blue Marble stays
-  // visible at every zoom.
-  const map = useTexture('/textures/earth_4096.jpg');
+  // The world is no longer Earth. The base sphere is solid black; the
+  // active region paints on top via RegionalMapPatch. (Previously this
+  // was NASA Blue Marble — kept as `/textures/earth_4096.jpg` for the
+  // close-zoom Shadow patches, which still use it for hex thumbnails.)
   return (
     <mesh
       onClick={onSurfaceClick ? (e) => {
@@ -994,7 +1009,85 @@ function OceanSphere({ onSurfaceClick }: { onSurfaceClick?: (lat: number, lng: n
       } : undefined}
     >
       <sphereGeometry args={[GLOBE_RADIUS * 0.999, 96, 64]} />
-      <meshBasicMaterial map={map} />
+      <meshBasicMaterial color="#000000" />
+    </mesh>
+  );
+}
+
+/**
+ * Paints a single regional fiction map onto the globe at the location its
+ * anchor pins it to. Single-anchor projection: one named feature on the
+ * image is matched to one real-world lat/lng; the printed map scale gives
+ * km-per-image-px. North stays up, no mirror — image-east is real-east.
+ *
+ * Built as a tessellated lat/lng grid (SUB×SUB) so the texture stays at
+ * native resolution wherever the camera looks. Equirectangular UVs map
+ * each vertex back to the source image.
+ */
+function RegionalMapPatch({ data }: { data: RegionalMapPatchData }) {
+  const texture = useTexture(data.imageUrl);
+
+  const { geometry } = useMemo(() => {
+    // Image footprint in km: image-px × km-per-px
+    const imgWidthKm = data.imageWidth * data.kmPerPx;
+    const imgHeightKm = data.imageHeight * data.kmPerPx;
+
+    // Anchor offset within the image, in km. Image y grows downward = south.
+    const anchorOffsetXkm = (data.anchorPx.x - data.imageWidth / 2) * data.kmPerPx;
+    const anchorOffsetYkm = (data.imageHeight / 2 - data.anchorPx.y) * data.kmPerPx;
+
+    // Image center in real lat/lng = anchor lat/lng minus the anchor's
+    // offset within the image (because anchor + offset = image center).
+    const KM_PER_LAT_DEG = 111;
+    const cosAnchorLat = Math.cos((data.anchorLatLng.lat * Math.PI) / 180);
+    const KM_PER_LNG_DEG = 111 * cosAnchorLat;
+    const centerLat = data.anchorLatLng.lat - anchorOffsetYkm / KM_PER_LAT_DEG;
+    const centerLng = data.anchorLatLng.lng - anchorOffsetXkm / KM_PER_LNG_DEG;
+
+    const halfWdeg = (imgWidthKm / 2) / KM_PER_LNG_DEG;
+    const halfHdeg = (imgHeightKm / 2) / KM_PER_LAT_DEG;
+    const latN = centerLat + halfHdeg;
+    const latS = centerLat - halfHdeg;
+    const lngE = centerLng + halfWdeg;
+    const lngW = centerLng - halfWdeg;
+
+    const SUB = 64;
+    const positions: number[] = [];
+    const uvs: number[] = [];
+    const indices: number[] = [];
+    const radius = GLOBE_RADIUS * 1.0008;
+    for (let i = 0; i <= SUB; i++) {
+      const v = i / SUB;
+      const lat = latN - (latN - latS) * v;
+      for (let j = 0; j <= SUB; j++) {
+        const u = j / SUB;
+        const lng = lngW + (lngE - lngW) * u;
+        const p = latLngToVec3(lat, lng, radius);
+        positions.push(p.x, p.y, p.z);
+        uvs.push(u, 1 - v); // drei loads textures with flipY=true
+      }
+    }
+    for (let i = 0; i < SUB; i++) {
+      for (let j = 0; j < SUB; j++) {
+        const a = i * (SUB + 1) + j;
+        const b = a + 1;
+        const c = a + (SUB + 1);
+        const d = c + 1;
+        indices.push(a, b, c, b, d, c);
+      }
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geom.setIndex(indices);
+    return { geometry: geom };
+  }, [data]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  return (
+    <mesh geometry={geometry}>
+      <meshBasicMaterial map={texture} side={THREE.DoubleSide} toneMapped={false} />
     </mesh>
   );
 }
@@ -1198,7 +1291,7 @@ function pixelToLatLng(
   return vec3ToLatLng(hit);
 }
 
-export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells, res4EligibleCells, placedMaps, placedMapCells, labeledRes2Cells, liveCloudCellsPrecip, anchorCell, anchorLat, anchorLng }: Props) {
+export default function GlobeClient({ res2Cells, res3Cells, res4CampaignCells, res4EligibleCells, placedMaps, placedMapCells, regionalMap, labeledRes2Cells, liveCloudCellsPrecip, anchorCell, anchorLat, anchorLng }: Props) {
   const router = useRouter();
   const [cameraDistance, setCameraDistance] = useState(2.5);
   const fillFade = fadeAmount(cameraDistance, FILL_FADE_FAR, FILL_FADE_NEAR);
@@ -1679,6 +1772,11 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
               <OceanSphere onSurfaceClick={handleSurfaceClick} />
             </Suspense>
           )}
+          {geoVisible && regionalMap && (
+            <Suspense fallback={null}>
+              <RegionalMapPatch data={regionalMap} />
+            </Suspense>
+          )}
           {geoVisible && (
             <ShadowTerrainPatches
               cells={shadowVisibleCells}
@@ -1725,20 +1823,32 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
             showShadow={false}
             uniformWhite
           />
-          {/* Shadow's 7-hex campaign — origin + 6 adjacent hexes, orange. */}
+          {/* Shadow's 7-hex campaign — origin + 6 adjacent hexes, orange.
+              Lifted above the regional map patch so it remains visible. */}
           <CellLayer
             cells={res4CampaignCells}
             anchorCell={anchorCell}
-            radius={RES3_FILL_RADIUS}
+            radius={ABOVE_REGIONAL_FILL_RADIUS}
             opacity={0.55}
             showShadow={true}
             uniformShadow
           />
           <OutlineLayer
             cells={res4CampaignCells}
-            radius={RES3_OUTLINE_RADIUS}
+            radius={ABOVE_REGIONAL_OUTLINE_RADIUS}
             color="#ffffff"
             opacity={0.7}
+          />
+          {/* Click any Shadow hex → open the regional map page. When a
+              regional map is anchored here, route to its detail; otherwise
+              the list. */}
+          <ClickableCells
+            cells={res4CampaignCells}
+            radius={ABOVE_REGIONAL_FILL_RADIUS * 1.00005}
+            onCellClick={() => {
+              router.push(regionalMap ? `/dm/regional-maps/${regionalMap.id}` : '/dm/regional-maps');
+            }}
+            onCellHover={() => {}}
           />
           {/* Mapped hexes — DM has dropped a map onto these. Gold outline,
               brightens on hover, click opens the builder. */}
@@ -1746,21 +1856,21 @@ export default function Globe3DClient({ res2Cells, res3Cells, res4CampaignCells,
             <>
               <OutlineLayer
                 cells={placedMapCells}
-                radius={RES3_OUTLINE_RADIUS * 1.0006}
+                radius={ABOVE_REGIONAL_OUTLINE_RADIUS * 1.00006}
                 color="#c9a84c"
                 opacity={0.95}
               />
               {mappedHoverCell && firstMapByCell.has(mappedHoverCell) && (
                 <OutlineLayer
                   cells={[placedMapCells.find(c => c.cell === mappedHoverCell)!]}
-                  radius={RES3_OUTLINE_RADIUS * 1.0012}
+                  radius={ABOVE_REGIONAL_OUTLINE_RADIUS * 1.00012}
                   color="#ffd479"
                   opacity={1}
                 />
               )}
               <ClickableCells
                 cells={placedMapCells}
-                radius={RES3_FILL_RADIUS * 1.0004}
+                radius={ABOVE_REGIONAL_FILL_RADIUS * 1.00012}
                 onCellClick={(cell) => {
                   const map = firstMapByCell.get(cell);
                   if (map) router.push(`/dm/map-builder?build=${map.id}&placement=1`);
